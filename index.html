@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PYAAR — The War for the Heart</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Three.js r128 (UMD) + OrbitControls — classic scripts so the page works via file:// -->
+  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+
+  <!-- Labels for the two Exile trays (fallen characters end up there) -->
+  <div class="exile-label exile-label-left">
+    <div class="exile-title">Exile · P1</div>
+    <div class="exile-count" id="exile-count-p1">0 fallen</div>
+  </div>
+  <div class="exile-label exile-label-right">
+    <div class="exile-title">Exile · P2</div>
+    <div class="exile-count" id="exile-count-p2">0 fallen</div>
+  </div>
+
+  <header id="topbar">
+    <div class="brand">
+      <span class="brand-mark">⚜</span>
+      <span class="brand-name">PYAAR</span>
+      <span class="brand-sub">The War for the Heart</span>
+    </div>
+  </header>
+
+  <!-- Phase banner: tells players what to do (pick hero / take turn) -->
+  <div id="phase-banner" class="phase-banner">
+    <div class="phase-title"></div>
+    <div class="phase-sub"></div>
+  </div>
+
+  <aside id="sidepanel">
+    <section class="card turn-card">
+      <div class="card-label">Turn</div>
+      <div id="turn-indicator">—</div>
+      <div id="move-count" class="move-count">Move 0</div>
+      <div id="heart-state" class="heart-state">The Heart sleeps · 0 / 5 souls</div>
+    </section>
+
+    <!-- Roster summary: surviving characters per side -->
+    <section class="card hero-card">
+      <div class="card-label">Roster</div>
+      <div class="hero-row">
+        <span class="hero-dot p1"></span>
+        <span class="hero-label">P1</span>
+        <span id="hero-p1" class="hero-name">7 / 7 alive</span>
+      </div>
+      <div class="hero-row">
+        <span class="hero-dot p2"></span>
+        <span class="hero-label">P2</span>
+        <span id="hero-p2" class="hero-name">7 / 7 alive</span>
+      </div>
+    </section>
+
+    <section class="card actions">
+      <button id="btn-begin" class="btn btn-primary hidden">Begin Game</button>
+      <button id="btn-shuffle" class="btn hidden">Shuffle Mine</button>
+      <button id="btn-new" class="btn btn-primary">New Game</button>
+      <button id="btn-mode" class="btn">vs Computer ✓</button>
+      <button id="btn-flip" class="btn">Flip Board</button>
+      <button id="btn-rules" class="btn">Rules</button>
+      <a href="characters.html" class="btn" style="text-align:center;text-decoration:none;">Characters · 3D</a>
+      <a href="PIECES.html" class="btn" style="text-align:center;text-decoration:none;">Pieces · Codex</a>
+    </section>
+  </aside>
+
+  <!-- Floating panel — shows the selected piece and what it can do. -->
+  <div id="char-panel" class="action-bar hidden">
+    <div class="ab-character">
+      <span id="char-icon" class="char-icon">♥</span>
+      <div class="ab-character-text">
+        <div id="char-name" class="char-name">—</div>
+        <div id="char-tag" class="char-tag">—</div>
+        <div id="char-status" class="char-status"></div>
+      </div>
+    </div>
+    <div class="ab-info">
+      <span class="ab-label">Movement</span>
+      <span id="char-movement-desc" class="ab-desc">—</span>
+    </div>
+    <button id="btn-cancel" class="btn-cancel">Cancel</button>
+  </div>
+
+  <!-- Rules modal -->
+  <div id="rules-panel" class="hidden">
+    <div class="rules-modal">
+      <button id="btn-close-rules" class="btn-close" aria-label="Close">×</button>
+      <h1>PYAAR</h1>
+      <p class="tagline">The Beloved at the centre, surrounded by friends. <b>The Lover cannot be captured.</b></p>
+
+      <h2>The board</h2>
+      <p>A 7 × 7 grid. The centre cell is <b>The Heart</b>. The 8 cells around it form the <b>Lotus</b> — where the Embrace forms.</p>
+
+      <h2>Setup — before the first move</h2>
+      <p>Each player arranges their seven combat pieces along their home row in any order. Click two of your back-row pieces to swap them. <b>Shuffle Mine</b> randomises. Press <b>Begin Game</b> when ready. The Soldier always starts at column d. In vs Computer, the AI's row is shuffled automatically.</p>
+
+      <h2>Your turn</h2>
+      <ol>
+        <li>Click one of <b>your</b> characters.</li>
+        <li>Click a glowing green cell, or a red enemy to capture it.</li>
+      </ol>
+      <p>Each piece has exactly one movement rule. <b>The Lover cannot be captured by enemies</b> — they may block her, trap her, or fight around her, but they may never remove her.</p>
+
+      <h2>The eight pieces (both sides have them)</h2>
+      <ul class="char-list">
+        <li><b>♥ Lover</b> — 1 cell toward the Heart. <b>Cannot be captured.</b> Your crown-piece.</li>
+        <li><b>⚔ Warrior</b> — 1 cell in any of 8 directions. <i>(king)</i></li>
+        <li><b>✦ Sage</b> — any cells diagonally, stops at first piece. <i>(bishop)</i></li>
+        <li><b>⚯ Traitor</b> — any cells orthogonally, stops at first piece. <i>(rook)</i></li>
+        <li><b>◊ Fool</b> — L-shape jumps. <i>(knight)</i></li>
+        <li><b>⚜ Guardian</b> — up to 2 cells in any of 8 directions.</li>
+        <li><b>☾ Dreamer</b> — up to 3 cells in a line. <b>Cannot capture.</b></li>
+        <li><b>⚑ Soldier</b> — 1 cell forward, captures diagonally. <i>(pawn)</i></li>
+      </ul>
+
+      <h2>How to win — two paths</h2>
+      <p><b>❀ The Embrace.</b> At the start of your turn, your <b>Lover</b> stands on the <b>Heart</b> AND at least <b>2 of your other pieces</b> stand on the surrounding Lotus cells.</p>
+      <p><b>⚔ The Siege.</b> At the start of your opponent's turn, they have no legal move. By the nature of PYAAR this almost always means their army is gone and their Lover is alone.</p>
+      <p>If neither fires by move 100, the army <b>closer to the Heart</b> wins on a tiebreaker.</p>
+
+      <p class="hint">Click outside this box to close.</p>
+    </div>
+  </div>
+
+  <!-- Win banner -->
+  <div id="win-banner" class="hidden">
+    <div class="win-modal">
+      <div id="win-text" class="win-text">—</div>
+      <div id="win-subtext" class="win-subtext">—</div>
+      <button id="btn-banner-new" class="btn btn-primary">Play Again</button>
+    </div>
+  </div>
+
+  <script src="pieces.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

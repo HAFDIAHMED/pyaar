@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PYAAR — The Pieces · A Codex</title>
+  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+  <script src="pieces.js"></script>
+  <style>
+    /* ===========================================================
+       PYAAR · Codex of the Pieces
+       Printable A4 ebook. One spread per piece.
+       =========================================================== */
+    @page { size: A4; margin: 16mm 14mm; }
+    :root {
+      --ink: #1c1410;
+      --ink-soft: #4a3a2a;
+      --paper: #f6ecd8;
+      --paper-warm: #f0e3c8;
+      --gold: #a06f1c;
+      --gold-dim: #6a4810;
+      --gold-bright: #d4a64e;
+      --crimson: #a62244;
+      --crimson-dim: #6b1228;
+      --rule: rgba(28, 20, 16, 0.16);
+      --rule-strong: rgba(28, 20, 16, 0.32);
+      --p1: #e88c2c;
+      --p2: #2a4a78;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background: #1c130c;
+      color: var(--ink);
+      font-family: "Cormorant Garamond", "Garamond", "Georgia", serif;
+      font-size: 11.5pt;
+      line-height: 1.55;
+    }
+    body { padding: 28px 0 60px; }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto 22px;
+      background:
+        radial-gradient(circle at 10% 5%, rgba(160, 111, 28, 0.07), transparent 55%),
+        radial-gradient(circle at 92% 95%, rgba(166, 34, 68, 0.05), transparent 50%),
+        var(--paper);
+      padding: 22mm 22mm 26mm;
+      box-shadow: 0 14px 50px rgba(0, 0, 0, 0.5);
+      page-break-after: always;
+      position: relative;
+    }
+    .page:last-child { page-break-after: auto; }
+
+    /* Decorative corner ornaments */
+    .page::before, .page::after {
+      content: "";
+      position: absolute;
+      width: 28mm; height: 28mm;
+      pointer-events: none;
+      background-repeat: no-repeat;
+      background-size: contain;
+    }
+    .page::before {
+      top: 10mm; left: 10mm;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M5 5 L5 35 M5 5 L35 5 M5 5 Q20 20 35 35' fill='none' stroke='%23a06f1c' stroke-width='0.8' opacity='0.45'/><circle cx='10' cy='10' r='2' fill='%23a62244' opacity='0.55'/></svg>");
+    }
+    .page::after {
+      bottom: 10mm; right: 10mm;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M95 95 L95 65 M95 95 L65 95 M95 95 Q80 80 65 65' fill='none' stroke='%23a06f1c' stroke-width='0.8' opacity='0.45'/><circle cx='90' cy='90' r='2' fill='%23a62244' opacity='0.55'/></svg>");
+    }
+
+    /* Typography */
+    h1, h2, h3, h4 {
+      font-family: "Cinzel", "Trajan Pro", "Cormorant Garamond", serif;
+      color: var(--ink);
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      margin: 0;
+    }
+    h1 { font-size: 44pt; letter-spacing: 0.3em; color: var(--gold); }
+    h2 { font-size: 24pt; letter-spacing: 0.18em; color: var(--crimson-dim); }
+    h3 {
+      font-size: 11pt; letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+    }
+    p { margin: 0 0 4mm; }
+    em { color: var(--ink-soft); }
+
+    /* Page numbers */
+    .page > .folio {
+      position: absolute;
+      bottom: 12mm; left: 0; right: 0;
+      text-align: center;
+      font-family: "Cinzel", serif;
+      font-size: 9pt;
+      letter-spacing: 0.32em;
+      color: var(--gold-dim);
+    }
+
+    /* ===== COVER ===== */
+    .cover {
+      background:
+        radial-gradient(ellipse at 50% 35%, rgba(255, 200, 130, 0.18), transparent 60%),
+        linear-gradient(160deg, #1d1208 0%, #4a2818 50%, #6a3826 100%);
+      color: var(--paper);
+    }
+    .cover h1, .cover h2 { color: #ffd58a; text-align: center; }
+    .cover h1 { margin-top: 65mm; font-size: 56pt; }
+    .cover .subtitle {
+      text-align: center;
+      font-style: italic;
+      font-size: 17pt;
+      color: #f0d8a0;
+      letter-spacing: 0.08em;
+      margin: 4mm 0 18mm;
+    }
+    .cover .roundel {
+      width: 64mm; height: 64mm; margin: 0 auto;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cover .imprint {
+      position: absolute; bottom: 18mm; left: 0; right: 0;
+      text-align: center;
+      font-family: "Cinzel", serif;
+      letter-spacing: 0.35em;
+      font-size: 10pt;
+      color: #b89868;
+    }
+    .cover::before, .cover::after { display: none; }
+    .cover > .folio { color: transparent; }
+
+    /* ===== CONTENTS ===== */
+    .contents h2 { text-align: center; margin: 4mm 0 12mm; }
+    .toc {
+      margin: 0 auto;
+      width: 110mm;
+      font-size: 13pt;
+      line-height: 2;
+    }
+    .toc li {
+      display: flex;
+      align-items: baseline;
+      gap: 0;
+      list-style: none;
+    }
+    .toc li .num {
+      width: 8mm;
+      font-family: "Cinzel", serif;
+      color: var(--gold-dim);
+      letter-spacing: 0.15em;
+      font-size: 11pt;
+    }
+    .toc li .symbol {
+      width: 8mm;
+      color: var(--crimson);
+      font-size: 14pt;
+    }
+    .toc li .name {
+      flex: 1;
+      font-family: "Cinzel", serif;
+      letter-spacing: 0.12em;
+      font-size: 12pt;
+    }
+    .toc li .dots {
+      flex: 1;
+      border-bottom: 1px dotted var(--rule-strong);
+      margin: 0 2mm 4px;
+    }
+    .toc li .pn {
+      font-family: "Cinzel", serif;
+      color: var(--gold-dim);
+      letter-spacing: 0.15em;
+      font-size: 11pt;
+    }
+    .ornament {
+      text-align: center;
+      color: var(--gold);
+      font-size: 18pt;
+      letter-spacing: 1.5em;
+      margin: 12mm 0 0;
+    }
+
+    /* ===== PIECE PAGES ===== */
+    .piece-page {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 8mm;
+    }
+    .piece-head {
+      display: grid;
+      grid-template-columns: 22mm 1fr 35mm;
+      align-items: center;
+      gap: 6mm;
+      padding-bottom: 4mm;
+      border-bottom: 1.5px solid var(--rule-strong);
+    }
+    .piece-head .symbol {
+      font-size: 36pt;
+      color: var(--crimson);
+      text-align: center;
+      line-height: 1;
+    }
+    .piece-head .title h2 { margin-bottom: 2mm; }
+    .piece-head .title .byline {
+      font-style: italic; font-size: 12pt;
+      color: var(--ink-soft); letter-spacing: 0.04em;
+    }
+    .piece-head .roman {
+      font-family: "Cinzel", serif;
+      letter-spacing: 0.25em;
+      color: var(--gold-dim);
+      font-size: 13pt;
+      text-align: right;
+      padding-right: 3mm;
+    }
+
+    .piece-body {
+      display: grid;
+      grid-template-columns: 90mm 1fr;
+      gap: 8mm;
+    }
+
+    /* Left: 3D stage + movement diagram */
+    .piece-render {
+      background:
+        radial-gradient(ellipse at 50% 90%, rgba(212, 166, 78, 0.20), transparent 55%),
+        linear-gradient(180deg, #f3e9d3, #d5c4a3);
+      border: 1px solid var(--rule-strong);
+      border-radius: 6px;
+      height: 80mm;
+      position: relative;
+      overflow: hidden;
+    }
+    .piece-render canvas { width: 100%; height: 100%; display: block; }
+    .piece-render .badge {
+      position: absolute;
+      top: 2mm; left: 2mm;
+      font-family: "Cinzel", serif;
+      font-size: 8pt;
+      letter-spacing: 0.18em;
+      color: var(--gold-dim);
+      background: rgba(255, 248, 230, 0.85);
+      padding: 1mm 2mm;
+      border-radius: 2px;
+      text-transform: uppercase;
+    }
+
+    .movement-diagram {
+      margin-top: 6mm;
+      text-align: center;
+    }
+    .movement-diagram h3 { margin-bottom: 3mm; }
+    .movement-diagram svg { display: block; margin: 0 auto; }
+    .movement-caption {
+      font-style: italic;
+      font-size: 9.5pt;
+      color: var(--ink-soft);
+      margin-top: 3mm;
+    }
+
+    /* Right: stats + lore */
+    .piece-info { padding-left: 2mm; }
+    .lore {
+      font-size: 11.5pt;
+      line-height: 1.6;
+      color: var(--ink);
+      margin-bottom: 6mm;
+    }
+    .lore .drop {
+      float: left;
+      font-family: "Cinzel", serif;
+      font-size: 30pt;
+      line-height: 0.9;
+      color: var(--crimson-dim);
+      margin: 1mm 3mm 0 0;
+    }
+
+    .stats-card {
+      background: rgba(255, 250, 235, 0.6);
+      border-left: 3px solid var(--gold);
+      padding: 4mm 5mm;
+      margin: 4mm 0;
+      page-break-inside: avoid;
+    }
+    .stats-card h3 { margin-bottom: 3mm; }
+    .stat-row {
+      display: grid;
+      grid-template-columns: 28mm 1fr;
+      gap: 3mm;
+      padding: 1.5mm 0;
+      border-bottom: 1px dotted var(--rule);
+      font-size: 10.5pt;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-row .label {
+      font-family: "Cinzel", serif;
+      letter-spacing: 0.16em;
+      font-size: 9pt;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      align-self: center;
+    }
+    .stat-row .value { font-size: 10.5pt; color: var(--ink); }
+
+    .role-card {
+      background: rgba(166, 34, 68, 0.05);
+      border: 1px solid var(--rule);
+      border-left: 3px solid var(--crimson);
+      padding: 4mm 5mm;
+      margin: 4mm 0;
+    }
+    .role-card h3 { margin-bottom: 3mm; color: var(--crimson-dim); }
+    .role-card p { font-size: 10.5pt; line-height: 1.5; }
+
+    .piece-foot {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      gap: 6mm;
+      padding-top: 4mm;
+      border-top: 1px solid var(--rule);
+    }
+    .piece-foot .tagline {
+      font-style: italic;
+      font-size: 11pt;
+      color: var(--ink-soft);
+    }
+    .piece-foot .glyph {
+      font-size: 14pt;
+      color: var(--gold-dim);
+      letter-spacing: 0.4em;
+    }
+
+    /* The Lover gets a special highlight */
+    .crown .piece-head { border-bottom-color: var(--crimson); border-bottom-width: 2.5px; }
+    .crown .piece-head .symbol { text-shadow: 0 0 12px rgba(166, 34, 68, 0.5); }
+
+    /* Last page — afterword */
+    .afterword {
+      max-width: 130mm;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .afterword h2 { margin: 30mm 0 8mm; }
+    .afterword p {
+      font-style: italic;
+      font-size: 13pt;
+      line-height: 1.7;
+      color: var(--ink-soft);
+    }
+    .afterword .signature {
+      margin-top: 24mm;
+      font-family: "Cinzel", serif;
+      letter-spacing: 0.32em;
+      font-size: 10pt;
+      color: var(--gold-dim);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     COVER
+     ============================================================ -->
+<section class="page cover">
+  <div class="roundel">
+    <svg width="200" height="200" viewBox="-100 -100 200 200">
+      <!-- outer ring -->
+      <circle cx="0" cy="0" r="78" fill="none" stroke="#d8b878" stroke-width="1.2" opacity="0.55"/>
+      <circle cx="0" cy="0" r="65" fill="none" stroke="#d8b878" stroke-width="0.7" opacity="0.45"/>
+      <!-- 8 lotus petals around centre — one per piece type -->
+      <g>
+        <!-- 5-petal lotus head jewel -->
+        <g transform="rotate(0)">
+          <!-- 8 small marks for the 8 pieces -->
+        </g>
+      </g>
+      <!-- 8 surrounding marks -->
+      <g fill="#ffd58a" stroke="#a06f1c" stroke-width="0.6" font-family="serif" font-size="14" text-anchor="middle">
+        <text x="0" y="-50" dominant-baseline="central">♥</text>
+        <text x="35" y="-35" dominant-baseline="central">⚔</text>
+        <text x="50" y="0" dominant-baseline="central">✦</text>
+        <text x="35" y="35" dominant-baseline="central">◊</text>
+        <text x="0" y="50" dominant-baseline="central">⚯</text>
+        <text x="-35" y="35" dominant-baseline="central">⚜</text>
+        <text x="-50" y="0" dominant-baseline="central">☾</text>
+        <text x="-35" y="-35" dominant-baseline="central">⚑</text>
+      </g>
+      <!-- central lotus heart -->
+      <g transform="translate(0, 0)">
+        <circle r="22" fill="rgba(166, 34, 68, 0.4)" />
+        <circle r="14" fill="#a62244"/>
+        <path d="M 0 -8 C -5 -15 -16 -8 -10 0 L 0 12 L 10 0 C 16 -8 5 -15 0 -8 Z" fill="#ffd58a"/>
+      </g>
+    </svg>
+  </div>
+  <h1>PYAAR</h1>
+  <p class="subtitle">The Codex of the Pieces</p>
+  <div class="imprint">A Player's Bestiary · First Edition</div>
+  <div class="folio"></div>
+</section>
+
+<!-- ============================================================
+     TABLE OF CONTENTS
+     ============================================================ -->
+<section class="page contents">
+  <h2>The Eight</h2>
+  <ul class="toc">
+    <li><span class="num">I</span><span class="symbol">♥</span><span class="name">The Lover</span><span class="dots"></span><span class="pn">4</span></li>
+    <li><span class="num">II</span><span class="symbol">⚔</span><span class="name">The Warrior</span><span class="dots"></span><span class="pn">5</span></li>
+    <li><span class="num">III</span><span class="symbol">✦</span><span class="name">The Sage</span><span class="dots"></span><span class="pn">6</span></li>
+    <li><span class="num">IV</span><span class="symbol">⚯</span><span class="name">The Traitor</span><span class="dots"></span><span class="pn">7</span></li>
+    <li><span class="num">V</span><span class="symbol">◊</span><span class="name">The Fool</span><span class="dots"></span><span class="pn">8</span></li>
+    <li><span class="num">VI</span><span class="symbol">⚜</span><span class="name">The Guardian</span><span class="dots"></span><span class="pn">9</span></li>
+    <li><span class="num">VII</span><span class="symbol">☾</span><span class="name">The Dreamer</span><span class="dots"></span><span class="pn">10</span></li>
+    <li><span class="num">VIII</span><span class="symbol">⚑</span><span class="name">The Soldier</span><span class="dots"></span><span class="pn">11</span></li>
+  </ul>
+  <div class="ornament">·</div>
+  <div class="folio">CONTENTS</div>
+</section>
+
+<!-- ============================================================
+     A NOTE ON THE PIECES
+     ============================================================ -->
+<section class="page">
+  <h2 style="text-align: center; margin-bottom: 8mm;">A Note on the Pieces</h2>
+  <p style="margin: 0 auto 5mm; max-width: 120mm; text-indent: 8mm;">
+    <span style="float: left; font-family: 'Cinzel', serif; font-size: 36pt; line-height: 0.9; color: var(--crimson-dim); margin: 1mm 3mm 0 0;">E</span>ight figures stand on each side of the board. Seven of them fight; one of them is fought for. The seven combat pieces — the Warrior, the Sage, the Traitor, the Fool, the Guardian, the Dreamer, the Soldier — move in patterns drawn from the long history of chess. The eighth piece, the Lover, breaks that tradition entirely. She walks only toward the Heart at the centre of the board. She cannot be captured by any enemy. She is the only piece that can win the game.
+  </p>
+  <p style="margin: 0 auto 5mm; max-width: 120mm; text-indent: 8mm;">
+    This codex describes each of the eight in turn. You will find, for every piece, a rendering of its sculpted form, a diagram of its movement, a profile of its combat reach, and a short note on its role in the formation we call <em>The Embrace</em>.
+  </p>
+  <p style="margin: 0 auto; max-width: 120mm; text-indent: 8mm;">
+    Read it slowly. The pieces are simple, but their interactions are not.
+  </p>
+  <div class="ornament" style="margin-top: 18mm;">❀</div>
+  <div class="folio">— 3 —</div>
+</section>
+
+<!-- ============================================================
+     ENTRY I · THE LOVER
+     ============================================================ -->
+<section class="page piece-page crown" data-piece="LOVER">
+  <header class="piece-head">
+    <div class="symbol">♥</div>
+    <div class="title">
+      <h2>The Lover</h2>
+      <div class="byline">Sacred · uncapturable · the crown-piece.</div>
+    </div>
+    <div class="roman">I · VIII</div>
+  </header>
+  <div class="piece-body">
+    <div>
+      <div class="piece-render" data-stage="LOVER">
+        <canvas></canvas>
+        <div class="badge">Sculpture</div>
+      </div>
+      <div class="movement-diagram">
+        <h3>Movement</h3>
+        <svg width="180" height="180" viewBox="0 0 180 180">
+          <!-- 7x7 board, lover on lower-left, heart upper-right area -->
+          <g stroke="#3a2a18" stroke-width="0.8">
+            <rect x="0"   y="0"   width="25" height="25" fill="#e0bf8e"/><rect x="25"  y="0"   width="25" height="25" fill="#8a5e2a"/><rect x="50"  y="0"   width="25" height="25" fill="#e0bf8e"/><rect x="75"  y="0"   width="25" height="25" fill="#8a5e2a"/><rect x="100" y="0"   width="25" height="25" fill="#e0bf8e"/><rect x="125" y="0"   width="25" height="25" fill="#8a5e2a"/><rect x="150" y="0"   width="25" height="25" fill="#e0bf8e"/>
+            <rect x="0"   y="25"  width="25" height="25" fill="#8a5e2a"/><rect x="25"  y="25"  width="25" height="25" fill="#e0bf8e"/><rect x="50"  y="25"  width="25" height="25" fill="#8a5e2a"/><rect x="75"  y="25"  width="25" height="25" fill="#e0bf8e"/><rect x="100" y="25"  width="25" height="25" fill="#8a5e2a"/><rect x="125" y="25"  width="25" height="25" fill="#e0bf8e"/><rect x="150" y="25"  width="25" height="25" fill="#8a5e2a"/>
+            <rect x="0"   y="50"  width="25" height="25" fill="#e0bf8e"/><rect x="25"  y="50"  width="25" height="25" fill="#8a5e2a"/><rect x="50"  y="50"  width="25" height="25" fill="#e0bf8e"/><rect x="75"  y="50"  width="25" height="25" fill="#8a5e2a"/><rect x="100" y="50"  width="25" height="25" fill="#e0bf8e"/><rect x="125" y="50"  width="25" height="25" fill="#8a5e2a"/><rect x="150" y="50"  width="25" height="25" fill="#e0bf8e"/>
+            <rect x="0"   y="75"  width="25" height="25" fill="#c4a888"/><rect x="25"  y="75"  width="25" height="25" fill="#6e5638"/><rect x="50"  y="75"  width="25" height="25" fill="#c4a888"/><rect x="75"  y="75"  width="25" height="25" fill="#4a0a18"/><rect x="100" y="75"  width="25" height="25" fill="#c4a888"/><rect x="125" y="75"  width="25" height="25" fill="#6e5638"/><rect x="150" y="75"  width="25" height="25" fill="#c4a888"/>
+            <rect x="0"   y="100" width="25" height="25" fill="#9eb3c2"/><rect x="25"  y="100" width="25" height="25" fill="#4a5e74"/><rect x="50"  y="100" width="25" height="25" fill="#9eb3c2"/><rect x="75"  y="100" width="25" height="25" fill="#4a5e74"/><rect x="100" y="100" width="25" height="25" fill="#9eb3c2"/><rect x="125" y="100" width="25" height="25" fill="#4a5e74"/><rect x="150" y="100" width="25" height="25" fill="#9eb3c2"/>
+            <rect x="0"   y="125" width="25" height="25" fill="#4a5e74"/><rect x="25"  y="125" width="25" height="25" fill="#9eb3c2"/><rect x="50"  y="125" width="25" height="25" fill="#4a5e74"/><rect x="75"  y="125" width="25" height="25" fill="#9eb3c2"/><rect x="100" y="125" width="25" height="25" fill="#4a5e74"/><rect x="125" y="125" width="25" height="25" fill="#9eb3c2"/><rect x="150" y="125" width="25" height="25" fill="#4a5e74"/>
+            <rect x="0"   y="150" width="25" height="25" fill="#9eb3c2"/><rect x="25"  y="150" width="25" height="25" fill="#4a5e74"/><rect x="50"  y="150" width="25" height="25" fill="#9eb3c2"/><rect x="75"  y="150" width="25" height="25" fill="#4a5e74"/><rect x="100" y="150" width="25" height="25" fill="#9eb3c2"/><rect x="125" y="150" width="25" height="25" fill="#4a5e74"/><rect x="150" y="150" width="25" height="25" fill="#9eb3c2"/>
+          </g>
+          <!-- Heart -->
+          <circle cx="87" cy="87" r="11" fill="#ff2244" opacity="0.45"/>
+          <text x="87" y="92" text-anchor="middle" font-family="serif" font-size="14" fill="#ffe0e0">♥</text>
+          <!-- Lover position at (1,1) -->
+          <circle cx="12" cy="162" r="9" fill="#ffd070" stroke="#4a2c08" stroke-width="1.5"/>
+          <text x="12" y="167" text-anchor="middle" font-family="serif" font-size="12" fill="#a62244">♥</text>
+          <!-- Legal moves: only cells closer to Heart -->
+          <rect x="25"  y="125" width="25" height="25" fill="#2a8a4e" opacity="0.5"/>
+          <rect x="25"  y="150" width="25" height="25" fill="#2a8a4e" opacity="0.5"/>
+          <rect x="0"   y="125" width="25" height="25" fill="#2a8a4e" opacity="0.5"/>
+        </svg>
+        <p class="movement-caption">1 cell · only toward the Heart.</p>
+      </div>
+    </div>
+    <div class="piece-info">
+      <p class="lore"><span class="drop">S</span>he walks with her eyes lowered. She does not look back. She moves a single step at a time, always closer to the centre of the board, and a force she does not name pulls her there. No army can stop her, no piece can strike her down. Her path may be blocked, her companions slain, her arrival delayed — but she cannot be removed. So the contest, in the end, is never whether she will reach the Heart. It is whether her friends will arrive in time to stand beside her.</p>
+      <div class="stats-card">
+        <h3>Combat Profile</h3>
+        <div class="stat-row"><div class="label">Range</div><div class="value">1 cell</div></div>
+        <div class="stat-row"><div class="label">Direction</div><div class="value">Strictly toward the Heart (decreasing distance)</div></div>
+        <div class="stat-row"><div class="label">Captures</div><div class="value">By displacement, on any enemy in her path</div></div>
+        <div class="stat-row"><div class="label">Captured?</div><div class="value"><strong>Never.</strong> No enemy may move onto her cell.</div></div>
+        <div class="stat-row"><div class="label">Win-piece?</div><div class="value"><strong>Yes — the only one.</strong></div></div>
+      </div>
+      <div class="role-card">
+        <h3>Role in the Embrace</h3>
+        <p>She is the centrepiece. Without her at the Heart, the Embrace cannot form. Bring her to (d, 4) as soon as you can with two of your other pieces ringed around her — that is the win.</p>
+      </div>
+    </div>
+  </div>
+  <footer class="piece-foot">
+    <div class="tagline">"What walks alone is what cannot be touched."</div>
+    <div class="glyph">❀ · ❀ · ❀</div>
+  </footer>
+  <div class="folio">— 4 —</div>
+</section>
+
+<!-- ============================================================
+     ENTRY II · THE WARRIOR
+     ============================================================ -->
+<section class="page piece-page" data-piece="WARRIOR">
+  <header class="piece-head">
+    <div class="symbol">⚔</div>
+    <div class="title">
+      <h2>The Warrior</h2>
+      <div class="byline">Steady and close at hand · the king's reach.</div>
+    </div>
+    <div class="roman">II · VIII</div>
+  </header>
+  <div class="piece-body">
+    <div>
+      <div class="piece-render" data-stage="WARRIOR">
+        <canvas></canvas>
+        <div class="badge">Sculpture</div>
+      </div>
+      <div class="movement-diagram">
+        <h3>Movement</h3>
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <g stroke="#3a2a18" stroke-width="0.8">
+            <rect x="0"  y="0"  width="40" height="40" fill="#e0bf8e"/><rect x="40" y="0"  width="40" height="40" fill="#8a5e2a"/><rect x="80" y="0"  width="40" height="40" fill="#e0bf8e"/><rect x="120" y="0" width="40" height="40" fill="#8a5e2a"/>
+            <rect x="0"  y="40" width="40" height="40" fill="#8a5e2a"/><rect x="40" y="40" width="40" height="40" fill="#e0bf8e"/><rect x="80" y="40" width="40" height="40" fill="#8a5e2a"/><rect x="120" y="40" width="40" height="40" fill="#e0bf8e"/>
+            <rect x="0"  y="80" width="40" height="40" fill="#e0bf8e"/><rect x="40" y="80" width="40" height="40" fill="#8a5e2a"/><rect x="80" y="80" width="40" height="40" fill="#e0bf8e"/><rect x="120" y="80" width="40" height="40" fill="#8a5e2a"/>
+            <rect x="0"  y="120" width="40" height="40" fill="#8a5e2a"/><rect x="40" y="120" width="40" height="40" fill="#e0bf8e"/><rect x="80" y="120" width="40" height="40" fill="#8a5e2a"/><rect x="120" y="120" width="40" height="40" fill="#e0bf8e"/>
+          </g>
+          <!-- 8 legal moves around centre -->
+          <g fill="#2a8a4e" opacity="0.5">
+            <rect x="0"  y="0"  width="40" height="40"/>
+            <rect x="40" y="0"  width="40" height="40"/>
+            <rect x="80" y="0"  width="40" height="40"/>
+            <rect x="0"  y="40" width="40" height="40"/>
+            <rect x="80" y="40" width="40" height="40"/>
+            <rect x="0"  y="80" width="40" height="40"/>
+            <rect x="40" y="80" width="40" height="40"/>
+            <rect x="80" y="80" width="40" height="40"/>
+          </g>
+          <!-- Warrior at centre -->
+          <circle cx="60" cy="60" r="14" fill="#ffd070" stroke="#4a2c08" stroke-width="1.5"/>
+          <text x="60" y="65" text-anchor="middle" font-family="serif" font-size="14" fill="#3a1a08">⚔</text>
+        </svg>
+        <p class="movement-caption">1 cell · any of the 8 directions.</p>
+      </div>
+    </div>
+    <div class="piece-info">
+      <p class="lore"><span class="drop">A</span> short man with a long blade. He stands close to whoever he is told to guard, and he moves one square at a time in any direction, never further. He is the chess king's reach without the chess king's fragility — a soldier whose strength is in patience, not in pace. The Warrior's best work is done in the Lotus, where he stands beside the Lover and any enemy who would dislodge her must come to him first.</p>
+      <div class="stats-card">
+        <h3>Combat Profile</h3>
+        <div class="stat-row"><div class="label">Range</div><div class="value">1 cell</div></div>
+        <div class="stat-row"><div class="label">Direction</div><div class="value">Any of 8 (orthogonal + diagonal)</div></div>
+        <div class="stat-row"><div class="label">Captures</div><div class="value">By landing on any enemy</div></div>
+        <div class="stat-row"><div class="label">Chess analogue</div><div class="value">King (without the check restriction)</div></div>
+        <div class="stat-row"><div class="label">Best in</div><div class="value">The Lotus, as a Lover's escort</div></div>
+      </div>
+      <div class="role-card">
+        <h3>Role in the Embrace</h3>
+        <p>A perfect escort. He moves slowly, but the slow piece in the Lotus is hardest to dislodge — every cell he stands on is a cell an enemy must spend a full turn to clear. Bring him to the Heart's neighbourhood by mid-game.</p>
+      </div>
+    </div>
+  </div>
+  <footer class="piece-foot">
+    <div class="tagline">"He stands where he is set. That is the whole of his courage."</div>
+    <div class="glyph">⚔ · ⚔ · ⚔</div>
+  </footer>
+  <div class="folio">— 5 —</div>
+</section>
+
+<!-- ============================================================
+     ENTRY III · THE SAGE
+     ============================================================ -->
+<section class="page piece-page" data-piece="SAGE">
+  <header class="piece-head">
+    <div class="symbol">✦</div>
+    <div class="title">
+      <h2>The Sage</h2>
+      <div class="byline">Sees along the diagonals · the bishop's gaze.</div>
+    </div>
+    <div class="roman">III · VIII</div>
+  </header>
+  <div class="piece-body">
+    <div>
+      <div class="piece-render" data-stage="SAGE">
+        <canvas></canvas>
+        <div class="badge">Sculpture</div>
+      </div>
+      <div class="movement-diagram">
+        <h3>Movement</h3>
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <g stroke="#3a2a18" stroke-width="0.6">
+            <!-- 5x5 mini board -->
+            <rect x="0"   y="0"   width="32" height="32" fill="#e0bf8e"/><rect x="32"  y="0"   width="32" height="32" fill="#8a5e2a"/><rect x="64"  y="0"   width="32" height="32" fill="#e0bf8e"/><rect x="96"  y="0"   width="32" height="32" fill="#8a5e2a"/><rect x="128" y="0"   width="32" height="32" fill="#e0bf8e"/>
+            <rect x="0"   y="32"  width="32" height="32" fill="#8a5e2a"/><rect x="32"  y="32"  width="32" height="32" fill="#e0bf8e"/><rect x="64"  y="32"  width="32" height="32" fill="#8a5e2a"/><rect x="96"  y="32"  width="32" height="32" fill="#e0bf8e"/><rect x="128" y="32"  width="32" height="32" fill="#8a5e2a"/>
+            <rect x="0"   y="64"  width="32" height="32" fill="#e0bf8e"/><rect x="32"  y="64"  width="32" height="32" fill="#8a5e2a"/><rect x="64"  y="64"  width="32" height="32" fill="#e0bf8e"/><rect x="96"  y="64"  width="32" height="32" fill="#8a5e2a"/><rect x="128" y="64"  width="32" height="32" fill="#e0bf8e"/>
+            <rect x="0"   y="96"  width="32" height="32" fill="#8a5e2a"/><rect x="32"  y="96"  width="32" height="32" fill="#e0bf8e"/><rect x="64"  y="96"  width="32" height="32" fill="#8a5e2a"/><rect x="96"  y="96"  width="32" height="32" fill="#e0bf8e"/><rect x="128" y="96"  width="32" height="32" fill="#8a5e2a"/>
+            <rect x="0"   y="128" width="32" height="32" fill="#e0bf8e"/><rect x="32"  y="128" width="32" height="32" fill="#8a5e2a"/><rect x="64"  y="128" width="32" height="32" fill="#e0bf8e"/><rect x="96"  y="128" width="32" height="32" fill="#8a5e2a"/><rect x="128" y="128" width="32" height="32" fill="#e0bf8e"/>
+          </g>
+          <!-- All 4 diagonals from centre -->
+          <g fill="#2a8a4e" opacity="0.55">
+            <rect x="0"   y="0"   width="32" height="32"/>
+            <rect x="32"  y="32"  width="32" height="32"/>
+            <rect x="96"  y="96"  width="32" height="32"/>
+            <rect x="128" y="128" width="32" height="32"/>
+            <rect x="128" y="0"   width="32" height="32"/>
+            <rect x="96"  y="32"  width="32" height="32"/>
+            <rect x="32"  y="96"  width="32" height="32"/>
+            <rect x="0"   y="128" width="32" height="32"/>
+          </g>
+          <circle cx="80" cy="80" r="11" fill="#ffd070" stroke="#4a2c08" stroke-width="1.5"/>
+          <text x="80" y="84" text-anchor="middle" font-family="serif" font-size="12" fill="#3a1a08">✦</text>
+        </svg>
+        <p class="movement-caption">Any number of cells · along the 4 diagonals.</p>
+      </div>
+    </div>
+    <div class="piece-info">
+      <p class="lore"><span class="drop">H</span>e was born on a coloured square and he will die on one of the same shade. The Sage moves only along diagonals — long, clean lines that cut across the board — and so he sees half of the board his whole life and never the other half. A Sage on a light cell threatens the diagonals into the Lotus from one angle; a Sage on a dark cell threatens the opposite angle. Where you place him in setup decides which half of the war he will fight.</p>
+      <div class="stats-card">
+        <h3>Combat Profile</h3>
+        <div class="stat-row"><div class="label">Range</div><div class="value">Unlimited · stops at first piece</div></div>
+        <div class="stat-row"><div class="label">Direction</div><div class="value">4 diagonals</div></div>
+        <div class="stat-row"><div class="label">Captures</div><div class="value">First enemy in the path</div></div>
+        <div class="stat-row"><div class="label">Chess analogue</div><div class="value">Bishop</div></div>
+        <div class="stat-row"><div class="label">Limitation</div><div class="value">Bound to one cell colour forever</div></div>
+      </div>
+      <div class="role-card">
+        <h3>Role in the Embrace</h3>
+        <p>From the right diagonal, the Sage can reach the Lotus in one move from far away. Use him for surprise arrivals — but remember he can only land on cells of his own colour, which means only 4 of the 8 Lotus cells are open to any single Sage.</p>
+      </div>
+    </div>
+  </div>
+  <footer class="piece-foot">
+    <div class="tagline">"He follows the long line. The line follows him back."</div>
+    <div class="glyph">✦ · ✦ · ✦</div>
+  </footer>
+  <div class="folio">— 6 —</div>
+</section>
+
+<!-- ============================================================
+     ENTRY IV · THE TRAITOR
+     ============================================================ -->
+<section class="page piece-page" data-piece="TRAITOR">
+  <header class="piece-head">
+    <div class="symbol">⚯</div>
+    <div class="title">
+      <h2>The Traitor</h2>
+      <div class="byline">Stalks the straight lines · the rook's reach.</div>
+    </div>
+    <div class="roman">IV · VIII</div>
+  </header>
+  <div class="piece-body">
+    <div>
+      <div class="piece-render" data-stage="TRAITOR">
+        <canvas></canvas>
+        <div class="badge">Sculpture</div>
+      </div>
+      <div class="movement-diagram">
+        <h3>Movement</h3>
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <g stroke="#3a2a18" stroke-width="0.6">
+            <rect x="0"   y="0"   width="32" height="32" fill="#e0bf8e"/><rect x="32"  y="0"   width="32" height="32" fill="#8a5e2a"/><rect x="64"  y="0"   width="32" height="32" fill="#e0bf8e"/><rect x="96"  y="0"   width="32" height="32" fill="#8a5e2a"/><rect x="128" y="0"   width="32" height="32" fill="#e0bf8e"/>
+            <rect x="0"   y="32"  width="32" height="32" fill="#8a5e2a"/><rect x="32"  y="32"  width="32" height="32" fill="#e0bf8e"/><rect x="64"  y="32"  width="32" height="32" fill="#8a5e2a"/><rect x="96"  y="32"  width="32" height="32" fill="#e0bf8e"/><rect x="128" y="32"  width="32" height="32" fill="#8a5e2a"/>
+            <rect x="0"   y="64"  width="32" height="32" fill="#e0bf8e"/><rect x="32"  y="64"  width="32" height="32" fill="#8a5e2a"/><rect x="64"  y="64"  width="32" height="32" fill="#e0bf8e"/><rect x="96"  y="64"  width="32" height="32" fill="#8a5e2a"/><rect x="128" y="64"  width="32" height="32" fill="#e0bf8e"/>
+            <rect x="0"   y="96"  width="32" height="32" fill="#8a5e2a"/><rect x="32"  y="96"  width="32" height="32" fill="#e0bf8e"/><rect x="64"  y="96"  width="32" height="32" fill="#8a5e2a"/><rect x="96"  y="96"  width="32" height="32" fill="#e0bf8e"/><rect x="128" y="96"  width="32" height="32" fill="#8a5e2a"/>
+            <rect x="0"   y="128" width="32" height="32" fill="#e0bf8e"/><rect x="32"  y="128" width="32" height="32" fill="#8a5e2a"/><rect x="64"  y="128" width="32" height="32" fill="#e0bf8e"/><rect x="96"  y="128" width="32" height="32" fill="#8a5e2a"/><rect x="128" y="128" width="32" height="32" fill="#e0bf8e"/>
+          </g>
+          <g fill="#2a8a4e" opacity="0.55">
+            <rect x="64"  y="0"   width="32" height="32"/>
+            <rect x="64"  y="32"  width="32" height="32"/>
+            <rect x="64"  y="96"  width="32" height="32"/>
+            <rect x="64"  y="128" width="32" height="32"/>
+            <rect x="0"   y="64"  width="32" height="32"/>
+            <rect x="32"  y="64"  width="32" height="32"/>
+            <rect x="96"  y="64"  width="32" height="32"/>
+            <rect x="128" y="64"  width="32" height="32"/>
+          </g>
+          <circle cx="80" cy="80" r="11" fill="#ffd070" stroke="#4a2c08" stroke-width="1.5"/>
+          <text x="80" y="84" text-anchor="middle" font-family="serif" font-size="12" fill="#3a1a08">⚯</text>
+        </svg>
+        <p class="movement-caption">Any number of cells · along rows and columns.</p>
+      </div>
+    </div>
+    <div class="piece-info">
+      <p class="lore"><span class="drop">T</span>he Traitor moves in straight lines. He takes a row, or he takes a column, or he takes one and then the other on a later turn. He is named for what he does to a fellow soldier on his own column — he passes through, with intent. In the open board he is the longest-range threat, and on the d-column (the road to the Heart) he is the most feared piece of all, because he can reach the Lotus directly from his starting row.</p>
+      <div class="stats-card">
+        <h3>Combat Profile</h3>
+        <div class="stat-row"><div class="label">Range</div><div class="value">Unlimited · stops at first piece</div></div>
+        <div class="stat-row"><div class="label">Direction</div><div class="value">4 orthogonals (rows + columns)</div></div>
+        <div class="stat-row"><div class="label">Captures</div><div class="value">First enemy in the path</div></div>
+        <div class="stat-row"><div class="label">Chess analogue</div><div class="value">Rook</div></div>
+        <div class="stat-row"><div class="label">Best file</div><div class="value">The d-column — direct road to the Heart</div></div>
+      </div>
+      <div class="role-card">
+        <h3>Role in the Embrace</h3>
+        <p>If your setup places him on the d-column, he commands the path to the Heart from move 1. Few enemies can afford to leave him alive in such a position — so he will be hunted, and he will hunt back.</p>
+      </div>
+    </div>
+  </div>
+  <footer class="piece-foot">
+    <div class="tagline">"He walks the line you laid for someone else."</div>
+    <div class="glyph">⚯ · ⚯ · ⚯</div>
+  </footer>
+  <div class="folio">— 7 —</div>
+</section>
+
+<!-- ============================================================
+     ENTRY V · THE FOOL
+     ============================================================ -->
+<section class="page piece-page" data-piece="FOOL">
+  <header class="piece-head">
+    <div class="symbol">◊</div>
+    <div class="title">
+      <h2>The Fool</h2>
+      <div class="byline">Jumps where no one expects · the knight's leap.</div>
+    </div>
+    <div class="roman">V · VIII</div>
+  </header>
+  <div class="piece-body">
+    <div>
+      <div class="piece-render" data-stage="FOOL">
+        <canvas></canvas>
+        <div class="badge">Sculpture</div>
+      </div>
+      <div class="movement-diagram">
+        <h3>Movement</h3>
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <g stroke="#3a2a18" stroke-width="0.6">
+            <rect x="0"   y="0"   width="32" height="32" fill="#e0bf8e"/><rect x="32"  y="0"   width="32" height="32" fill="#8a5e2a"/><rect x="64"  y="0"   width="32" height="32" fill="#e0bf8e"/><rect x="96"  y="0"   width="32" height="32" fill="#8a5e2a"/><rect x="128" y="0"   width="32" height="32" fill="#e0bf8e"/>
+            <rect x="0"   y="32"  width="32" height="32" fill="#8a5e2a"/><rect x="32"  y="32"  width="32" height="32" fill="#e0bf8e"/><rect x="64"  y="32"  width="32" height="32" fill="#8a5e2a"/><rect x="96"  y="32"  width="32" height="32" fill="#e0bf8e"/><rect x="128" y="32"  width="32" height="32" fill="#8a5e2a"/>
+            <rect x="0"   y="64"  width="32" height="32" fill="#e0bf8e"/><rect x="32"  y="64"  width="32" height="32" fill="#8a5e2a"/><rect x="64"  y="64"  width="32" height="32" fill="#e0bf8e"/><rect x="96"  y="64"  width="32" height="32" fill="#8a5e2a"/><rect x="128" y="64"  width="32" height="32" fill="#e0bf8e"/>
+            <rect x="0"   y="96"  width="32" height="32" fill="#8a5e2a"/><rect x="32"  y="96"  width="32" height="32" fill="#e0bf8e"/><rect x="64"  y="96"  width="32" height="32" fill="#8a5e2a"/><rect x="96"  y="96"  width="32" height="32" fill="#e0bf8e"/><rect x="128" y="96"  width="32" height="32" fill="#8a5e2a"/>
+            <rect x="0"   y="128" width="32" height="32" fill="#e0bf8e"/><rect x="32"  y="128" width="32" height="32" fill="#8a5e2a"/><rect x="64"  y="128" width="32" height="32" fill="#e0bf8e"/><rect x="96"  y="128" width="32" height="32" fill="#8a5e2a"/><rect x="128" y="128" width="32" height="32" fill="#e0bf8e"/>
+          </g>
+          <!-- 8 knight L-jumps from centre (2,2) -->
+          <g fill="#2a8a4e" opacity="0.55">
+            <rect x="32"  y="0"   width="32" height="32"/>
+            <rect x="96"  y="0"   width="32" height="32"/>
+            <rect x="0"   y="32"  width="32" height="32"/>
+            <rect x="128" y="32"  width="32" height="32"/>
+            <rect x="0"   y="96"  width="32" height="32"/>
+            <rect x="128" y="96"  width="32" height="32"/>
+            <rect x="32"  y="128" width="32" height="32"/>
+            <rect x="96"  y="128" width="32" height="32"/>
+          </g>
+          <circle cx="80" cy="80" r="11" fill="#ffd070" stroke="#4a2c08" stroke-width="1.5"/>
+          <text x="80" y="84" text-anchor="middle" font-family="serif" font-size="12" fill="#3a1a08">◊</text>
+        </svg>
+        <p class="movement-caption">L-shape jumps (2 + 1) · jumps over anything.</p>
+      </div>
+    </div>
+    <div class="piece-info">
+      <p class="lore"><span class="drop">H</span>e wears bells. He laughs at walls. He is the only piece in PYAAR who can leap over another, and so he is the only piece you cannot fence in. The Fool is wonderful at slipping into the Lotus when the centre is jammed with pieces — he flies past them all and lands in the cell beside the Lover. Lose him early and you lose your best surprise. Use him to deliver the second escort at the very end.</p>
+      <div class="stats-card">
+        <h3>Combat Profile</h3>
+        <div class="stat-row"><div class="label">Range</div><div class="value">L-shape (2 + 1) jumps</div></div>
+        <div class="stat-row"><div class="label">Direction</div><div class="value">8 possible L-jumps</div></div>
+        <div class="stat-row"><div class="label">Captures</div><div class="value">By landing</div></div>
+        <div class="stat-row"><div class="label">Chess analogue</div><div class="value">Knight</div></div>
+        <div class="stat-row"><div class="label">Unique trait</div><div class="value">Jumps over any pieces in between</div></div>
+      </div>
+      <div class="role-card">
+        <h3>Role in the Embrace</h3>
+        <p>The cleanest path to the Lotus when the board is dense. He arrives where no other piece could. Save him for the final escort delivery when the centre is locked.</p>
+      </div>
+    </div>
+  </div>
+  <footer class="piece-foot">
+    <div class="tagline">"The walls were always advice, not law."</div>
+    <div class="glyph">◊ · ◊ · ◊</div>
+  </footer>
+  <div class="folio">— 8 —</div>
+</section>
+
+<!-- ============================================================
+     ENTRY VI · THE GUARDIAN
+     ============================================================ -->
+<section class="page piece-page" data-piece="GUARDIAN">
+  <header class="piece-head">
+    <div class="symbol">⚜</div>
+    <div class="title">
+      <h2>The Guardian</h2>
+      <div class="byline">A short fierce queen · the temple door-keeper.</div>
+    </div>
+    <div class="roman">VI · VIII</div>
+  </header>
+  <div class="piece-body">
+    <div>
+      <div class="piece-render" data-stage="GUARDIAN">
+        <canvas></canvas>
+        <div class="badge">Sculpture</div>
+      </div>
+      <div class="movement-diagram">
+        <h3>Movement</h3>
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <g stroke="#3a2a18" stroke-width="0.6">
+            <rect x="0"   y="0"   width="32" height="32" fill="#e0bf8e"/><rect x="32"  y="0"   width="32" height="32" fill="#8a5e2a"/><rect x="64"  y="0"   width="32" height="32" fill="#e0bf8e"/><rect x="96"  y="0"   width="32" height="32" fill="#8a5e2a"/><rect x="128" y="0"   width="32" height="32" fill="#e0bf8e"/>
+            <rect x="0"   y="32"  width="32" height="32" fill="#8a5e2a"/><rect x="32"  y="32"  width="32" height="32" fill="#e0bf8e"/><rect x="64"  y="32"  width="32" height="32" fill="#8a5e2a"/><rect x="96"  y="32"  width="32" height="32" fill="#e0bf8e"/><rect x="128" y="32"  width="32" height="32" fill="#8a5e2a"/>
+            <rect x="0"   y="64"  width="32" height="32" fill="#e0bf8e"/><rect x="32"  y="64"  width="32" height="32" fill="#8a5e2a"/><rect x="64"  y="64"  width="32" height="32" fill="#e0bf8e"/><rect x="96"  y="64"  width="32" height="32" fill="#8a5e2a"/><rect x="128" y="64"  width="32" height="32" fill="#e0bf8e"/>
+            <rect x="0"   y="96"  width="32" height="32" fill="#8a5e2a"/><rect x="32"  y="96"  width="32" height="32" fill="#e0bf8e"/><rect x="64"  y="96"  width="32" height="32" fill="#8a5e2a"/><rect x="96"  y="96"  width="32" height="32" fill="#e0bf8e"/><rect x="128" y="96"  width="32" height="32" fill="#8a5e2a"/>
+            <rect x="0"   y="128" width="32" height="32" fill="#e0bf8e"/><rect x="32"  y="128" width="32" height="32" fill="#8a5e2a"/><rect x="64"  y="128" width="32" height="32" fill="#e0bf8e"/><rect x="96"  y="128" width="32" height="32" fill="#8a5e2a"/><rect x="128" y="128" width="32" height="32" fill="#e0bf8e"/>
+          </g>
+          <!-- up to 2 cells in 8 directions -->
+          <g fill="#2a8a4e" opacity="0.55">
+            <rect x="64"  y="0"   width="32" height="32"/>
+            <rect x="64"  y="32"  width="32" height="32"/>
+            <rect x="64"  y="96"  width="32" height="32"/>
+            <rect x="64"  y="128" width="32" height="32"/>
+            <rect x="0"   y="64"  width="32" height="32"/>
+            <rect x="32"  y="64"  width="32" height="32"/>
+            <rect x="96"  y="64"  width="32" height="32"/>
+            <rect x="128" y="64"  width="32" height="32"/>
+            <rect x="0"   y="0"   width="32" height="32"/>
+            <rect x="32"  y="32"  width="32" height="32"/>
+            <rect x="128" y="0"   width="32" height="32"/>
+            <rect x="96"  y="32"  width="32" height="32"/>
+            <rect x="0"   y="128" width="32" height="32"/>
+            <rect x="32"  y="96"  width="32" height="32"/>
+            <rect x="128" y="128" width="32" height="32"/>
+            <rect x="96"  y="96"  width="32" height="32"/>
+          </g>
+          <circle cx="80" cy="80" r="11" fill="#ffd070" stroke="#4a2c08" stroke-width="1.5"/>
+          <text x="80" y="84" text-anchor="middle" font-family="serif" font-size="12" fill="#3a1a08">⚜</text>
+        </svg>
+        <p class="movement-caption">Up to 2 cells · in any of 8 directions.</p>
+      </div>
+    </div>
+    <div class="piece-info">
+      <p class="lore"><span class="drop">A</span>queen with a leash. The Guardian moves as a chess queen does — straight lines, diagonals, eight directions — but only as far as two cells, and never further. He carries a heavy mace on his shoulder and he uses it. Within his reach, he is the most dangerous piece on the board; outside it, he is patient. Place him near the Heart in setup and he begins the game as a Lotus threat.</p>
+      <div class="stats-card">
+        <h3>Combat Profile</h3>
+        <div class="stat-row"><div class="label">Range</div><div class="value">Up to 2 cells</div></div>
+        <div class="stat-row"><div class="label">Direction</div><div class="value">Any of 8 (orthogonal + diagonal)</div></div>
+        <div class="stat-row"><div class="label">Captures</div><div class="value">By landing</div></div>
+        <div class="stat-row"><div class="label">Chess analogue</div><div class="value">Short queen (range 2)</div></div>
+        <div class="stat-row"><div class="label">Best in</div><div class="value">Mid-board, clearing Lotus access</div></div>
+      </div>
+      <div class="role-card">
+        <h3>Role in the Embrace</h3>
+        <p>The piece that <em>clears</em> the Lotus. He can capture an enemy escort and land in their cell — converting denial into your own formation in a single move.</p>
+      </div>
+    </div>
+  </div>
+  <footer class="piece-foot">
+    <div class="tagline">"The door he keeps is the centre. Nothing else."</div>
+    <div class="glyph">⚜ · ⚜ · ⚜</div>
+  </footer>
+  <div class="folio">— 9 —</div>
+</section>
+
+<!-- ============================================================
+     ENTRY VII · THE DREAMER
+     ============================================================ -->
+<section class="page piece-page" data-piece="DREAMER">
+  <header class="piece-head">
+    <div class="symbol">☾</div>
+    <div class="title">
+      <h2>The Dreamer</h2>
+      <div class="byline">Quick · harmless · the moonlit scout.</div>
+    </div>
+    <div class="roman">VII · VIII</div>
+  </header>
+  <div class="piece-body">
+    <div>
+      <div class="piece-render" data-stage="DREAMER">
+        <canvas></canvas>
+        <div class="badge">Sculpture</div>
+      </div>
+      <div class="movement-diagram">
+        <h3>Movement</h3>
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <g stroke="#3a2a18" stroke-width="0.5">
+            <!-- 7x7 mini -->
+            <rect x="0"   y="0"   width="22.85" height="22.85" fill="#e0bf8e"/><rect x="22.85"  y="0"   width="22.85" height="22.85" fill="#8a5e2a"/><rect x="45.71"  y="0"   width="22.85" height="22.85" fill="#e0bf8e"/><rect x="68.57"  y="0"   width="22.85" height="22.85" fill="#8a5e2a"/><rect x="91.43"  y="0"   width="22.85" height="22.85" fill="#e0bf8e"/><rect x="114.29" y="0"   width="22.85" height="22.85" fill="#8a5e2a"/><rect x="137.14" y="0"   width="22.85" height="22.85" fill="#e0bf8e"/>
+          </g>
+          <!-- range bands (1, 2, 3 cells) -->
+          <circle cx="80" cy="80" r="68" fill="none" stroke="#2a8a4e" stroke-width="2" stroke-dasharray="4 3" opacity="0.55"/>
+          <circle cx="80" cy="80" r="46" fill="none" stroke="#2a8a4e" stroke-width="2" opacity="0.7"/>
+          <circle cx="80" cy="80" r="23" fill="none" stroke="#2a8a4e" stroke-width="2" opacity="0.85"/>
+          <circle cx="80" cy="80" r="11" fill="#ddeaff" stroke="#4a2c08" stroke-width="1.5"/>
+          <text x="80" y="84" text-anchor="middle" font-family="serif" font-size="12" fill="#3a1a08">☾</text>
+        </svg>
+        <p class="movement-caption">Up to 3 cells · any direction · no capture.</p>
+      </div>
+    </div>
+    <div class="piece-info">
+      <p class="lore"><span class="drop">S</span>he walks in dreams. She moves three full cells in any straight line — fast, gliding — but she cannot strike a single blow. She is a pacifist, a scout, a flag-runner. Her gift is reach without violence. In the Embrace she is the perfect first escort: she crosses the board in two moves and stands in the Lotus while your fighters are still developing.</p>
+      <div class="stats-card">
+        <h3>Combat Profile</h3>
+        <div class="stat-row"><div class="label">Range</div><div class="value">Up to 3 cells</div></div>
+        <div class="stat-row"><div class="label">Direction</div><div class="value">Any of 8 (orthogonal + diagonal)</div></div>
+        <div class="stat-row"><div class="label">Captures</div><div class="value"><strong>None.</strong> Must end on empty cell.</div></div>
+        <div class="stat-row"><div class="label">Chess analogue</div><div class="value">No direct one — a long-range pacifist</div></div>
+        <div class="stat-row"><div class="label">Best as</div><div class="value">First escort to the Lotus</div></div>
+      </div>
+      <div class="role-card">
+        <h3>Role in the Embrace</h3>
+        <p>Your fastest deliverable escort. From row 1 she can be on the Lotus by move 2, untouched, ready to wait. The fact that she cannot capture isn't a weakness for this role — she only needs to stand there.</p>
+      </div>
+    </div>
+  </div>
+  <footer class="piece-foot">
+    <div class="tagline">"She crosses the field without lifting a blade."</div>
+    <div class="glyph">☾ · ☾ · ☾</div>
+  </footer>
+  <div class="folio">— 10 —</div>
+</section>
+
+<!-- ============================================================
+     ENTRY VIII · THE SOLDIER
+     ============================================================ -->
+<section class="page piece-page" data-piece="SOLDIER">
+  <header class="piece-head">
+    <div class="symbol">⚑</div>
+    <div class="title">
+      <h2>The Soldier</h2>
+      <div class="byline">The vanguard · a pawn that pushes the line.</div>
+    </div>
+    <div class="roman">VIII · VIII</div>
+  </header>
+  <div class="piece-body">
+    <div>
+      <div class="piece-render" data-stage="SOLDIER">
+        <canvas></canvas>
+        <div class="badge">Sculpture</div>
+      </div>
+      <div class="movement-diagram">
+        <h3>Movement</h3>
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <g stroke="#3a2a18" stroke-width="0.6">
+            <rect x="0"   y="0"   width="40" height="40" fill="#e0bf8e"/><rect x="40"  y="0"   width="40" height="40" fill="#8a5e2a"/><rect x="80"  y="0"   width="40" height="40" fill="#e0bf8e"/><rect x="120" y="0"   width="40" height="40" fill="#8a5e2a"/>
+            <rect x="0"   y="40"  width="40" height="40" fill="#8a5e2a"/><rect x="40"  y="40"  width="40" height="40" fill="#e0bf8e"/><rect x="80"  y="40"  width="40" height="40" fill="#8a5e2a"/><rect x="120" y="40"  width="40" height="40" fill="#e0bf8e"/>
+            <rect x="0"   y="80"  width="40" height="40" fill="#e0bf8e"/><rect x="40"  y="80"  width="40" height="40" fill="#8a5e2a"/><rect x="80"  y="80"  width="40" height="40" fill="#e0bf8e"/><rect x="120" y="80"  width="40" height="40" fill="#8a5e2a"/>
+            <rect x="0"   y="120" width="40" height="40" fill="#8a5e2a"/><rect x="40"  y="120" width="40" height="40" fill="#e0bf8e"/><rect x="80"  y="120" width="40" height="40" fill="#8a5e2a"/><rect x="120" y="120" width="40" height="40" fill="#e0bf8e"/>
+          </g>
+          <!-- 1 cell forward (move) -->
+          <rect x="40" y="40" width="40" height="40" fill="#2a8a4e" opacity="0.55"/>
+          <!-- 2 diagonals forward (capture only) -->
+          <rect x="0"  y="40" width="40" height="40" fill="#a02230" opacity="0.55"/>
+          <rect x="80" y="40" width="40" height="40" fill="#a02230" opacity="0.55"/>
+          <circle cx="60" cy="100" r="13" fill="#ffd070" stroke="#4a2c08" stroke-width="1.5"/>
+          <text x="60" y="105" text-anchor="middle" font-family="serif" font-size="14" fill="#a62244">⚑</text>
+        </svg>
+        <p class="movement-caption">1 cell straight forward · captures diagonally forward.</p>
+      </div>
+    </div>
+    <div class="piece-info">
+      <p class="lore"><span class="drop">H</span>e marches and he marches and he never marches back. The Soldier moves a single cell forward, into the enemy's half of the board, and the only way he ever harms an enemy is when one stands at the diagonal in front of him — the chess pawn's only weapon. He is slow, irreversible, stubborn. In PYAAR he no longer carries the crown; that honour belongs to the Lover now. But the line he holds is still the line that wins or loses the centre.</p>
+      <div class="stats-card">
+        <h3>Combat Profile</h3>
+        <div class="stat-row"><div class="label">Range</div><div class="value">1 cell forward · 1 diagonal capture</div></div>
+        <div class="stat-row"><div class="label">Direction</div><div class="value">Strictly forward (P1: +r, P2: −r)</div></div>
+        <div class="stat-row"><div class="label">Captures</div><div class="value">Diagonal-forward only · pawn style</div></div>
+        <div class="stat-row"><div class="label">Chess analogue</div><div class="value">Pawn</div></div>
+        <div class="stat-row"><div class="label">Limitation</div><div class="value">Cannot retreat · cannot move sideways</div></div>
+      </div>
+      <div class="role-card">
+        <h3>Role in the Embrace</h3>
+        <p>A slow body for the Lotus. Once he reaches the row in front of the Heart he can step in as an escort, and once there he is hard to move — he never goes back. Best brought up in the late game when the Lover is already close.</p>
+      </div>
+    </div>
+  </div>
+  <footer class="piece-foot">
+    <div class="tagline">"The road only goes one way. That is enough."</div>
+    <div class="glyph">⚑ · ⚑ · ⚑</div>
+  </footer>
+  <div class="folio">— 11 —</div>
+</section>
+
+<!-- ============================================================
+     AFTERWORD
+     ============================================================ -->
+<section class="page">
+  <div class="afterword">
+    <h2>A Closing</h2>
+    <p>
+      Eight figures, eight movements, eight stories. They share one board and one centre and
+      one goal-piece, and that is all the rules they need. The contest, in the end, is whether
+      the picture you carry in your mind — Lover at the Heart, two friends beside her — can
+      survive the picture your opponent carries.
+    </p>
+    <p style="margin-top: 6mm;">
+      Open <code>index.html</code> and begin.
+    </p>
+    <div class="signature">PYAAR · FIRST EDITION</div>
+  </div>
+  <div class="folio">— 12 —</div>
+</section>
+
+<!-- ============================================================
+     SCRIPT — Mount a 3D scene in each piece-render div
+     ============================================================ -->
+<script>
+const stages = [];
+
+function makeStage(canvas, type, side) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  const scene = new THREE.Scene();
+
+  // Soft warm-then-cool lighting — like a studio.
+  const key = new THREE.DirectionalLight(0xfff0d0, 1.4);
+  key.position.set(2, 3, 2);
+  key.castShadow = true;
+  key.shadow.mapSize.set(512, 512);
+  key.shadow.camera.left = -2; key.shadow.camera.right = 2;
+  key.shadow.camera.top = 2; key.shadow.camera.bottom = -2;
+  scene.add(key);
+  const rim = new THREE.DirectionalLight(0xc0d8ff, 0.35);
+  rim.position.set(-2, 1, -1);
+  scene.add(rim);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.28);
+  scene.add(ambient);
+
+  // Pedestal — sandalwood disc
+  const ped = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.95, 1.05, 0.08, 36),
+    new THREE.MeshStandardMaterial({ color: 0x7a5a32, roughness: 0.55, metalness: 0.18 })
+  );
+  ped.position.y = -0.01; ped.receiveShadow = true; scene.add(ped);
+  const rim2 = new THREE.Mesh(
+    new THREE.TorusGeometry(1.0, 0.018, 12, 40),
+    new THREE.MeshStandardMaterial({ color: 0xd4a64e, roughness: 0.22, metalness: 0.85, emissive: 0x4a2c08, emissiveIntensity: 0.25 })
+  );
+  rim2.position.y = 0.03;
+  rim2.rotation.x = Math.PI / 2;
+  scene.add(rim2);
+
+  // Two figures: P1 left, P2 right
+  const group = new THREE.Group();
+  const p1 = buildPieceMesh(type, 'P1');
+  p1.position.set(-0.42, 0.03, 0);
+  p1.rotation.y = Math.PI;
+  const p2 = buildPieceMesh(type, 'P2');
+  p2.position.set(0.42, 0.03, 0);
+  p2.rotation.y = Math.PI;
+  group.add(p1); group.add(p2);
+  scene.add(group);
+
+  const camera = new THREE.PerspectiveCamera(34, 1.6, 0.1, 30);
+  camera.position.set(0, 1.05, 2.5);
+  camera.lookAt(0, 0.55, 0);
+
+  return { renderer, scene, camera, group, canvas };
+}
+
+function resize(s) {
+  const rect = s.canvas.parentElement.getBoundingClientRect();
+  s.renderer.setSize(Math.max(160, rect.width), Math.max(160, rect.height), false);
+  s.camera.aspect = rect.width / rect.height;
+  s.camera.updateProjectionMatrix();
+}
+
+document.querySelectorAll('.piece-render').forEach((div, i) => {
+  const canvas = div.querySelector('canvas');
+  const type = div.getAttribute('data-stage');
+  const s = makeStage(canvas, type);
+  s.phase = i * 0.5;
+  stages.push(s);
+  resize(s);
+});
+
+window.addEventListener('resize', () => stages.forEach(resize));
+
+function tick(t) {
+  const ts = t / 1000;
+  for (const s of stages) {
+    s.group.rotation.y += 0.003;
+    s.group.position.y = Math.sin(ts * 1.1 + s.phase) * 0.03;
+    s.renderer.render(s.scene, s.camera);
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+
+</body>
+</html>

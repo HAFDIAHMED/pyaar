@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>PYAAR · Piece Shot</title>
+  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+  <script src="pieces.js"></script>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+    body {
+      background:
+        radial-gradient(ellipse at 50% 95%, rgba(212, 166, 78, 0.25), transparent 55%),
+        linear-gradient(180deg, #2c1b10, #14100a);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-family: "Cormorant Garamond", serif;
+      color: #f0d8a0;
+    }
+    canvas { display: block; }
+    .label {
+      position: fixed;
+      bottom: 36px; left: 0; right: 0;
+      text-align: center;
+      font-family: "Cinzel", serif;
+      font-size: 24px;
+      letter-spacing: 0.28em;
+      color: #ffd58a;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+    }
+    .label .tag {
+      display: block;
+      font-family: "Cormorant Garamond", serif;
+      font-style: italic;
+      font-size: 16px;
+      color: #c9b896;
+      letter-spacing: 0.04em;
+      margin-top: 8px;
+      text-transform: none;
+    }
+    .icon {
+      position: fixed;
+      top: 38px; left: 0; right: 0;
+      text-align: center;
+      font-size: 48px;
+      color: #c8345c;
+      text-shadow: 0 0 16px rgba(200, 52, 92, 0.4);
+    }
+  </style>
+</head>
+<body>
+<div class="icon" id="icon">♥</div>
+<div class="label" id="label">THE LOVER<span class="tag" id="tag">Sacred · uncapturable</span></div>
+<script>
+const DESC = {
+  LOVER:    { icon: '♥', name: 'THE LOVER',    tag: 'Sacred · uncapturable · the crown-piece' },
+  WARRIOR:  { icon: '⚔', name: 'THE WARRIOR',  tag: 'Steady and close at hand · the king\'s reach' },
+  SAGE:     { icon: '✦', name: 'THE SAGE',     tag: 'Sees along the diagonals · the bishop\'s gaze' },
+  TRAITOR:  { icon: '⚯', name: 'THE TRAITOR',  tag: 'Stalks the straight lines · the rook\'s reach' },
+  FOOL:     { icon: '◊', name: 'THE FOOL',     tag: 'Jumps where no one expects · the knight\'s leap' },
+  GUARDIAN: { icon: '⚜', name: 'THE GUARDIAN', tag: 'A short fierce queen · the temple door-keeper' },
+  DREAMER:  { icon: '☾', name: 'THE DREAMER',  tag: 'Quick · harmless · the moonlit scout' },
+  SOLDIER:  { icon: '⚑', name: 'THE SOLDIER',  tag: 'The vanguard · a pawn that pushes the line' },
+};
+
+const params = new URLSearchParams(location.search);
+const type = (params.get('type') || 'LOVER').toUpperCase();
+const def = DESC[type] || DESC.LOVER;
+
+document.getElementById('icon').textContent = def.icon;
+document.getElementById('label').firstChild.textContent = def.name;
+document.getElementById('tag').textContent = def.tag;
+
+const W = 1200, H = 800;
+
+const canvas = document.createElement('canvas');
+canvas.width = W; canvas.height = H;
+canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+document.body.appendChild(canvas);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setSize(W, H, false);
+
+const scene = new THREE.Scene();
+
+// Studio lighting
+const key = new THREE.DirectionalLight(0xfff0d0, 1.5);
+key.position.set(2.5, 3.5, 2.2);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+key.shadow.camera.left = -2; key.shadow.camera.right = 2;
+key.shadow.camera.top = 2; key.shadow.camera.bottom = -2;
+scene.add(key);
+const rim = new THREE.DirectionalLight(0xc0d8ff, 0.4);
+rim.position.set(-2, 1.5, -1);
+scene.add(rim);
+const ambient = new THREE.AmbientLight(0xffffff, 0.30);
+scene.add(ambient);
+
+// Sandalwood pedestal
+const ped = new THREE.Mesh(
+  new THREE.CylinderGeometry(1.0, 1.1, 0.08, 48),
+  new THREE.MeshStandardMaterial({ color: 0x7a5a32, roughness: 0.55, metalness: 0.18 })
+);
+ped.position.y = -0.01; ped.receiveShadow = true; scene.add(ped);
+const goldRim = new THREE.Mesh(
+  new THREE.TorusGeometry(1.05, 0.020, 16, 48),
+  new THREE.MeshStandardMaterial({ color: 0xd4a64e, roughness: 0.20, metalness: 0.88, emissive: 0x4a2c08, emissiveIntensity: 0.25 })
+);
+goldRim.position.y = 0.03;
+goldRim.rotation.x = Math.PI / 2;
+scene.add(goldRim);
+
+// Two pieces side by side: P1 left (saffron), P2 right (peacock)
+const group = new THREE.Group();
+const p1 = buildPieceMesh(type, 'P1');
+p1.position.set(-0.5, 0.03, 0);
+p1.rotation.y = Math.PI;
+const p2 = buildPieceMesh(type, 'P2');
+p2.position.set(0.5, 0.03, 0);
+p2.rotation.y = Math.PI;
+group.add(p1); group.add(p2);
+scene.add(group);
+
+// Camera
+const camera = new THREE.PerspectiveCamera(30, W / H, 0.1, 30);
+camera.position.set(0, 1.0, 3.0);
+camera.lookAt(0, 0.55, 0);
+
+// Static render (no animation — clean shot)
+renderer.render(scene, camera);
+// One more after a tick to be safe
+requestAnimationFrame(() => renderer.render(scene, camera));
+</script>
+</body>
+</html>

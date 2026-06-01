@@ -1,0 +1,1048 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PYAAR — The War for the Heart · A Player's Manual</title>
+  <style>
+    @page { size: A4; margin: 18mm 16mm; }
+    :root {
+      --ink: #1c1410;
+      --ink-soft: #4a3a2a;
+      --paper: #f5ece0;
+      --gold: #a06f1c;
+      --gold-dim: #7c5418;
+      --crimson: #a62244;
+      --crimson-dim: #6b1228;
+      --rule: rgba(28, 20, 16, 0.18);
+      --warm-light: #d9aa6e;
+      --warm-dark: #6e3f1d;
+      --cool-light: #b6c4d4;
+      --cool-dark: #445567;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background: #2a1a10; color: var(--ink);
+      font-family: "Cormorant Garamond", "Garamond", "Georgia", serif;
+      font-size: 12pt; line-height: 1.55;
+    }
+    body { padding: 24px 0 60px; }
+    .page {
+      width: 210mm; min-height: 297mm;
+      margin: 0 auto 22px;
+      background: var(--paper);
+      background-image:
+        radial-gradient(circle at 20% 10%, rgba(160, 111, 28, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 90%, rgba(166, 34, 68, 0.04) 0%, transparent 50%);
+      padding: 22mm 20mm;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+      page-break-after: always;
+      position: relative;
+    }
+    .page:last-child { page-break-after: auto; }
+
+    /* Corner ornaments on every page (cover excepted). Quiet, decorative. */
+    .page:not(.cover)::before {
+      content: "";
+      position: absolute;
+      top: 8mm; left: 8mm;
+      width: 24mm; height: 24mm;
+      background-repeat: no-repeat; background-size: contain;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M5 5 L5 35 M5 5 L35 5 M5 5 Q20 20 35 35' fill='none' stroke='%23a06f1c' stroke-width='0.8' opacity='0.45'/><circle cx='10' cy='10' r='1.8' fill='%23a62244' opacity='0.55'/></svg>");
+    }
+
+    h1, h2, h3, h4 {
+      font-family: "Cinzel", "Trajan Pro", "Cormorant Garamond", serif;
+      color: var(--ink);
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+    h1 { font-size: 48pt; text-align: center; letter-spacing: 0.3em; color: var(--gold); margin: 40mm 0 4mm; line-height: 1.1; }
+    h2 { font-size: 20pt; letter-spacing: 0.22em; text-transform: uppercase; color: var(--crimson-dim); border-bottom: 1px solid var(--rule); padding-bottom: 3mm; margin: 8mm 0 6mm; }
+    h3 { font-size: 14pt; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-dim); margin: 6mm 0 3mm; }
+    h4 { font-size: 12pt; letter-spacing: 0.12em; color: var(--ink-soft); margin: 4mm 0 2mm; }
+    p { margin: 0 0 4mm; }
+    blockquote {
+      border-left: 3px solid var(--crimson);
+      margin: 6mm 0; padding: 2mm 6mm;
+      color: var(--ink-soft);
+      font-style: italic; font-size: 13pt; line-height: 1.5;
+    }
+    .drop {
+      float: left; font-family: "Cinzel", serif;
+      font-size: 36pt; line-height: 0.85;
+      color: var(--crimson-dim);
+      margin: 1mm 3mm 0 0;
+    }
+    .page::after {
+      counter-increment: page; content: counter(page);
+      position: absolute; bottom: 10mm; right: 0; left: 0;
+      text-align: center; font-family: "Cinzel", serif;
+      font-size: 9pt; letter-spacing: 0.3em; color: var(--gold-dim);
+    }
+    body { counter-reset: page; }
+
+    .cover {
+      background: linear-gradient(150deg, #2a1a10 0%, #4a2818 60%, #6a3826 100%);
+      color: var(--paper);
+      page-break-after: always;
+    }
+    .cover h1 { color: #ffd070; margin: 60mm 0 2mm; }
+    .cover .subtitle {
+      text-align: center; font-style: italic;
+      letter-spacing: 0.08em; color: #f0d8a0;
+      font-size: 16pt; margin: 0 0 12mm;
+    }
+    .cover .ornament {
+      text-align: center; font-size: 36pt;
+      color: var(--crimson); margin: 10mm 0;
+      text-shadow: 0 0 18px rgba(166, 34, 68, 0.6);
+    }
+    .cover .imprint {
+      position: absolute; bottom: 16mm; left: 0; right: 0;
+      text-align: center; font-family: "Cinzel", serif;
+      font-size: 10pt; letter-spacing: 0.35em; color: #b89868;
+    }
+    .cover::after { color: transparent; }
+
+    figure { margin: 6mm 0; page-break-inside: avoid; text-align: center; }
+    figure svg { display: block; margin: 0 auto; }
+    figcaption { font-style: italic; font-size: 10pt; color: var(--ink-soft); margin-top: 2mm; letter-spacing: 0.04em; }
+
+    .cols { column-count: 2; column-gap: 8mm; margin: 4mm 0; }
+    .cols p { break-inside: avoid; }
+
+    .pieces-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; margin: 4mm 0; }
+    .piece-card {
+      border: 1px solid var(--rule); border-radius: 4px;
+      padding: 4mm; background: rgba(255, 250, 240, 0.4);
+      page-break-inside: avoid;
+    }
+    .piece-card .piece-header { display: flex; align-items: baseline; gap: 3mm; margin-bottom: 2mm; border-bottom: 1px solid var(--rule); padding-bottom: 2mm; }
+    .piece-card .icon { font-size: 20pt; color: var(--crimson); line-height: 1; }
+    .piece-card h3 { margin: 0; font-size: 12pt; color: var(--ink); }
+    .piece-card .tag { font-style: italic; font-size: 10pt; color: var(--ink-soft); }
+    .piece-card .pattern { display: grid; grid-template-columns: 110px 1fr; gap: 4mm; align-items: center; }
+    .piece-card p { font-size: 10.5pt; line-height: 1.45; }
+
+    table.ref { width: 100%; border-collapse: collapse; font-size: 10pt; margin: 4mm 0; }
+    table.ref th, table.ref td { padding: 2mm 3mm; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+    table.ref th { font-family: "Cinzel", serif; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold-dim); font-size: 9pt; border-bottom: 2px solid var(--gold-dim); }
+
+    .callout { border: 1px solid var(--gold-dim); border-left: 4px solid var(--gold); background: rgba(160, 111, 28, 0.06); padding: 4mm 6mm; margin: 5mm 0; page-break-inside: avoid; }
+    .callout h4 { margin-top: 0; color: var(--gold-dim); }
+
+    .divider { text-align: center; color: var(--gold-dim); font-size: 14pt; margin: 6mm 0; letter-spacing: 1em; }
+
+    .grid-cell-light { fill: var(--warm-light); }
+    .grid-cell-dark { fill: var(--warm-dark); }
+    .grid-cell-cool-light { fill: var(--cool-light); }
+    .grid-cell-cool-dark { fill: var(--cool-dark); }
+    .grid-cell-heart { fill: #4a0a18; }
+    .grid-cell-move { fill: #2a8a4e; opacity: 0.7; }
+    .grid-cell-capture { fill: #a02230; opacity: 0.7; }
+    .grid-cell-piece { fill: #f0e0c0; stroke: #4a2c08; stroke-width: 1; }
+    .grid-cell-piece-self { fill: #ffd070; stroke: #4a2c08; stroke-width: 1.5; }
+    .grid-line { stroke: var(--gold-dim); stroke-width: 1; fill: none; }
+    .label { font-family: "Cormorant Garamond", serif; font-size: 8pt; fill: var(--ink-soft); }
+  </style>
+</head>
+<body>
+
+<!-- COVER -->
+<section class="page cover">
+  <div class="ornament" style="font-size: 22pt; letter-spacing: 1.5em; margin-bottom: 6mm; color: #d8b878;">❀ · ❀ · ❀</div>
+  <h1>PYAAR</h1>
+  <p class="subtitle">The War for the Heart</p>
+  <div class="ornament" style="margin-top: 16mm;">
+    <!-- A bigger roundel: 8 piece symbols ringed around a lotus heart -->
+    <svg width="200" height="200" viewBox="-100 -100 200 200">
+      <circle cx="0" cy="0" r="86" fill="none" stroke="#d8b878" stroke-width="1.2" opacity="0.6"/>
+      <circle cx="0" cy="0" r="72" fill="none" stroke="#d8b878" stroke-width="0.7" opacity="0.4"/>
+      <g fill="#ffd58a" font-family="serif" font-size="14" text-anchor="middle">
+        <text x="0" y="-55" dominant-baseline="central">♥</text>
+        <text x="38" y="-38" dominant-baseline="central">⚔</text>
+        <text x="55" y="0" dominant-baseline="central">✦</text>
+        <text x="38" y="38" dominant-baseline="central">◊</text>
+        <text x="0" y="55" dominant-baseline="central">⚯</text>
+        <text x="-38" y="38" dominant-baseline="central">⚜</text>
+        <text x="-55" y="0" dominant-baseline="central">☾</text>
+        <text x="-38" y="-38" dominant-baseline="central">⚑</text>
+      </g>
+      <!-- inner lotus -->
+      <circle r="22" fill="rgba(166, 34, 68, 0.4)" />
+      <circle r="14" fill="#a62244"/>
+      <path d="M 0 -8 C -5 -15 -16 -8 -10 0 L 0 12 L 10 0 C 16 -8 5 -15 0 -8 Z" fill="#ffd58a"/>
+    </svg>
+  </div>
+  <div class="imprint">A Player's Manual · First Edition</div>
+</section>
+
+<!-- FOREWORD -->
+<section class="page">
+  <h2 style="text-align: center; border-bottom-color: transparent; margin-top: 18mm;">Foreword</h2>
+  <div style="text-align: center; color: var(--gold-dim); font-size: 16pt; letter-spacing: 0.6em; margin: 0 0 12mm;">·  ·  ·</div>
+  <p style="max-width: 130mm; margin: 0 auto 5mm;">
+    <span class="drop">P</span>YAAR is a small game. It is played on a board of forty-nine squares, with eight pieces a side, in five to fifteen minutes. The rules fit on a single page. A new player understands the objective in twenty seconds.
+  </p>
+  <p style="max-width: 130mm; margin: 0 auto 5mm;">
+    What it asks of its players, though, is something a chess player will recognise. You will arrange your pieces. You will think about your opponent. You will see, three or four moves ahead, the shape that you and they are both reaching toward. One of you will reach it first.
+  </p>
+  <p style="max-width: 130mm; margin: 0 auto 5mm;">
+    The picture you are reaching toward is called <em>The Embrace</em>: your Lover at the centre of the board, two of your other pieces beside her. The Lover cannot be captured by enemies; she is the only piece in the game with that protection, and she is the only piece that can win. The other seven move and fight as their names suggest — Warrior, Sage, Traitor, Fool, Guardian, Dreamer, and the slow stubborn Soldier.
+  </p>
+  <p style="max-width: 130mm; margin: 0 auto 5mm;">
+    This is the manual for that game. It is short, but every section is here because it matters. Read it through once before your first game; read the strategy page again after your third.
+  </p>
+  <div style="text-align: center; margin-top: 22mm; font-family: 'Cinzel', serif; letter-spacing: 0.32em; font-size: 10pt; color: var(--gold-dim);">— THE DESIGNER —</div>
+</section>
+
+<!-- THE PREMISE -->
+<section class="page">
+  <h2>The Premise</h2>
+  <blockquote>
+    Two armies on opposite shores. Between them, at the centre of the board, glows the Heart. Among each side's pieces is one who walks only toward that centre — the Lover. She cannot be touched. She cannot be removed. The opponent may block her path, deny her companions, trap her in a corner — but they may never strike her down.<br/><br/>
+    The contest is not "kill her before she gets there." The contest is: <em>can you bring her to the Heart with two friends at her side?</em>
+  </blockquote>
+
+  <h3>Why this game?</h3>
+  <p>
+    <span class="drop">P</span>YAAR is a chess-family game built around a single mechanic that
+    doesn't exist anywhere else: <strong>the goal piece cannot be captured.</strong> In chess,
+    the King is the most-protected piece because the rules forbid him from stepping into harm.
+    Here, the Lover is the most-protected piece because <em>nothing can harm her at all.</em>
+  </p>
+  <p>
+    What this changes: the war is no longer about exterminating the enemy or chasing a king
+    into a corner. It is a positional contest — you push your slow, sacred Lover toward the
+    centre while clearing companions to meet her there, and your opponent does the same in the
+    opposite direction. Whoever forms the picture first wins.
+  </p>
+  <p>
+    The game's name is a Hindi word for love. The pieces are archetypes — the universal cast
+    of a love story made into a war: the lover, the warrior, the sage, the traitor, the fool,
+    the guardian, the dreamer, and the soldier who pushes forward and never retreats.
+  </p>
+
+  <div class="callout">
+    <h4>The Game in One Sentence</h4>
+    <p style="margin: 0;">
+      <strong>Bring your Lover to the Heart at the centre of the board with at least two of your other pieces in the ring of cells around her — that is the Embrace, and that is the win.</strong>
+    </p>
+  </div>
+</section>
+
+<!-- THE BOARD -->
+<section class="page">
+  <h2>The Board</h2>
+  <p>
+    A board of 49 cells in a 7 × 7 grid. The centre cell is <strong>The Heart</strong>.
+    Each player begins with eight pieces — seven named, one Soldier.
+  </p>
+
+  <figure>
+    <svg width="420" height="420" viewBox="-30 -30 460 460" xmlns="http://www.w3.org/2000/svg">
+      <rect x="-30" y="-30" width="460" height="460" fill="#3a2a18" rx="8" />
+      <g id="board">
+        <rect x="0"   y="0"   width="55" height="55" class="grid-cell-light" />
+        <rect x="55"  y="0"   width="55" height="55" class="grid-cell-dark" />
+        <rect x="110" y="0"   width="55" height="55" class="grid-cell-light" />
+        <rect x="165" y="0"   width="55" height="55" class="grid-cell-dark" />
+        <rect x="220" y="0"   width="55" height="55" class="grid-cell-light" />
+        <rect x="275" y="0"   width="55" height="55" class="grid-cell-dark" />
+        <rect x="330" y="0"   width="55" height="55" class="grid-cell-light" />
+        <rect x="0"   y="55"  width="55" height="55" class="grid-cell-dark" />
+        <rect x="55"  y="55"  width="55" height="55" class="grid-cell-light" />
+        <rect x="110" y="55"  width="55" height="55" class="grid-cell-dark" />
+        <rect x="165" y="55"  width="55" height="55" class="grid-cell-light" />
+        <rect x="220" y="55"  width="55" height="55" class="grid-cell-dark" />
+        <rect x="275" y="55"  width="55" height="55" class="grid-cell-light" />
+        <rect x="330" y="55"  width="55" height="55" class="grid-cell-dark" />
+        <rect x="0"   y="110" width="55" height="55" class="grid-cell-light" />
+        <rect x="55"  y="110" width="55" height="55" class="grid-cell-dark" />
+        <rect x="110" y="110" width="55" height="55" class="grid-cell-light" />
+        <rect x="165" y="110" width="55" height="55" class="grid-cell-dark" />
+        <rect x="220" y="110" width="55" height="55" class="grid-cell-light" />
+        <rect x="275" y="110" width="55" height="55" class="grid-cell-dark" />
+        <rect x="330" y="110" width="55" height="55" class="grid-cell-light" />
+        <rect x="0"   y="165" width="55" height="55" fill="#c4a888" />
+        <rect x="55"  y="165" width="55" height="55" fill="#6e5638" />
+        <rect x="110" y="165" width="55" height="55" fill="#c4a888" />
+        <rect x="165" y="165" width="55" height="55" class="grid-cell-heart" />
+        <rect x="220" y="165" width="55" height="55" fill="#c4a888" />
+        <rect x="275" y="165" width="55" height="55" fill="#6e5638" />
+        <rect x="330" y="165" width="55" height="55" fill="#c4a888" />
+        <rect x="0"   y="220" width="55" height="55" class="grid-cell-cool-light" />
+        <rect x="55"  y="220" width="55" height="55" class="grid-cell-cool-dark" />
+        <rect x="110" y="220" width="55" height="55" class="grid-cell-cool-light" />
+        <rect x="165" y="220" width="55" height="55" class="grid-cell-cool-dark" />
+        <rect x="220" y="220" width="55" height="55" class="grid-cell-cool-light" />
+        <rect x="275" y="220" width="55" height="55" class="grid-cell-cool-dark" />
+        <rect x="330" y="220" width="55" height="55" class="grid-cell-cool-light" />
+        <rect x="0"   y="275" width="55" height="55" class="grid-cell-cool-dark" />
+        <rect x="55"  y="275" width="55" height="55" class="grid-cell-cool-light" />
+        <rect x="110" y="275" width="55" height="55" class="grid-cell-cool-dark" />
+        <rect x="165" y="275" width="55" height="55" class="grid-cell-cool-light" />
+        <rect x="220" y="275" width="55" height="55" class="grid-cell-cool-dark" />
+        <rect x="275" y="275" width="55" height="55" class="grid-cell-cool-light" />
+        <rect x="330" y="275" width="55" height="55" class="grid-cell-cool-dark" />
+        <rect x="0"   y="330" width="55" height="55" class="grid-cell-cool-light" />
+        <rect x="55"  y="330" width="55" height="55" class="grid-cell-cool-dark" />
+        <rect x="110" y="330" width="55" height="55" class="grid-cell-cool-light" />
+        <rect x="165" y="330" width="55" height="55" class="grid-cell-cool-dark" />
+        <rect x="220" y="330" width="55" height="55" class="grid-cell-cool-light" />
+        <rect x="275" y="330" width="55" height="55" class="grid-cell-cool-dark" />
+        <rect x="330" y="330" width="55" height="55" class="grid-cell-cool-light" />
+      </g>
+      <circle cx="192" cy="192" r="22" fill="#ff2244" opacity="0.4" />
+      <text x="192" y="200" text-anchor="middle" font-size="22" fill="#ffe0e0" font-family="serif">♥</text>
+      <g font-family="serif" font-size="22" text-anchor="middle" fill="#3a1a08">
+        <text x="27"  y="38">♥</text>
+        <text x="82"  y="38">⚔</text>
+        <text x="137" y="38">✦</text>
+        <text x="192" y="38">◊</text>
+        <text x="247" y="38">⚯</text>
+        <text x="302" y="38">⚜</text>
+        <text x="357" y="38">☾</text>
+        <text x="192" y="92" fill="#a62244">⚑</text>
+      </g>
+      <g font-family="serif" font-size="22" text-anchor="middle" fill="#1a2848">
+        <text x="27"  y="367">♥</text>
+        <text x="82"  y="367">⚔</text>
+        <text x="137" y="367">✦</text>
+        <text x="192" y="367">◊</text>
+        <text x="247" y="367">⚯</text>
+        <text x="302" y="367">⚜</text>
+        <text x="357" y="367">☾</text>
+        <text x="192" y="312" fill="#5b8fbd">⚑</text>
+      </g>
+      <g class="label" text-anchor="middle">
+        <text x="27"  y="-10">a</text><text x="82"  y="-10">b</text><text x="137" y="-10">c</text>
+        <text x="192" y="-10">d</text><text x="247" y="-10">e</text><text x="302" y="-10">f</text>
+        <text x="357" y="-10">g</text>
+      </g>
+      <g class="label" text-anchor="end">
+        <text x="-8" y="33">1</text><text x="-8" y="88">2</text><text x="-8" y="143">3</text>
+        <text x="-8" y="198">4</text><text x="-8" y="253">5</text><text x="-8" y="308">6</text>
+        <text x="-8" y="363">7</text>
+      </g>
+    </svg>
+    <figcaption>Figure 1 · The opening position. Player 1 commands the warm half (rows 1–3); Player 2 the cool (rows 5–7). The Heart sits at <strong>(d, 4)</strong>.</figcaption>
+  </figure>
+
+  <p>
+    Player 1's seven named pieces — <em>Lover</em>, <em>Warrior</em>, <em>Sage</em>, <em>Fool</em>,
+    <em>Traitor</em>, <em>Guardian</em>, <em>Dreamer</em> — line the back rank. Their Soldier stands
+    one cell forward, in the centre column. Player 2 mirrors them across the board.
+  </p>
+  <p style="font-style: italic; color: var(--ink-soft);">
+    The order along the back rank is <strong>not</strong> fixed — each player decides their own
+    arrangement before play begins (see the next page).
+  </p>
+</section>
+
+<!-- THE SETUP -->
+<section class="page">
+  <h2>The Setup</h2>
+  <p>
+    Before the first move, each player arranges their seven named pieces along their home row
+    in any order they like. <strong>This is not chess.</strong> A row that is right for you
+    against one opponent may be wrong against another. The arrangement is the first decision
+    of the game, and it shapes every move that follows.
+  </p>
+
+  <h3>How it works</h3>
+  <ol>
+    <li><strong>Player 1 arranges first.</strong> The phase banner reads <em>"Player 1 — arrange your characters."</em></li>
+    <li>Click any two of your back-row pieces — they swap cells. Repeat as often as you like.</li>
+    <li>Use <strong>Shuffle Mine</strong> to randomise your row instantly, if you want a fresh layout.</li>
+    <li>When you are ready, press <strong>Begin Game</strong>.</li>
+    <li>In <em>vs Computer</em>, Player 2's row is shuffled randomly when you confirm.<br/>
+        In <em>Hot-seat</em>, Player 2 then arranges their row the same way, and presses Begin.</li>
+  </ol>
+
+  <p>
+    The <strong>Soldier</strong> is not arrangeable — he always begins at <strong>(2, d)</strong>
+    for Player 1 and <strong>(6, d)</strong> for Player 2, one cell in front of the back row.
+  </p>
+  <p>
+    The <strong>Lover</strong> is your crown-piece — the only piece that can win the game.
+    Place her where you want her to start her journey to the Heart. The other six combat
+    pieces are her escorts, blockers, and bodyguards.
+  </p>
+
+  <h3>Three example arrangements</h3>
+  <figure>
+    <svg width="540" height="220" viewBox="0 0 540 220">
+      <!-- Layout A · Default -->
+      <g>
+        <text x="80" y="14" text-anchor="middle" font-size="10" letter-spacing="0.18em" font-family="serif" fill="#7c5418">A · DEFAULT</text>
+        <g stroke="#3a2a18" stroke-width="1">
+          <rect x="10"  y="20" width="20" height="20" fill="#d9aa6e"/>
+          <rect x="30"  y="20" width="20" height="20" fill="#6e3f1d"/>
+          <rect x="50"  y="20" width="20" height="20" fill="#d9aa6e"/>
+          <rect x="70"  y="20" width="20" height="20" fill="#6e3f1d"/>
+          <rect x="90"  y="20" width="20" height="20" fill="#d9aa6e"/>
+          <rect x="110" y="20" width="20" height="20" fill="#6e3f1d"/>
+          <rect x="130" y="20" width="20" height="20" fill="#d9aa6e"/>
+        </g>
+        <g font-family="serif" font-size="13" text-anchor="middle" fill="#1c1410">
+          <text x="20"  y="35">♥</text>
+          <text x="40"  y="35">⚔</text>
+          <text x="60"  y="35">✦</text>
+          <text x="80"  y="35">◊</text>
+          <text x="100" y="35">⚯</text>
+          <text x="120" y="35">⚜</text>
+          <text x="140" y="35">☾</text>
+        </g>
+        <text x="80" y="62" text-anchor="middle" font-size="9" font-family="serif" fill="#4a3a2a">Lover · Warrior · Sage · Fool · Traitor · Guardian · Dreamer</text>
+        <text x="80" y="82" text-anchor="middle" font-size="9" font-style="italic" fill="#4a3a2a">Balanced. Long-range pieces in the centre.</text>
+      </g>
+
+      <!-- Layout B · Long-range flanks -->
+      <g transform="translate(180, 0)">
+        <text x="80" y="14" text-anchor="middle" font-size="10" letter-spacing="0.18em" font-family="serif" fill="#7c5418">B · LONG-RANGE FLANKS</text>
+        <g stroke="#3a2a18" stroke-width="1">
+          <rect x="10"  y="20" width="20" height="20" fill="#d9aa6e"/>
+          <rect x="30"  y="20" width="20" height="20" fill="#6e3f1d"/>
+          <rect x="50"  y="20" width="20" height="20" fill="#d9aa6e"/>
+          <rect x="70"  y="20" width="20" height="20" fill="#6e3f1d"/>
+          <rect x="90"  y="20" width="20" height="20" fill="#d9aa6e"/>
+          <rect x="110" y="20" width="20" height="20" fill="#6e3f1d"/>
+          <rect x="130" y="20" width="20" height="20" fill="#d9aa6e"/>
+        </g>
+        <g font-family="serif" font-size="13" text-anchor="middle" fill="#1c1410">
+          <text x="20"  y="35">✦</text>
+          <text x="40"  y="35">⚯</text>
+          <text x="60"  y="35">⚜</text>
+          <text x="80"  y="35">♥</text>
+          <text x="100" y="35">◊</text>
+          <text x="120" y="35">⚔</text>
+          <text x="140" y="35">☾</text>
+        </g>
+        <text x="80" y="62" text-anchor="middle" font-size="9" font-family="serif" fill="#4a3a2a">Sage · Traitor · Guardian · Lover · Fool · Warrior · Dreamer</text>
+        <text x="80" y="82" text-anchor="middle" font-size="9" font-style="italic" fill="#4a3a2a">Sage on the corner diagonal. Lover hidden in the centre.</text>
+      </g>
+
+      <!-- Layout C · Hide the Lover -->
+      <g transform="translate(360, 0)">
+        <text x="80" y="14" text-anchor="middle" font-size="10" letter-spacing="0.18em" font-family="serif" fill="#7c5418">C · LOVER PROTECTED</text>
+        <g stroke="#3a2a18" stroke-width="1">
+          <rect x="10"  y="20" width="20" height="20" fill="#d9aa6e"/>
+          <rect x="30"  y="20" width="20" height="20" fill="#6e3f1d"/>
+          <rect x="50"  y="20" width="20" height="20" fill="#d9aa6e"/>
+          <rect x="70"  y="20" width="20" height="20" fill="#6e3f1d"/>
+          <rect x="90"  y="20" width="20" height="20" fill="#d9aa6e"/>
+          <rect x="110" y="20" width="20" height="20" fill="#6e3f1d"/>
+          <rect x="130" y="20" width="20" height="20" fill="#d9aa6e"/>
+        </g>
+        <g font-family="serif" font-size="13" text-anchor="middle" fill="#1c1410">
+          <text x="20"  y="35">⚔</text>
+          <text x="40"  y="35">◊</text>
+          <text x="60"  y="35">⚜</text>
+          <text x="80"  y="35">♥</text>
+          <text x="100" y="35">✦</text>
+          <text x="120" y="35">⚯</text>
+          <text x="140" y="35">☾</text>
+        </g>
+        <text x="80" y="62" text-anchor="middle" font-size="9" font-family="serif" fill="#4a3a2a">Warrior · Fool · Guardian · Lover · Sage · Traitor · Dreamer</text>
+        <text x="80" y="82" text-anchor="middle" font-size="9" font-style="italic" fill="#4a3a2a">Lover walled in by Guardian and Sage on the central file.</text>
+      </g>
+
+      <!-- A subtle hint that the Soldier sits one row forward at column d -->
+      <g transform="translate(180, 110)">
+        <rect x="60" y="0" width="20" height="20" fill="#c4a888" stroke="#3a2a18" stroke-width="1"/>
+        <text x="70" y="15" text-anchor="middle" font-size="13" font-family="serif" fill="#a62244">⚑</text>
+        <text x="100" y="14" font-size="10" font-family="serif" fill="#1c1410">+ Soldier at (2, d) — fixed.</text>
+      </g>
+    </svg>
+    <figcaption>Figure 1.5 · Three of the many possible openings. The Soldier is not movable during setup.</figcaption>
+  </figure>
+
+  <h3>What makes a row good?</h3>
+  <div class="cols">
+    <p><strong>The Sage</strong> is a bishop — it moves only on diagonals. From a light cell it reaches only light cells; from a dark cell, only dark. Placing it on a particular colour commits it to half the board. Some players keep two corners covered by colour; others put the Sage where it threatens the d-file diagonal on move 1.</p>
+    <p><strong>The Traitor</strong> is a rook. Wherever you put it, it sees one full row and one full column. The d-column is the path to the Heart — a Traitor stationed near d sees that file from turn 1, but is also the first target.</p>
+    <p><strong>The Lover</strong> only walks toward the Heart. She is your slowest forward piece. Many players hide her behind the Guardian, so an enemy must trade first before reaching her.</p>
+    <p><strong>The Dreamer</strong> cannot capture, but moves three cells in a straight line. She is your scout and your blocker — useful at the edge where she will not be in the way of your own attacks.</p>
+    <p><strong>The Fool</strong> jumps. Where you place him barely matters in turn 1, but he likes to start one cell away from the central file so his L-jumps reach the enemy's middle in one move.</p>
+    <p><strong>The Guardian and Warrior</strong> are short-range. Place them where you want them to fight — likely between your weak pieces (Lover, Dreamer) and the centre.</p>
+  </div>
+
+  <div class="callout">
+    <h4>The Mind Game</h4>
+    <p style="margin: 0;">
+      In Hot-seat play, Player 1 commits first — Player 2 sees that arrangement before choosing
+      their own. This is a real asymmetry: Player 2 can <em>respond</em> to the layout opposite
+      them. Many players treat setup as a small contest of its own: hide your fragile pieces,
+      threaten the lines your opponent has left open, and reserve your long-range pieces for
+      where the enemy is weakest.
+    </p>
+  </div>
+</section>
+
+<!-- PIECES PAGE 1 -->
+<section class="page">
+  <h2>The Pieces</h2>
+  <p>
+    Each piece has exactly <em>one</em> movement pattern. Capture is by displacement:
+    move onto an enemy, the enemy is exiled, you take their cell. No menus, no choices —
+    click your piece, click a glowing cell, the move is done.
+  </p>
+
+  <div class="pieces-grid">
+
+    <div class="piece-card" style="border: 2px solid var(--crimson); background: rgba(166, 34, 68, 0.06);">
+      <div class="piece-header">
+        <span class="icon" style="color: var(--crimson);">♥</span>
+        <div><h3 style="color: var(--crimson-dim);">The Lover</h3><div class="tag">Sacred. Uncapturable. Your crown-piece.</div></div>
+      </div>
+      <div class="pattern">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <g stroke="#3a2a18" stroke-width="1">
+            <rect x="0"  y="0"  width="33" height="33" fill="#d9aa6e"/><rect x="33" y="0"  width="33" height="33" fill="#6e3f1d"/><rect x="66" y="0"  width="33" height="33" fill="#d9aa6e"/>
+            <rect x="0"  y="33" width="33" height="33" fill="#6e3f1d"/><rect x="33" y="33" width="33" height="33" fill="#d9aa6e"/><rect x="66" y="33" width="33" height="33" fill="#6e3f1d"/>
+            <rect x="0"  y="66" width="33" height="33" fill="#d9aa6e"/><rect x="33" y="66" width="33" height="33" fill="#6e3f1d"/><rect x="66" y="66" width="33" height="33" fill="#d9aa6e"/>
+          </g>
+          <rect x="33" y="0" width="33" height="33" class="grid-cell-move" />
+          <rect x="66" y="0" width="33" height="33" class="grid-cell-move" />
+          <rect x="66" y="33" width="33" height="33" class="grid-cell-move" />
+          <circle cx="16" cy="83" r="11" class="grid-cell-piece-self" />
+          <text x="16" y="89" text-anchor="middle" font-size="14" font-family="serif">♥</text>
+        </svg>
+        <p>Moves <strong>1 cell toward the Heart</strong>. <strong>Cannot be captured by enemies.</strong> She herself captures by displacement. The only piece that can win the game.</p>
+      </div>
+    </div>
+
+    <div class="piece-card">
+      <div class="piece-header">
+        <span class="icon">⚔</span>
+        <div><h3>The Warrior</h3><div class="tag">Slow, close, lethal.</div></div>
+      </div>
+      <div class="pattern">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <g stroke="#3a2a18" stroke-width="1">
+            <rect x="0"  y="0"  width="33" height="33" fill="#d9aa6e"/><rect x="33" y="0"  width="33" height="33" fill="#6e3f1d"/><rect x="66" y="0"  width="33" height="33" fill="#d9aa6e"/>
+            <rect x="0"  y="33" width="33" height="33" fill="#6e3f1d"/><rect x="33" y="33" width="33" height="33" fill="#d9aa6e"/><rect x="66" y="33" width="33" height="33" fill="#6e3f1d"/>
+            <rect x="0"  y="66" width="33" height="33" fill="#d9aa6e"/><rect x="33" y="66" width="33" height="33" fill="#6e3f1d"/><rect x="66" y="66" width="33" height="33" fill="#d9aa6e"/>
+          </g>
+          <rect x="0"  y="0"  width="33" height="33" class="grid-cell-move" />
+          <rect x="33" y="0"  width="33" height="33" class="grid-cell-move" />
+          <rect x="66" y="0"  width="33" height="33" class="grid-cell-move" />
+          <rect x="0"  y="33" width="33" height="33" class="grid-cell-move" />
+          <rect x="66" y="33" width="33" height="33" class="grid-cell-move" />
+          <rect x="0"  y="66" width="33" height="33" class="grid-cell-move" />
+          <rect x="33" y="66" width="33" height="33" class="grid-cell-move" />
+          <rect x="66" y="66" width="33" height="33" class="grid-cell-move" />
+          <circle cx="49" cy="49" r="11" class="grid-cell-piece-self" />
+          <text x="49" y="55" text-anchor="middle" font-size="14" font-family="serif">⚔</text>
+        </svg>
+        <p><strong>1 cell in any of 8 directions.</strong> The king. Eight options, eight threats.</p>
+      </div>
+    </div>
+
+    <div class="piece-card">
+      <div class="piece-header">
+        <span class="icon">✦</span>
+        <div><h3>The Sage</h3><div class="tag">Sees along diagonals.</div></div>
+      </div>
+      <div class="pattern">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <g stroke="#3a2a18" stroke-width="1">
+            <rect x="0"  y="0"  width="20" height="20" fill="#d9aa6e"/><rect x="20" y="0"  width="20" height="20" fill="#6e3f1d"/><rect x="40" y="0"  width="20" height="20" fill="#d9aa6e"/><rect x="60" y="0"  width="20" height="20" fill="#6e3f1d"/><rect x="80" y="0"  width="20" height="20" fill="#d9aa6e"/>
+            <rect x="0"  y="20" width="20" height="20" fill="#6e3f1d"/><rect x="20" y="20" width="20" height="20" fill="#d9aa6e"/><rect x="40" y="20" width="20" height="20" fill="#6e3f1d"/><rect x="60" y="20" width="20" height="20" fill="#d9aa6e"/><rect x="80" y="20" width="20" height="20" fill="#6e3f1d"/>
+            <rect x="0"  y="40" width="20" height="20" fill="#d9aa6e"/><rect x="20" y="40" width="20" height="20" fill="#6e3f1d"/><rect x="40" y="40" width="20" height="20" fill="#d9aa6e"/><rect x="60" y="40" width="20" height="20" fill="#6e3f1d"/><rect x="80" y="40" width="20" height="20" fill="#d9aa6e"/>
+            <rect x="0"  y="60" width="20" height="20" fill="#6e3f1d"/><rect x="20" y="60" width="20" height="20" fill="#d9aa6e"/><rect x="40" y="60" width="20" height="20" fill="#6e3f1d"/><rect x="60" y="60" width="20" height="20" fill="#d9aa6e"/><rect x="80" y="60" width="20" height="20" fill="#6e3f1d"/>
+            <rect x="0"  y="80" width="20" height="20" fill="#d9aa6e"/><rect x="20" y="80" width="20" height="20" fill="#6e3f1d"/><rect x="40" y="80" width="20" height="20" fill="#d9aa6e"/><rect x="60" y="80" width="20" height="20" fill="#6e3f1d"/><rect x="80" y="80" width="20" height="20" fill="#d9aa6e"/>
+          </g>
+          <rect x="0"  y="0"  width="20" height="20" class="grid-cell-move" />
+          <rect x="20" y="20" width="20" height="20" class="grid-cell-move" />
+          <rect x="60" y="60" width="20" height="20" class="grid-cell-move" />
+          <rect x="80" y="80" width="20" height="20" class="grid-cell-move" />
+          <rect x="80" y="0"  width="20" height="20" class="grid-cell-move" />
+          <rect x="60" y="20" width="20" height="20" class="grid-cell-move" />
+          <rect x="20" y="60" width="20" height="20" class="grid-cell-move" />
+          <rect x="0"  y="80" width="20" height="20" class="grid-cell-move" />
+          <circle cx="50" cy="50" r="8" class="grid-cell-piece-self" />
+          <text x="50" y="55" text-anchor="middle" font-size="12" font-family="serif">✦</text>
+        </svg>
+        <p><strong>Any cells diagonally</strong>, stopping at the first piece. Captures the first enemy in the path. The <em>bishop</em>.</p>
+      </div>
+    </div>
+
+    <div class="piece-card">
+      <div class="piece-header">
+        <span class="icon">⚯</span>
+        <div><h3>The Traitor</h3><div class="tag">Stalks the straight lines.</div></div>
+      </div>
+      <div class="pattern">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <g stroke="#3a2a18" stroke-width="1">
+            <rect x="0"  y="0"  width="20" height="20" fill="#d9aa6e"/><rect x="20" y="0"  width="20" height="20" fill="#6e3f1d"/><rect x="40" y="0"  width="20" height="20" fill="#d9aa6e"/><rect x="60" y="0"  width="20" height="20" fill="#6e3f1d"/><rect x="80" y="0"  width="20" height="20" fill="#d9aa6e"/>
+            <rect x="0"  y="20" width="20" height="20" fill="#6e3f1d"/><rect x="20" y="20" width="20" height="20" fill="#d9aa6e"/><rect x="40" y="20" width="20" height="20" fill="#6e3f1d"/><rect x="60" y="20" width="20" height="20" fill="#d9aa6e"/><rect x="80" y="20" width="20" height="20" fill="#6e3f1d"/>
+            <rect x="0"  y="40" width="20" height="20" fill="#d9aa6e"/><rect x="20" y="40" width="20" height="20" fill="#6e3f1d"/><rect x="40" y="40" width="20" height="20" fill="#d9aa6e"/><rect x="60" y="40" width="20" height="20" fill="#6e3f1d"/><rect x="80" y="40" width="20" height="20" fill="#d9aa6e"/>
+            <rect x="0"  y="60" width="20" height="20" fill="#6e3f1d"/><rect x="20" y="60" width="20" height="20" fill="#d9aa6e"/><rect x="40" y="60" width="20" height="20" fill="#6e3f1d"/><rect x="60" y="60" width="20" height="20" fill="#d9aa6e"/><rect x="80" y="60" width="20" height="20" fill="#6e3f1d"/>
+            <rect x="0"  y="80" width="20" height="20" fill="#d9aa6e"/><rect x="20" y="80" width="20" height="20" fill="#6e3f1d"/><rect x="40" y="80" width="20" height="20" fill="#d9aa6e"/><rect x="60" y="80" width="20" height="20" fill="#6e3f1d"/><rect x="80" y="80" width="20" height="20" fill="#d9aa6e"/>
+          </g>
+          <rect x="40" y="0"  width="20" height="20" class="grid-cell-move" />
+          <rect x="40" y="20" width="20" height="20" class="grid-cell-move" />
+          <rect x="40" y="60" width="20" height="20" class="grid-cell-move" />
+          <rect x="40" y="80" width="20" height="20" class="grid-cell-move" />
+          <rect x="0"  y="40" width="20" height="20" class="grid-cell-move" />
+          <rect x="20" y="40" width="20" height="20" class="grid-cell-move" />
+          <rect x="60" y="40" width="20" height="20" class="grid-cell-move" />
+          <rect x="80" y="40" width="20" height="20" class="grid-cell-move" />
+          <circle cx="50" cy="50" r="8" class="grid-cell-piece-self" />
+          <text x="50" y="55" text-anchor="middle" font-size="12" font-family="serif">⚯</text>
+        </svg>
+        <p><strong>Any cells orthogonally</strong> (rows + columns), stopping at the first piece. The <em>rook</em>.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- PIECES PAGE 2 -->
+<section class="page">
+  <h2>The Pieces · continued</h2>
+  <div class="pieces-grid">
+
+    <div class="piece-card">
+      <div class="piece-header">
+        <span class="icon">◊</span>
+        <div><h3>The Fool</h3><div class="tag">Jumps where nobody expects.</div></div>
+      </div>
+      <div class="pattern">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <g stroke="#3a2a18" stroke-width="1">
+            <rect x="0"  y="0"  width="20" height="20" fill="#d9aa6e"/><rect x="20" y="0"  width="20" height="20" fill="#6e3f1d"/><rect x="40" y="0"  width="20" height="20" fill="#d9aa6e"/><rect x="60" y="0"  width="20" height="20" fill="#6e3f1d"/><rect x="80" y="0"  width="20" height="20" fill="#d9aa6e"/>
+            <rect x="0"  y="20" width="20" height="20" fill="#6e3f1d"/><rect x="20" y="20" width="20" height="20" fill="#d9aa6e"/><rect x="40" y="20" width="20" height="20" fill="#6e3f1d"/><rect x="60" y="20" width="20" height="20" fill="#d9aa6e"/><rect x="80" y="20" width="20" height="20" fill="#6e3f1d"/>
+            <rect x="0"  y="40" width="20" height="20" fill="#d9aa6e"/><rect x="20" y="40" width="20" height="20" fill="#6e3f1d"/><rect x="40" y="40" width="20" height="20" fill="#d9aa6e"/><rect x="60" y="40" width="20" height="20" fill="#6e3f1d"/><rect x="80" y="40" width="20" height="20" fill="#d9aa6e"/>
+            <rect x="0"  y="60" width="20" height="20" fill="#6e3f1d"/><rect x="20" y="60" width="20" height="20" fill="#d9aa6e"/><rect x="40" y="60" width="20" height="20" fill="#6e3f1d"/><rect x="60" y="60" width="20" height="20" fill="#d9aa6e"/><rect x="80" y="60" width="20" height="20" fill="#6e3f1d"/>
+            <rect x="0"  y="80" width="20" height="20" fill="#d9aa6e"/><rect x="20" y="80" width="20" height="20" fill="#6e3f1d"/><rect x="40" y="80" width="20" height="20" fill="#d9aa6e"/><rect x="60" y="80" width="20" height="20" fill="#6e3f1d"/><rect x="80" y="80" width="20" height="20" fill="#d9aa6e"/>
+          </g>
+          <rect x="20" y="0"  width="20" height="20" class="grid-cell-move" />
+          <rect x="60" y="0"  width="20" height="20" class="grid-cell-move" />
+          <rect x="0"  y="20" width="20" height="20" class="grid-cell-move" />
+          <rect x="80" y="20" width="20" height="20" class="grid-cell-move" />
+          <rect x="0"  y="60" width="20" height="20" class="grid-cell-move" />
+          <rect x="80" y="60" width="20" height="20" class="grid-cell-move" />
+          <rect x="20" y="80" width="20" height="20" class="grid-cell-move" />
+          <rect x="60" y="80" width="20" height="20" class="grid-cell-move" />
+          <circle cx="50" cy="50" r="8" class="grid-cell-piece-self" />
+          <text x="50" y="55" text-anchor="middle" font-size="12" font-family="serif">◊</text>
+        </svg>
+        <p><strong>L-shape jumps</strong> (2 + 1, in any orientation). Jumps over any pieces in the way. The <em>knight</em> — the only piece that ignores walls.</p>
+      </div>
+    </div>
+
+    <div class="piece-card">
+      <div class="piece-header">
+        <span class="icon">⚜</span>
+        <div><h3>The Guardian</h3><div class="tag">A short, fierce queen.</div></div>
+      </div>
+      <div class="pattern">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <g stroke="#3a2a18" stroke-width="1">
+            <rect x="0"  y="0"  width="20" height="20" fill="#d9aa6e"/><rect x="20" y="0"  width="20" height="20" fill="#6e3f1d"/><rect x="40" y="0"  width="20" height="20" fill="#d9aa6e"/><rect x="60" y="0"  width="20" height="20" fill="#6e3f1d"/><rect x="80" y="0"  width="20" height="20" fill="#d9aa6e"/>
+            <rect x="0"  y="20" width="20" height="20" fill="#6e3f1d"/><rect x="20" y="20" width="20" height="20" fill="#d9aa6e"/><rect x="40" y="20" width="20" height="20" fill="#6e3f1d"/><rect x="60" y="20" width="20" height="20" fill="#d9aa6e"/><rect x="80" y="20" width="20" height="20" fill="#6e3f1d"/>
+            <rect x="0"  y="40" width="20" height="20" fill="#d9aa6e"/><rect x="20" y="40" width="20" height="20" fill="#6e3f1d"/><rect x="40" y="40" width="20" height="20" fill="#d9aa6e"/><rect x="60" y="40" width="20" height="20" fill="#6e3f1d"/><rect x="80" y="40" width="20" height="20" fill="#d9aa6e"/>
+            <rect x="0"  y="60" width="20" height="20" fill="#6e3f1d"/><rect x="20" y="60" width="20" height="20" fill="#d9aa6e"/><rect x="40" y="60" width="20" height="20" fill="#6e3f1d"/><rect x="60" y="60" width="20" height="20" fill="#d9aa6e"/><rect x="80" y="60" width="20" height="20" fill="#6e3f1d"/>
+            <rect x="0"  y="80" width="20" height="20" fill="#d9aa6e"/><rect x="20" y="80" width="20" height="20" fill="#6e3f1d"/><rect x="40" y="80" width="20" height="20" fill="#d9aa6e"/><rect x="60" y="80" width="20" height="20" fill="#6e3f1d"/><rect x="80" y="80" width="20" height="20" fill="#d9aa6e"/>
+          </g>
+          <rect x="40" y="0"  width="20" height="20" class="grid-cell-move" />
+          <rect x="40" y="20" width="20" height="20" class="grid-cell-move" />
+          <rect x="40" y="60" width="20" height="20" class="grid-cell-move" />
+          <rect x="40" y="80" width="20" height="20" class="grid-cell-move" />
+          <rect x="0"  y="40" width="20" height="20" class="grid-cell-move" />
+          <rect x="20" y="40" width="20" height="20" class="grid-cell-move" />
+          <rect x="60" y="40" width="20" height="20" class="grid-cell-move" />
+          <rect x="80" y="40" width="20" height="20" class="grid-cell-move" />
+          <rect x="20" y="20" width="20" height="20" class="grid-cell-move" />
+          <rect x="0"  y="0"  width="20" height="20" class="grid-cell-move" />
+          <rect x="60" y="20" width="20" height="20" class="grid-cell-move" />
+          <rect x="80" y="0"  width="20" height="20" class="grid-cell-move" />
+          <rect x="20" y="60" width="20" height="20" class="grid-cell-move" />
+          <rect x="0"  y="80" width="20" height="20" class="grid-cell-move" />
+          <rect x="60" y="60" width="20" height="20" class="grid-cell-move" />
+          <rect x="80" y="80" width="20" height="20" class="grid-cell-move" />
+          <circle cx="50" cy="50" r="8" class="grid-cell-piece-self" />
+          <text x="50" y="55" text-anchor="middle" font-size="12" font-family="serif">⚜</text>
+        </svg>
+        <p><strong>Up to 2 cells</strong> in a straight line in any of 8 directions. Stops at the first piece; captures by landing.</p>
+      </div>
+    </div>
+
+    <div class="piece-card">
+      <div class="piece-header">
+        <span class="icon">☾</span>
+        <div><h3>The Dreamer</h3><div class="tag">Quick. Harmless.</div></div>
+      </div>
+      <div class="pattern">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <g stroke="#3a2a18" stroke-width="1">
+            <rect x="0"  y="0"  width="14" height="14" fill="#d9aa6e"/><rect x="14" y="0"  width="14" height="14" fill="#6e3f1d"/><rect x="28" y="0"  width="14" height="14" fill="#d9aa6e"/><rect x="42" y="0"  width="14" height="14" fill="#6e3f1d"/><rect x="56" y="0"  width="14" height="14" fill="#d9aa6e"/><rect x="70" y="0"  width="14" height="14" fill="#6e3f1d"/><rect x="84" y="0"  width="14" height="14" fill="#d9aa6e"/>
+          </g>
+          <circle cx="50" cy="50" r="43" fill="none" stroke="#2a8a4e" stroke-width="2" stroke-dasharray="4 3" opacity="0.6"/>
+          <circle cx="50" cy="50" r="28" fill="none" stroke="#2a8a4e" stroke-width="2" opacity="0.7"/>
+          <circle cx="50" cy="50" r="14" fill="none" stroke="#2a8a4e" stroke-width="2" opacity="0.8"/>
+          <circle cx="50" cy="50" r="8" class="grid-cell-piece-self" />
+          <text x="50" y="55" text-anchor="middle" font-size="12" font-family="serif">☾</text>
+        </svg>
+        <p><strong>Up to 3 cells</strong> in a straight line, any direction. <em>Cannot capture.</em> A scout, a blocker, a flag-runner — but never a killer.</p>
+      </div>
+    </div>
+
+    <div class="piece-card">
+      <div class="piece-header">
+        <span class="icon">⚑</span>
+        <div><h3>The Soldier</h3><div class="tag">The vanguard — a pawn that pushes the line.</div></div>
+      </div>
+      <div class="pattern">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <g stroke="#3a2a18" stroke-width="1">
+            <rect x="0"  y="0"  width="33" height="33" fill="#d9aa6e"/><rect x="33" y="0"  width="33" height="33" fill="#6e3f1d"/><rect x="66" y="0"  width="33" height="33" fill="#d9aa6e"/>
+            <rect x="0"  y="33" width="33" height="33" fill="#6e3f1d"/><rect x="33" y="33" width="33" height="33" fill="#d9aa6e"/><rect x="66" y="33" width="33" height="33" fill="#6e3f1d"/>
+            <rect x="0"  y="66" width="33" height="33" fill="#d9aa6e"/><rect x="33" y="66" width="33" height="33" fill="#6e3f1d"/><rect x="66" y="66" width="33" height="33" fill="#d9aa6e"/>
+          </g>
+          <rect x="33" y="0" width="33" height="33" class="grid-cell-move" />
+          <rect x="0"  y="0" width="33" height="33" class="grid-cell-capture" />
+          <rect x="66" y="0" width="33" height="33" class="grid-cell-capture" />
+          <circle cx="49" cy="83" r="11" class="grid-cell-piece-self" />
+          <text x="49" y="89" text-anchor="middle" font-size="14" font-family="serif">⚑</text>
+        </svg>
+        <p><strong>1 cell forward</strong> (toward the enemy) into an empty cell. <strong>Captures 1 cell diagonally forward.</strong> Like a chess pawn. He cannot retreat.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="callout">
+    <h4>The Lover is Sacred</h4>
+    <p style="margin: 0;">
+      Of all eight pieces, only the <strong>Lover</strong> can win the game — and only the Lover
+      <strong>cannot be captured</strong>. Enemy pieces may not move onto her cell. They may block
+      her path, deny her companions, or push her into a corner — but they may not remove her.
+      The seven other pieces fight to clear her way; she walks it.
+    </p>
+  </div>
+</section>
+
+<!-- HOW TO WIN -->
+<section class="page">
+  <h2>How to Win · The Embrace</h2>
+  <p>
+    There is one positive way to win in PYAAR, and it is a picture. At the <strong>start of your turn</strong>,
+    both must be true:
+  </p>
+  <ol>
+    <li>Your <strong>Lover</strong> stands on the <strong>Heart</strong> at <strong>(d, 4)</strong>.</li>
+    <li>At least <strong>2 of your other pieces</strong> stand on the eight cells of the <strong>Lotus</strong> — the ring of cells immediately around the Heart.</li>
+  </ol>
+  <p>
+    The "start of your turn" requirement means the opponent had one full move to disrupt — to
+    push a piece into the Lotus to block, or to displace an escort. You held the formation through one storm.
+  </p>
+
+  <figure>
+    <svg width="380" height="200" viewBox="0 0 380 200">
+      <!-- 7 cols x 5 rows tall — close-up of the Heart and surrounding cells -->
+      <g stroke="#3a2a18" stroke-width="1">
+        <rect x="0"   y="0"   width="40" height="40" fill="#d9aa6e"/><rect x="40"  y="0"   width="40" height="40" fill="#6e3f1d"/><rect x="80"  y="0"   width="40" height="40" fill="#d9aa6e"/><rect x="120" y="0"   width="40" height="40" fill="#6e3f1d"/><rect x="160" y="0"   width="40" height="40" fill="#d9aa6e"/><rect x="200" y="0"   width="40" height="40" fill="#6e3f1d"/><rect x="240" y="0"   width="40" height="40" fill="#d9aa6e"/>
+        <rect x="0"   y="40"  width="40" height="40" fill="#6e3f1d"/><rect x="40"  y="40"  width="40" height="40" fill="#d9aa6e"/>
+        <!-- Lotus row 3 -->
+        <rect x="80"  y="40"  width="40" height="40" fill="#fff0a0" stroke="#a06f1c" stroke-width="1.5"/>
+        <rect x="120" y="40"  width="40" height="40" fill="#fff0a0" stroke="#a06f1c" stroke-width="1.5"/>
+        <rect x="160" y="40"  width="40" height="40" fill="#fff0a0" stroke="#a06f1c" stroke-width="1.5"/>
+        <rect x="200" y="40"  width="40" height="40" fill="#d9aa6e"/><rect x="240" y="40"  width="40" height="40" fill="#6e3f1d"/>
+        <rect x="0"   y="80"  width="40" height="40" fill="#c4a888"/><rect x="40"  y="80"  width="40" height="40" fill="#6e5638"/>
+        <!-- Lotus row 4 with Heart -->
+        <rect x="80"  y="80"  width="40" height="40" fill="#fff0a0" stroke="#a06f1c" stroke-width="1.5"/>
+        <rect x="120" y="80"  width="40" height="40" class="grid-cell-heart"/>
+        <rect x="160" y="80"  width="40" height="40" fill="#fff0a0" stroke="#a06f1c" stroke-width="1.5"/>
+        <rect x="200" y="80"  width="40" height="40" fill="#c4a888"/><rect x="240" y="80"  width="40" height="40" fill="#6e5638"/>
+        <rect x="0"   y="120" width="40" height="40" fill="#b6c4d4"/><rect x="40"  y="120" width="40" height="40" fill="#445567"/>
+        <!-- Lotus row 5 -->
+        <rect x="80"  y="120" width="40" height="40" fill="#fff0a0" stroke="#a06f1c" stroke-width="1.5"/>
+        <rect x="120" y="120" width="40" height="40" fill="#fff0a0" stroke="#a06f1c" stroke-width="1.5"/>
+        <rect x="160" y="120" width="40" height="40" fill="#fff0a0" stroke="#a06f1c" stroke-width="1.5"/>
+        <rect x="200" y="120" width="40" height="40" fill="#b6c4d4"/><rect x="240" y="120" width="40" height="40" fill="#445567"/>
+        <rect x="0"   y="160" width="40" height="40" fill="#445567"/><rect x="40"  y="160" width="40" height="40" fill="#b6c4d4"/><rect x="80"  y="160" width="40" height="40" fill="#445567"/><rect x="120" y="160" width="40" height="40" fill="#b6c4d4"/><rect x="160" y="160" width="40" height="40" fill="#445567"/><rect x="200" y="160" width="40" height="40" fill="#b6c4d4"/><rect x="240" y="160" width="40" height="40" fill="#445567"/>
+      </g>
+      <!-- Lover on the Heart -->
+      <circle cx="140" cy="100" r="14" fill="#ffd070" stroke="#4a2c08" stroke-width="2"/>
+      <text x="140" y="106" text-anchor="middle" font-size="16" font-family="serif" fill="#a62244">♥</text>
+      <circle cx="140" cy="100" r="22" fill="#ff2244" opacity="0.25" />
+      <!-- Two escorts in the lotus -->
+      <circle cx="100" cy="60" r="11" fill="#ffd070" stroke="#4a2c08" stroke-width="1.5"/>
+      <text x="100" y="65" text-anchor="middle" font-size="12" font-family="serif" fill="#3a1a08">⚔</text>
+      <circle cx="180" cy="140" r="11" fill="#ffd070" stroke="#4a2c08" stroke-width="1.5"/>
+      <text x="180" y="145" text-anchor="middle" font-size="12" font-family="serif" fill="#3a1a08">✦</text>
+      <!-- annotations -->
+      <text x="295" y="55" font-size="11" font-family="serif" fill="#a06f1c">The Lotus —</text>
+      <text x="295" y="68" font-size="11" font-family="serif" fill="#a06f1c">8 cells</text>
+      <text x="295" y="100" font-size="11" font-family="serif" fill="#a62244">Your Lover</text>
+      <text x="295" y="113" font-size="11" font-family="serif" fill="#a62244">on the Heart</text>
+      <text x="295" y="145" font-size="11" font-family="serif" fill="#1c1410">2 escorts in</text>
+      <text x="295" y="158" font-size="11" font-family="serif" fill="#1c1410">the Lotus</text>
+    </svg>
+    <figcaption>Figure 2 · The Embrace. Lover ♥ on the Heart, plus two escorts ⚔ ✦ on the surrounding Lotus cells. P1 wins.</figcaption>
+  </figure>
+
+  <h3>The Lover is sacred</h3>
+  <p>
+    In every other piece-and-board game in this family (chess, Hnefatafl, Shogi), the goal piece
+    is also a piece you protect from capture. In PYAAR, the Lover <strong>cannot be captured</strong>.
+    Enemy pieces may not move onto her cell. They may block her, trap her, fight her companions —
+    but they may never remove her. The contest is positional, not exterminative.
+  </p>
+
+  <h3>⚔ The Siege — the secondary path</h3>
+  <p>
+    If, at the start of your opponent's turn, they have <strong>no legal move</strong>, you win
+    by The Siege. By the nature of PYAAR this almost always means their combat pieces have all
+    been captured and their Lover stands alone, surrounded by your army, with no legal move.
+    The opposing army has been crushed in the field.
+  </p>
+  <p>
+    The Siege is the secondary win. It happens when one side simply wipes the other off the
+    board. A real victory — but the Embrace is the picture.
+  </p>
+
+  <h3>The 100-turn limit</h3>
+  <p>
+    If after 100 moves neither side has formed an Embrace or a Siege, the game ends with the
+    side <strong>closer to the Heart</strong> winning the tiebreaker. Lover-distance is checked
+    first, then escort count. In practice this rule almost never fires.
+  </p>
+</section>
+
+<!-- HOW TO PLAY -->
+<section class="page">
+  <h2>How to Play · The Turn</h2>
+  <p>
+    Once both players have arranged their back rank (see <em>The Setup</em>) the game begins.
+    A turn is then two clicks. There are no menus, no decisions about <em>how</em> a piece
+    moves — each piece has one rule. You only decide <em>where</em>.
+  </p>
+
+  <figure>
+    <svg width="500" height="180" viewBox="0 0 500 180">
+      <g>
+        <rect x="0"   y="20" width="140" height="140" rx="6" fill="#fff8ec" stroke="#a06f1c" stroke-width="1.5"/>
+        <text x="70"  y="44" text-anchor="middle" font-size="10" letter-spacing="0.2em" font-family="serif" fill="#7c5418">STEP 1</text>
+        <text x="70"  y="68" text-anchor="middle" font-size="14" font-family="serif" fill="#1c1410">Click your piece</text>
+        <circle cx="70" cy="110" r="22" fill="#f0e0c0" stroke="#4a2c08" stroke-width="1.5"/>
+        <text x="70"  y="118" text-anchor="middle" font-size="22" font-family="serif">⚔</text>
+        <text x="70"  y="150" text-anchor="middle" font-size="10" font-style="italic" fill="#4a3a2a">It lifts.</text>
+      </g>
+      <path d="M 145 90 L 175 90" stroke="#a06f1c" stroke-width="2" />
+      <path d="M 170 84 L 178 90 L 170 96 Z" fill="#a06f1c" />
+      <g>
+        <rect x="180" y="20" width="140" height="140" rx="6" fill="#fff8ec" stroke="#a06f1c" stroke-width="1.5"/>
+        <text x="250" y="44" text-anchor="middle" font-size="10" letter-spacing="0.2em" font-family="serif" fill="#7c5418">STEP 2</text>
+        <text x="250" y="68" text-anchor="middle" font-size="14" font-family="serif" fill="#1c1410">See the moves</text>
+        <g transform="translate(218 88)">
+          <rect x="0"  y="0"  width="22" height="22" fill="#d9aa6e" stroke="#3a2a18"/>
+          <rect x="22" y="0"  width="22" height="22" class="grid-cell-move"/>
+          <rect x="44" y="0"  width="22" height="22" fill="#6e3f1d" stroke="#3a2a18"/>
+          <rect x="0"  y="22" width="22" height="22" class="grid-cell-move"/>
+          <rect x="22" y="22" width="22" height="22" fill="#d9aa6e" stroke="#3a2a18"/>
+          <rect x="44" y="22" width="22" height="22" class="grid-cell-move"/>
+          <rect x="0"  y="44" width="22" height="22" fill="#6e3f1d" stroke="#3a2a18"/>
+          <rect x="22" y="44" width="22" height="22" class="grid-cell-capture"/>
+          <rect x="44" y="44" width="22" height="22" fill="#6e3f1d" stroke="#3a2a18"/>
+          <circle cx="33" cy="33" r="7" fill="#ffd070" stroke="#4a2c08"/>
+        </g>
+        <text x="250" y="155" text-anchor="middle" font-size="10" font-style="italic" fill="#4a3a2a">Green = move, Red = capture.</text>
+      </g>
+      <path d="M 325 90 L 355 90" stroke="#a06f1c" stroke-width="2" />
+      <path d="M 350 84 L 358 90 L 350 96 Z" fill="#a06f1c" />
+      <g>
+        <rect x="360" y="20" width="140" height="140" rx="6" fill="#fff8ec" stroke="#a06f1c" stroke-width="1.5"/>
+        <text x="430" y="44" text-anchor="middle" font-size="10" letter-spacing="0.2em" font-family="serif" fill="#7c5418">STEP 3</text>
+        <text x="430" y="68" text-anchor="middle" font-size="14" font-family="serif" fill="#1c1410">Click a cell</text>
+        <g transform="translate(398 88)">
+          <rect x="0"  y="0"  width="22" height="22" fill="#d9aa6e" stroke="#3a2a18"/>
+          <rect x="22" y="0"  width="22" height="22" fill="#6e3f1d" stroke="#3a2a18"/>
+          <rect x="44" y="0"  width="22" height="22" fill="#d9aa6e" stroke="#3a2a18"/>
+          <rect x="0"  y="22" width="22" height="22" fill="#6e3f1d" stroke="#3a2a18"/>
+          <rect x="22" y="22" width="22" height="22" fill="#d9aa6e" stroke="#3a2a18"/>
+          <rect x="44" y="22" width="22" height="22" fill="#6e3f1d" stroke="#3a2a18"/>
+          <rect x="0"  y="44" width="22" height="22" fill="#6e3f1d" stroke="#3a2a18"/>
+          <rect x="22" y="44" width="22" height="22" fill="#d9aa6e" stroke="#3a2a18"/>
+          <rect x="44" y="44" width="22" height="22" fill="#6e3f1d" stroke="#3a2a18"/>
+          <circle cx="11" cy="11" r="7" fill="#ffd070" stroke="#4a2c08"/>
+        </g>
+        <text x="430" y="155" text-anchor="middle" font-size="10" font-style="italic" fill="#4a3a2a">The piece flies.</text>
+      </g>
+    </svg>
+    <figcaption>Figure 3 · The whole turn. Two clicks. The opponent (computer or human) responds automatically.</figcaption>
+  </figure>
+
+  <h3>The Computer</h3>
+  <p>
+    By default, Player 2 is the computer. The AI evaluates every legal move on its turn,
+    scores positions by Lover-distance, Lotus presence, and material, and picks the strongest
+    reply. It will push its Lover toward the centre relentlessly — your job is to get there first,
+    or to plant blockers in its Lotus before it can land.
+  </p>
+  <p>
+    A button in the side panel toggles <strong>vs Computer</strong> / <strong>Hot-seat</strong>
+    (two human players sharing one screen).
+  </p>
+
+  <h3>The Side Panel</h3>
+  <ul>
+    <li><strong>Turn</strong> — which player is to move, and the move count.</li>
+    <li><strong>Roster</strong> — total pieces alive per side.</li>
+    <li><strong>New Game / Flip Board / Rules</strong> — controls.</li>
+  </ul>
+</section>
+
+<!-- STRATEGY -->
+<section class="page">
+  <h2>Strategy</h2>
+
+  <h3>The Setup</h3>
+  <p>
+    Your arrangement is a turn-zero decision. The <strong>d-column</strong> is the natural road
+    for your Lover toward the Heart, so where she starts on row 1 matters — putting her on the
+    centre file (d1) gives the shortest straight march, but it's also the file the opponent
+    will most expect. Putting her at b1 or f1 lets her slide diagonally toward the Heart
+    through less contested cells. Place your <strong>long-range pieces</strong> where they can
+    threaten the Lotus on move 1.
+  </p>
+
+  <h3>The Opening</h3>
+  <p>
+    <span class="drop">P</span>ush early. The <strong>Lover</strong> is your goal piece —
+    move her every turn that it's safe to do so. She is uncapturable but slow (1 cell, only
+    toward the Heart), so each turn she stands still is a turn the opponent gains on you.
+  </p>
+  <p>
+    Send your fastest piece to the <strong>Lotus</strong> early — usually a Dreamer (3 cells in
+    a line) or a Fool (knight L-jumps). Getting any piece into the enemy's Lotus is denial:
+    if the opponent's Lotus is occupied by your blocker, they need to capture you out of it.
+  </p>
+  <p>
+    Keep your Soldier in reserve. He moves slowly and only forward — most useful as a Lotus
+    body once the d-column has been cleared.
+  </p>
+
+  <h3>The Middle Game</h3>
+  <p>
+    Captures matter, but not the way they do in chess. You are not trying to wipe the board —
+    you are trying to <strong>control the Lotus</strong>. Every capture should either:
+  </p>
+  <ul>
+    <li>Clear a path for your Lover, or</li>
+    <li>Remove an enemy escort from your Lotus, or</li>
+    <li>Remove an enemy piece that can block your Lover's next move.</li>
+  </ul>
+  <p>
+    Captures for their own sake — "take a free piece" — are usually wrong. They don't move
+    you toward the Embrace.
+  </p>
+
+  <h3>The Endgame</h3>
+  <p>
+    The Lover reaches the Heart, but the Embrace needs <strong>two escorts</strong>. The most
+    common losing pattern is: your Lover lands at the Heart, but you have zero or one escort
+    in the Lotus, and the opponent has time to push a blocker into one of the cells you'd need.
+  </p>
+  <p>
+    So plan three pieces' arrivals together. The Lover, plus two helpers, all in formation
+    by the same turn. The <strong>Dreamer</strong> is ideal — three cells in any direction, no
+    capture, almost certain to reach the Lotus untouched. The <strong>Fool</strong> is great
+    because it jumps any blockers. The <strong>Guardian</strong> (2 cells, captures by landing)
+    can carve a slot in the Lotus by removing an enemy escort and standing on the cell.
+  </p>
+
+  <div class="callout">
+    <h4>Common Mistake</h4>
+    <p style="margin: 0;">
+      Rushing the Lover alone. She'll reach the Heart by move 6, but with no escorts in the
+      Lotus, she stands there for ten turns while the opponent fills the Lotus with their own
+      pieces — and you can never quite muster two friends in the cells she needs.
+    </p>
+  </div>
+
+  <h3>The Lotus Attackers</h3>
+  <p>Pieces that can reach a Lotus cell in one move from various positions:</p>
+  <ul>
+    <li><strong>Dreamer</strong> — fastest. 3 cells in a line. From row 1, often reaches the Lotus in 1 move.</li>
+    <li><strong>Sage</strong> — from any diagonal cell, if the path is clear.</li>
+    <li><strong>Traitor</strong> — from any cell on row 3, 4, or 5, or column 3, 4, 5, if the path is clear.</li>
+    <li><strong>Fool</strong> — knight jumps; ignores blockers.</li>
+    <li><strong>Guardian</strong> — 2-cell range in all 8 directions; good for the final escort dash.</li>
+  </ul>
+</section>
+
+<!-- QUICK REFERENCE -->
+<section class="page">
+  <h2>Quick Reference</h2>
+
+  <h3>The Phases of a Game</h3>
+  <table class="ref">
+    <thead><tr><th>Phase</th><th>What happens</th></tr></thead>
+    <tbody>
+      <tr><td><strong>0 · Setup</strong></td><td>Each side arranges its seven combat pieces along its home row. Click two of your pieces to swap them. Soldier is fixed at (2, d) / (6, d).</td></tr>
+      <tr><td><strong>1 · Play</strong></td><td>Players alternate turns. Each turn: click your piece, click a glowing cell. The computer (if enabled) responds automatically.</td></tr>
+      <tr><td><strong>2 · End</strong></td><td>The Embrace fires for one side, or the other side runs out of moves (Silence).</td></tr>
+    </tbody>
+  </table>
+
+  <h3>The Eight Pieces</h3>
+  <table class="ref">
+    <thead><tr><th>Piece</th><th>Movement</th><th>Captures?</th></tr></thead>
+    <tbody>
+      <tr><td><strong>♥ Lover</strong> (sacred)</td><td>1 cell toward the Heart. <strong>Cannot be captured.</strong></td><td>Yes (displacement)</td></tr>
+      <tr><td><strong>⚔ Warrior</strong></td><td>1 cell in any of 8 directions.</td><td>Yes</td></tr>
+      <tr><td><strong>✦ Sage</strong></td><td>Any cells diagonally, blocked by first piece.</td><td>First enemy in path</td></tr>
+      <tr><td><strong>⚯ Traitor</strong></td><td>Any cells orthogonally, blocked by first piece.</td><td>First enemy in path</td></tr>
+      <tr><td><strong>◊ Fool</strong></td><td>Knight L-shape, jumps over.</td><td>Yes (by landing)</td></tr>
+      <tr><td><strong>⚜ Guardian</strong></td><td>Up to 2 cells in any of 8 directions.</td><td>Yes (by landing)</td></tr>
+      <tr><td><strong>☾ Dreamer</strong></td><td>Up to 3 cells in any of 8 directions.</td><td><strong>No</strong></td></tr>
+      <tr><td><strong>⚑ Soldier</strong></td><td>1 cell straight forward.</td><td>1 cell diagonally forward</td></tr>
+    </tbody>
+  </table>
+
+  <h3>The Ending Conditions</h3>
+  <table class="ref">
+    <thead><tr><th>Path</th><th>Requirement</th></tr></thead>
+    <tbody>
+      <tr><td>❀ The Embrace (main)</td><td>At start of your turn: your Lover on (4, d) <em>and</em> at least 2 of your other pieces on the 8 surrounding Lotus cells.</td></tr>
+      <tr><td>⚔ The Siege (secondary)</td><td>At start of opponent's turn, they have no legal moves.</td></tr>
+      <tr><td>❀ Closer to the Heart (tiebreaker)</td><td>Move 100 reached with no Embrace/Siege. Closer Lover wins; ties broken by escort count.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>The Three Levers</h3>
+  <div class="cols">
+    <p><strong>The Lover.</strong> Move her every turn it is safe to do so. She is uncapturable but slow — 1 cell, only toward the Heart. The march matters.</p>
+    <p><strong>The Lotus.</strong> Two of your other pieces must arrive in the 8-cell ring with her. Plan three arrivals together, not one rush.</p>
+    <p><strong>Denial.</strong> A piece of yours in the enemy's Lotus blocks their Embrace. Sometimes a blocker is worth more than a capture.</p>
+  </div>
+
+  <div class="divider">⚜ · ⚜ · ⚜</div>
+
+  <h3>About this Edition</h3>
+  <p style="font-size: 10pt; color: var(--ink-soft);">
+    PYAAR is an original 1-vs-1 strategy game inspired by chess but with its own rules,
+    its own goal piece, and its own winning paths. The game is fully playable in a browser
+    using only the included files — no install, no server. Open <code>index.html</code> to begin.
+  </p>
+  <p style="font-size: 10pt; color: var(--ink-soft);">
+    This player's manual is the literary companion to the playable prototype. The rules
+    summary in <code>RULES.md</code> reflects the same content in a single page.
+  </p>
+  <p style="text-align: center; margin-top: 16mm; color: var(--gold-dim); font-family: 'Cinzel', serif; letter-spacing: 0.3em; font-size: 9pt;">
+    FIRST EDITION · PROTOTYPE
+  </p>
+</section>
+
+</body>
+</html>

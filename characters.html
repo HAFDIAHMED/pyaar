@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PYAAR — The Characters · 3D Gallery</title>
+  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+  <script src="pieces.js"></script>
+  <style>
+    :root {
+      --bg-1: #150f0a;
+      --bg-2: #2a1d12;
+      --paper: #f4ead8;
+      --paper-soft: #c9b896;
+      --ink: #1c1410;
+      --ink-soft: #4a3a2a;
+      --gold: #d4a64e;
+      --gold-dim: #a06f1c;
+      --crimson: #c8345c;
+      --p1: #e88c2c;
+      --p2: #6c9cb4;
+      --rule: rgba(212, 166, 78, 0.16);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100vh;
+      background:
+        radial-gradient(circle at 15% 0%, rgba(212, 166, 78, 0.10), transparent 60%),
+        radial-gradient(circle at 85% 100%, rgba(200, 52, 92, 0.10), transparent 60%),
+        linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 100%);
+      color: var(--paper);
+      font-family: "Cormorant Garamond", "Garamond", "Georgia", serif;
+    }
+    header.gallery-head {
+      max-width: 1280px; margin: 0 auto;
+      padding: 28px 32px 8px;
+      display: flex; flex-wrap: wrap; align-items: baseline;
+      gap: 14px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .brand {
+      font-family: "Cinzel", "Trajan Pro", serif;
+      font-size: 28pt; letter-spacing: 0.3em;
+      color: var(--gold);
+      line-height: 1;
+    }
+    .brand-mark { color: var(--crimson); margin-right: 8px; font-size: 22pt; }
+    .sub {
+      font-style: italic; color: var(--paper-soft);
+      letter-spacing: 0.06em; font-size: 13pt;
+    }
+    .spacer { flex: 1; }
+    .back {
+      font-family: "Cinzel", serif;
+      font-size: 10pt; letter-spacing: 0.25em;
+      color: var(--gold); text-decoration: none;
+      padding: 8px 16px;
+      border: 1px solid var(--rule);
+      border-radius: 999px;
+      transition: background 0.2s;
+    }
+    .back:hover { background: rgba(212, 166, 78, 0.12); }
+
+    .intro {
+      max-width: 1280px; margin: 0 auto;
+      padding: 14px 32px 26px;
+      font-size: 12pt; line-height: 1.55;
+      color: var(--paper-soft);
+    }
+
+    .grid {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 32px 56px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: linear-gradient(160deg, rgba(255, 240, 210, 0.04), rgba(0, 0, 0, 0.22));
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      min-height: 250px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    }
+    @media (max-width: 720px) { .card { grid-template-columns: 1fr; } }
+
+    .card .stage {
+      position: relative;
+      background:
+        radial-gradient(ellipse at 50% 90%, rgba(212, 166, 78, 0.18), transparent 60%),
+        linear-gradient(180deg, #2c1b10, #14100a);
+      border-right: 1px solid var(--rule);
+      min-height: 250px;
+    }
+    @media (max-width: 720px) {
+      .card .stage { border-right: none; border-bottom: 1px solid var(--rule); }
+    }
+    .card canvas { width: 100%; height: 100%; display: block; }
+
+    .card .body {
+      padding: 22px 24px 22px;
+      display: flex; flex-direction: column;
+    }
+    .card .icon {
+      font-size: 22pt; color: var(--crimson);
+      line-height: 1; margin-right: 10px;
+    }
+    .card .head {
+      display: flex; align-items: baseline; gap: 6px;
+      margin-bottom: 2px;
+    }
+    .card h2 {
+      font-family: "Cinzel", serif;
+      font-size: 18pt; letter-spacing: 0.14em;
+      color: var(--paper);
+      margin: 0;
+      font-weight: 600;
+    }
+    .card .tag {
+      font-style: italic;
+      color: var(--paper-soft);
+      letter-spacing: 0.02em;
+      margin: 0 0 14px;
+    }
+    .card .legend {
+      display: flex; gap: 14px;
+      font-size: 9.5pt; letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--paper-soft);
+      margin: 0 0 12px;
+    }
+    .card .legend .dot {
+      display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+      margin-right: 6px; vertical-align: middle;
+      box-shadow: 0 0 8px currentColor;
+    }
+    .card .legend .p1-dot { color: var(--p1); background: var(--p1); }
+    .card .legend .p2-dot { color: var(--p2); background: var(--p2); }
+    .card .move {
+      color: var(--paper);
+      line-height: 1.55;
+      font-size: 12.5pt;
+    }
+    .card .move strong { color: var(--gold); }
+    .card .note {
+      margin-top: auto;
+      padding-top: 12px;
+      font-size: 10pt; font-style: italic;
+      color: var(--paper-soft);
+      border-top: 1px dashed var(--rule);
+    }
+
+    /* Soldier card gets a crimson tinted border to mark it as the crown-piece */
+    .card.crown {
+      border: 1px solid rgba(200, 52, 92, 0.5);
+      box-shadow: 0 12px 40px rgba(166, 34, 68, 0.25);
+    }
+    .card.crown h2 { color: #ffd9c0; }
+
+    footer.gallery-foot {
+      max-width: 1280px; margin: 0 auto;
+      padding: 24px 32px 60px;
+      text-align: center;
+      color: var(--paper-soft);
+      font-style: italic;
+      font-size: 11pt;
+      border-top: 1px solid var(--rule);
+    }
+  </style>
+</head>
+<body>
+
+<header class="gallery-head">
+  <div class="brand"><span class="brand-mark">⚜</span>PYAAR</div>
+  <div class="sub">The Characters · in 3D</div>
+  <div class="spacer"></div>
+  <a class="back" href="index.html">← Back to Game</a>
+</header>
+
+<p class="intro">
+  Eight figures, sculpted in browser-side WebGL. Each one rotates slowly so you can
+  see every angle. <span style="color: var(--p1);">●</span> the saffron Player 1 stands on the left;
+  <span style="color: var(--p2);">●</span> the peacock Player 2 stands on the right.
+  Drag a stage to spin it by hand; release to resume the auto-spin.
+</p>
+
+<main class="grid" id="grid"></main>
+
+<footer class="gallery-foot">
+  Drag-to-rotate. Auto-spin paused on hover. All meshes built procedurally in Three.js — no external models.
+</footer>
+
+<script>
+// Eight characters. Order is the same as the back-rank default in the game.
+const CHARS = [
+  { type: 'LOVER',    icon: '♥', name: 'The Lover', crown: true,
+    tag: 'Sacred · uncapturable · your crown-piece.',
+    move: '<strong>1 cell toward the Heart.</strong> <strong>Cannot be captured by enemies.</strong> She herself captures by displacement.',
+    note: 'The only piece that can win the game. Bring her to the Heart with 2 escorts around her.' },
+  { type: 'WARRIOR',  icon: '⚔', name: 'The Warrior',
+    tag: 'Steady and close at hand.',
+    move: '<strong>1 cell in any of 8 directions.</strong> Captures by landing — the <em>king</em>.',
+    note: 'Eight options, eight threats. The Lover\'s nearest bodyguard.' },
+  { type: 'SAGE',     icon: '✦', name: 'The Sage',
+    tag: 'Sees along the diagonals.',
+    move: '<strong>Any cells diagonally,</strong> stopping at the first piece. Captures the first enemy in the path — the <em>bishop</em>.',
+    note: 'A light-cell Sage stays on light cells forever.' },
+  { type: 'TRAITOR',  icon: '⚯', name: 'The Traitor',
+    tag: 'Stalks the straight lines.',
+    move: '<strong>Any cells orthogonally,</strong> stopping at the first piece. Captures the first enemy in the path — the <em>rook</em>.',
+    note: 'Owns one row and one column at a time.' },
+  { type: 'FOOL',     icon: '◊', name: 'The Fool',
+    tag: 'Jumps where no one expects.',
+    move: '<strong>L-shape jumps</strong> (2 + 1, any orientation). Jumps over anything — the <em>knight</em>.',
+    note: 'Ignores blockers. Often the cleanest path into the Lotus.' },
+  { type: 'GUARDIAN', icon: '⚜', name: 'The Guardian',
+    tag: 'A short, fierce queen.',
+    move: '<strong>Up to 2 cells</strong> in a straight line in any of 8 directions. Captures by landing.',
+    note: 'Clears Lotus cells of enemy escorts.' },
+  { type: 'DREAMER',  icon: '☾', name: 'The Dreamer',
+    tag: 'Quick. Harmless.',
+    move: '<strong>Up to 3 cells</strong> in a straight line, any direction. <em>Cannot capture.</em> Must end on an empty cell.',
+    note: 'The fastest piece to the Lotus. A perfect escort.' },
+  { type: 'SOLDIER',  icon: '⚑', name: 'The Soldier',
+    tag: 'The vanguard — a pawn that pushes the line.',
+    move: '<strong>1 cell straight forward,</strong> captures 1 cell diagonally forward. Like a chess pawn — no retreat.',
+    note: 'Slow but stubborn. Useful in the late Lotus.' },
+];
+
+const grid = document.getElementById('grid');
+const stages = [];   // { renderer, scene, camera, group, dragging, dragX, autoRot }
+
+function makeCard(def) {
+  const card = document.createElement('section');
+  card.className = 'card' + (def.crown ? ' crown' : '');
+  const stage = document.createElement('div');
+  stage.className = 'stage';
+  const canvas = document.createElement('canvas');
+  stage.appendChild(canvas);
+  const body = document.createElement('div');
+  body.className = 'body';
+  body.innerHTML = `
+    <div class="head">
+      <span class="icon">${def.icon}</span>
+      <h2>${def.name}</h2>
+    </div>
+    <p class="tag">${def.tag}</p>
+    <div class="legend">
+      <span><span class="dot p1-dot"></span>Saffron</span>
+      <span><span class="dot p2-dot"></span>Peacock</span>
+    </div>
+    <p class="move">${def.move}</p>
+    <p class="note">${def.note}</p>
+  `;
+  card.appendChild(stage);
+  card.appendChild(body);
+  grid.appendChild(card);
+  return { canvas, stage };
+}
+
+function makeScene(canvas, type) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  const scene = new THREE.Scene();
+
+  // Lighting — warm key, cool fill, gentle bottom rim.
+  const key = new THREE.DirectionalLight(0xfff0d0, 1.4);
+  key.position.set(2, 3.5, 2);
+  key.castShadow = true;
+  key.shadow.mapSize.set(512, 512);
+  key.shadow.camera.left = -2; key.shadow.camera.right = 2;
+  key.shadow.camera.top = 2; key.shadow.camera.bottom = -2;
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0x90b0e0, 0.6);
+  fill.position.set(-2, 1.5, -1);
+  scene.add(fill);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.32);
+  scene.add(ambient);
+
+  // Sandalwood pedestal
+  const pedMat = new THREE.MeshStandardMaterial({ color: 0x7a5a32, roughness: 0.7, metalness: 0.15 });
+  const ped = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.1, 0.08, 36), pedMat);
+  ped.position.y = -0.01; ped.receiveShadow = true;
+  scene.add(ped);
+  const pedRim = new THREE.Mesh(
+    new THREE.TorusGeometry(1.05, 0.018, 8, 36),
+    new THREE.MeshStandardMaterial({ color: 0xd4a64e, roughness: 0.3, metalness: 0.8, emissive: 0x4a2c08, emissiveIntensity: 0.3 })
+  );
+  pedRim.position.y = 0.03;
+  pedRim.rotation.x = Math.PI / 2;
+  scene.add(pedRim);
+
+  // Group both characters, so we can rotate them together.
+  const group = new THREE.Group();
+  const p1 = buildPieceMesh(type, 'P1');
+  p1.position.set(-0.42, 0.03, 0);
+  // P1 faces toward the camera (positive z).
+  p1.rotation.y = Math.PI;
+  const p2 = buildPieceMesh(type, 'P2');
+  p2.position.set(0.42, 0.03, 0);
+  p2.rotation.y = Math.PI;
+  group.add(p1); group.add(p2);
+  scene.add(group);
+
+  // Camera angled high, looking down at the pair.
+  const camera = new THREE.PerspectiveCamera(35, 1.5, 0.1, 30);
+  camera.position.set(0, 1.1, 2.6);
+  camera.lookAt(0, 0.5, 0);
+
+  return { renderer, scene, camera, group };
+}
+
+function resizeRenderer(stage) {
+  const rect = stage.canvas.parentElement.getBoundingClientRect();
+  const w = Math.max(200, rect.width);
+  const h = Math.max(200, rect.height);
+  stage.renderer.setSize(w, h, false);
+  stage.camera.aspect = w / h;
+  stage.camera.updateProjectionMatrix();
+}
+
+function wireDrag(stageObj) {
+  const el = stageObj.canvas;
+  let lastX = 0;
+  el.addEventListener('pointerdown', e => {
+    stageObj.dragging = true;
+    stageObj.autoRot = false;
+    lastX = e.clientX;
+    el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener('pointermove', e => {
+    if (!stageObj.dragging) return;
+    const dx = e.clientX - lastX;
+    lastX = e.clientX;
+    stageObj.group.rotation.y += dx * 0.01;
+  });
+  const stop = (e) => {
+    stageObj.dragging = false;
+    setTimeout(() => { stageObj.autoRot = true; }, 1200);
+    try { el.releasePointerCapture(e.pointerId); } catch {}
+  };
+  el.addEventListener('pointerup', stop);
+  el.addEventListener('pointercancel', stop);
+  el.addEventListener('pointerleave', () => { if (!stageObj.dragging) stageObj.autoRot = true; });
+  el.parentElement.addEventListener('mouseenter', () => stageObj.autoRot = false);
+  el.parentElement.addEventListener('mouseleave', () => { if (!stageObj.dragging) stageObj.autoRot = true; });
+}
+
+// Build all eight cards.
+CHARS.forEach((def, idx) => {
+  const { canvas, stage } = makeCard(def);
+  const sceneObj = makeScene(canvas, def.type);
+  const stageObj = {
+    canvas, stage, ...sceneObj,
+    dragging: false, autoRot: true,
+    phase: idx * 0.6,   // stagger their starting angles
+  };
+  stages.push(stageObj);
+  wireDrag(stageObj);
+  resizeRenderer(stageObj);
+});
+
+window.addEventListener('resize', () => stages.forEach(resizeRenderer));
+
+// Shared render loop — rotates each group and bobs it gently.
+function tick(t) {
+  const ts = t / 1000;
+  for (const s of stages) {
+    if (s.autoRot) s.group.rotation.y += 0.005;
+    // Gentle vertical bob
+    s.group.position.y = Math.sin(ts * 1.4 + s.phase) * 0.04;
+    s.renderer.render(s.scene, s.camera);
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+
+</body>
+</html>
