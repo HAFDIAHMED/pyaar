@@ -1,0 +1,29 @@
+{
+  "name": "pyaar-hidden-hearts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PYAAR — Hidden Hearts: full-stack card game (Node + Express + WebSocket + Oracle).",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/src/index.js",
+    "dev": "node --watch server/src/index.js",
+    "migrate": "node server/src/db/migrate.js",
+    "db:up": "docker compose up -d oracle",
+    "db:logs": "docker compose logs -f oracle",
+    "db:down": "docker compose down"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "nanoid": "^5.0.7",
+    "oracledb": "^6.6.0",
+    "ws": "^8.18.0"
+  }
+}

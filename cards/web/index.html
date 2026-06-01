@@ -1,0 +1,976 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>PYAAR — Hidden Hearts</title>
+<style>
+  :root{
+    --bg:#171019; --bg2:#1f1422; --panel:#241826; --panel2:#2c1d30;
+    --line:#3c2a42; --text:#f3e9df; --muted:#b6a3b0; --gold:#e0a458; --gold2:#edb86a;
+    --attack:#d23a52; --defense:#3a6bb0; --info:#3a9a6a; --disruption:#8a52c8;
+    --love:#e85c86; --devotion:#e0a458; --heart:#e0436a; --char:#caa15a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%;}
+  body{
+    background:radial-gradient(120% 80% at 50% -10%, #2a1830 0%, var(--bg) 55%);
+    color:var(--text); font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    min-height:100%; overflow-x:hidden;
+  }
+  #app{max-width:720px; margin:0 auto; padding:14px 14px 40px; min-height:100vh;}
+  h1,h2,h3{font-family:Georgia,"Times New Roman",serif; font-weight:700; margin:0;}
+  .center{text-align:center;}
+  .muted{color:var(--muted);}
+  .small{font-size:13px;}
+  .pill{display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:700;}
+
+  /* header / brand */
+  .brand{display:flex; align-items:center; gap:10px; justify-content:center; margin:6px 0 4px;}
+  .brand .mark{font-size:26px; color:var(--gold);}
+  .brand .name{font-size:24px; letter-spacing:1px; color:var(--gold);}
+  .brand .sub{font-size:11px; letter-spacing:3px; color:var(--muted); text-transform:uppercase;}
+
+  /* buttons */
+  .btn{
+    appearance:none; border:1px solid var(--line); background:var(--panel2); color:var(--text);
+    border-radius:12px; padding:12px 16px; font-size:15px; font-weight:600; cursor:pointer;
+    transition:transform .05s, background .15s, border-color .15s; width:100%; text-align:center;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn.primary{background:linear-gradient(180deg,var(--gold2),var(--gold)); color:#2a1320; border-color:#caa15a; font-weight:800;}
+  .btn.ghost{background:transparent;}
+  .btn.sm{padding:8px 12px; font-size:13px; width:auto; border-radius:10px;}
+  .btn:disabled{opacity:.4; cursor:not-allowed;}
+  .row{display:flex; gap:10px; flex-wrap:wrap;}
+  .row.tight{gap:6px;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+
+  .card-box{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px; margin:12px 0;}
+
+  /* config rows */
+  .pl-row{display:flex; align-items:center; gap:8px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:8px 10px; margin:8px 0;}
+  .pl-row .seat{font-size:22px; width:30px; text-align:center;}
+  .pl-row input[type=text]{flex:1; background:#160d1a; border:1px solid var(--line); color:var(--text); border-radius:8px; padding:9px 10px; font-size:15px; min-width:0;}
+  .seg{display:flex; border:1px solid var(--line); border-radius:9px; overflow:hidden;}
+  .seg button{background:transparent; border:0; color:var(--muted); padding:8px 12px; font-size:13px; font-weight:700; cursor:pointer;}
+  .seg button.on{background:var(--gold); color:#2a1320;}
+  .stepper{display:flex; align-items:center; gap:14px; justify-content:center;}
+  .stepper button{width:46px; height:46px; border-radius:50%; font-size:24px; border:1px solid var(--line); background:var(--panel2); color:var(--gold); cursor:pointer;}
+  .stepper .v{font-size:34px; font-family:Georgia,serif; min-width:40px; text-align:center;}
+
+  /* pass gate */
+  .gate{min-height:72vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:14px;}
+  .gate .big{font-size:60px;}
+  .gate .who{font-size:30px; color:var(--gold);}
+
+  /* board */
+  .board{display:flex; flex-direction:column; gap:8px;}
+  .seat-card{display:flex; align-items:center; gap:10px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:9px 11px;}
+  .seat-card.me{border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset;}
+  .seat-card.active{border-color:var(--gold2);}
+  .seat-card.broken{opacity:.62;}
+  .seat-card .ico{font-size:24px; width:30px; text-align:center;}
+  .seat-card .nm{font-weight:700; font-size:15px;}
+  .seat-card .meta{font-size:12px; color:var(--muted); display:flex; gap:8px; flex-wrap:wrap; margin-top:2px;}
+  .seat-card .right{margin-left:auto; text-align:right; font-size:12px; color:var(--muted);}
+  .heartstate{font-size:18px;}
+  .tagchip{background:#160d1a; border:1px solid var(--line); border-radius:6px; padding:1px 6px;}
+  .ai-badge{font-size:10px; letter-spacing:1px; color:#8fb0ff; border:1px solid #2f4a78; border-radius:5px; padding:0 4px;}
+
+  /* hand */
+  .hand{display:flex; gap:8px; overflow-x:auto; padding:10px 2px 4px; scroll-snap-type:x mandatory;}
+  .pcard{
+    flex:0 0 auto; width:104px; height:150px; border-radius:12px; background:#fbf6ec; color:#2b211a;
+    border:2px solid #c8b78f; position:relative; cursor:pointer; padding:8px 7px; display:flex; flex-direction:column;
+    scroll-snap-align:center; transition:transform .08s;
+  }
+  .pcard:active{transform:translateY(2px);}
+  .pcard.sel{outline:3px solid var(--gold); transform:translateY(-6px);}
+  .pcard .band{position:absolute; left:0; right:0; top:0; height:7px; border-radius:10px 10px 0 0;}
+  .pcard .ic{font-size:34px; text-align:center; margin-top:10px;}
+  .pcard .ti{font-family:Georgia,serif; font-weight:700; text-align:center; font-size:15px; margin-top:2px;}
+  .pcard .tg{font-size:9px; text-align:center; color:#8a6f4c; font-style:italic; margin-top:1px;}
+  .pcard .bd{font-size:9.5px; line-height:1.25; text-align:center; margin-top:auto; color:#3a2c1e;}
+  .f-attack .band{background:var(--attack);} .f-defense .band{background:var(--defense);}
+  .f-info .band{background:var(--info);} .f-disruption .band{background:var(--disruption);}
+  .f-love .band{background:var(--love);} .f-devotion .band{background:var(--devotion);}
+
+  /* target picker / choices */
+  .picker{display:flex; flex-direction:column; gap:8px;}
+  .pick-btn{display:flex; align-items:center; gap:10px; text-align:left;}
+  .overlay{position:fixed; inset:0; background:rgba(10,6,12,.78); display:flex; align-items:center; justify-content:center; padding:18px; z-index:100;}
+  .modal{background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:18px; max-width:460px; width:100%; max-height:90vh; overflow:auto;}
+
+  /* log */
+  .log{margin-top:12px; border-top:1px solid var(--line); padding-top:8px;}
+  .log .e{font-size:12.5px; color:var(--muted); padding:3px 0; border-bottom:1px dotted #2a1d30;}
+  .log .e b{color:var(--text);}
+  .log .e.love{color:#f0a; } .log .e.atk{color:#ff8a96;}
+
+  /* setup chooser */
+  .char-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+  .char-opt{background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:10px 6px; text-align:center; cursor:pointer;}
+  .char-opt.on{border-color:var(--gold); background:#33223a;}
+  .char-opt .ci{font-size:26px;} .char-opt .cn{font-size:12px; font-weight:700; margin-top:2px;}
+  .char-opt .cp{font-size:10px; color:var(--muted); margin-top:3px; line-height:1.2;}
+
+  .toast{position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:#33223a; border:1px solid var(--gold); color:var(--text); padding:10px 16px; border-radius:12px; font-size:14px; z-index:200; box-shadow:0 6px 24px rgba(0,0,0,.5);}
+  .hide{display:none !important;}
+  .footer{margin-top:18px; text-align:center; font-size:11px; color:#6c5a6e; letter-spacing:1px;}
+
+  /* ================= POKER-TABLE BOARD ================= */
+  .topbar-mini{display:flex; align-items:center; gap:6px; font-size:15px; color:var(--gold); padding:6px 2px 2px;}
+  .topbar-mini .mark{font-size:19px;}
+  .topbar-mini b{letter-spacing:1px; font-family:Georgia,serif;}
+  .topbar-mini .status{margin-left:auto; font-size:11px; color:var(--muted);}
+
+  .table-wrap{padding:46px 14px 30px; overflow:visible;}
+  .felt{
+    position:relative; width:100%; height:min(52vh,430px); min-height:300px; border-radius:50%;
+    background:radial-gradient(115% 115% at 50% 38%, #2a7d5f 0%, #176046 50%, #0e3f2e 100%);
+    border:13px solid #5b3b1c;
+    box-shadow: inset 0 0 0 4px #cda353, inset 0 0 70px rgba(0,0,0,.55), 0 16px 38px rgba(0,0,0,.55);
+  }
+  .felt::before{content:''; position:absolute; inset:9%; border:2px solid rgba(205,163,83,.22); border-radius:50%; pointer-events:none;}
+  .felt::after{content:'⚜'; position:absolute; left:50%; top:50%; transform:translate(-50%,-60%); font-size:120px; color:rgba(255,255,255,.045); pointer-events:none; line-height:1;}
+  @keyframes seatpulse{0%,100%{box-shadow:0 0 0 3px var(--gold),0 0 14px rgba(224,164,88,.55);}50%{box-shadow:0 0 0 3px var(--gold),0 0 26px rgba(224,164,88,1);}}
+  .table-center{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:70%; text-align:center;}
+  .piles{display:flex; gap:16px; justify-content:center;}
+  .pile{width:48px; height:66px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:24px; position:relative; box-shadow:0 4px 10px rgba(0,0,0,.4);}
+  .pile.deck{background:repeating-linear-gradient(45deg,#2f2350,#2f2350 4px,#261c42 4px,#261c42 8px); border:2px solid #b8893f; color:#e0a458;}
+  .pile.deck .pc{font-size:18px; font-weight:800; color:#f3ead9; line-height:1;}
+  .pile.disc{background:#fbf6ec; color:#2b211a; border:2px solid #c8b78f;}
+  .pile .pl{position:absolute; bottom:-15px; left:50%; transform:translateX(-50%); font-size:9px; letter-spacing:1px; color:#bfe6d6; text-transform:uppercase;}
+  .talk{margin-top:26px; font-size:11.5px; color:#dff1e9; min-height:30px; line-height:1.35; max-width:230px; margin-left:auto; margin-right:auto;}
+  .talk b{color:#fff;}
+
+  .chip-pos{position:absolute; transform:translate(-50%,-50%); width:86px; z-index:3;}
+  .chip{text-align:center;}
+  .chip .avatar{
+    width:52px; height:52px; border-radius:50%; margin:0 auto; display:flex; align-items:center; justify-content:center;
+    font-size:25px; position:relative; background:radial-gradient(circle at 50% 32%, #3c2c24, #211722);
+    border:2px solid #6b5640; box-shadow:0 3px 9px rgba(0,0,0,.55);
+  }
+  .chip .avatar .hs{position:absolute; bottom:-5px; right:-6px; font-size:16px; filter:drop-shadow(0 1px 1px #000);}
+  .chip.active .avatar{border-color:var(--gold); animation:seatpulse 1.5s ease-in-out infinite;}
+  .chip.active .cnm{color:var(--gold);}
+  .chip.broken{opacity:.5; filter:grayscale(.5);}
+  .chip .cnm{font-size:12px; font-weight:700; margin-top:4px; white-space:nowrap; text-shadow:0 1px 2px #000; overflow:hidden; text-overflow:ellipsis;}
+  .chip .badges{display:flex; gap:3px; justify-content:center; flex-wrap:wrap; margin-top:2px; min-height:14px;}
+  .chip .bdg{font-size:10px; background:rgba(0,0,0,.5); border:1px solid #4a3a2a; border-radius:6px; padding:0 4px; line-height:1.4;}
+  .chip .bdg.dim{opacity:.35;}
+  .chip .ai-badge{font-size:9px;}
+
+  .hand-area{margin-top:6px;}
+  .secret-strip{text-align:center; font-size:12px; color:#f0cf96; background:rgba(120,45,75,.32); border:1px solid #6a2f4c; border-radius:11px; padding:6px 10px; margin:0 auto 8px; max-width:420px;}
+  .secret-strip b{color:#ffd9e6;}
+  .hand-area .hand{padding-bottom:4px;}
+  .hint-line{text-align:center; font-size:11px; color:var(--muted); margin-top:5px;}
+  .hand-area.thinking{padding:26px 10px; text-align:center;}
+  .hand-area.thinking .dots{font-size:15px; color:var(--gold);}
+  @keyframes blink{0%,100%{opacity:.2;}50%{opacity:1;}}
+  .hand-area.thinking .d{animation:blink 1s infinite;}
+
+  .mute-btn{background:transparent; border:1px solid var(--line); color:var(--gold); border-radius:8px; padding:2px 8px; font-size:14px; cursor:pointer; margin-left:8px;}
+  .mute-btn:active{transform:translateY(1px);}
+
+  /* seat fx */
+  @keyframes shakefx{0%,100%{transform:translateX(0);}20%{transform:translateX(-5px);}40%{transform:translateX(5px);}60%{transform:translateX(-4px);}80%{transform:translateX(3px);}}
+  .chip.shake .avatar{animation:shakefx .5s; border-color:var(--attack);}
+  @keyframes pulsefx{0%{transform:scale(1);}40%{transform:scale(1.18);}100%{transform:scale(1);}}
+  .chip.pulse .avatar{animation:pulsefx .55s; box-shadow:0 0 0 3px var(--love), 0 0 18px rgba(232,92,134,.9);}
+  .chip.pulse .hs{animation:pulsefx .55s;}
+
+  /* discard pile pops each time a card is played (DOM is rebuilt per render) */
+  @keyframes discpop{0%{transform:scale(.6) rotate(-8deg); opacity:.2;}60%{transform:scale(1.12) rotate(3deg);}100%{transform:scale(1) rotate(0);}}
+  .pile.disc{animation:discpop .26s ease-out;}
+
+  /* hand cards deal in with a slight stagger */
+  @keyframes dealin{from{transform:translateY(26px); opacity:0;}to{transform:translateY(0); opacity:1;}}
+  .hand-area .hand .pcard{animation:dealin .26s ease-out both;}
+  .hand-area .hand .pcard:nth-child(1){animation-delay:.00s;} .hand-area .hand .pcard:nth-child(2){animation-delay:.04s;}
+  .hand-area .hand .pcard:nth-child(3){animation-delay:.08s;} .hand-area .hand .pcard:nth-child(4){animation-delay:.12s;}
+  .hand-area .hand .pcard:nth-child(5){animation-delay:.16s;} .hand-area .hand .pcard:nth-child(6){animation-delay:.20s;}
+  .hand-area .hand .pcard:nth-child(7){animation-delay:.24s;} .hand-area .hand .pcard:nth-child(n+8){animation-delay:.28s;}
+  .hand-area .hand .pcard{transition:transform .1s;}
+  .hand-area .hand .pcard:hover{transform:translateY(-8px);}
+  a{color:var(--gold);}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast-host"></div>
+
+<script>
+/* =====================================================================
+   PYAAR — HIDDEN HEARTS · single-device pass-and-play + AI
+   Pure game state (G) is kept separate from rendering so a network
+   layer can be added later without touching the engine.
+   ===================================================================== */
+
+// ---------- static data ----------
+const SEATS = [
+  {name:'Rose', icon:'🌹'}, {name:'Lotus', icon:'🪷'}, {name:'Moon', icon:'🌙'},
+  {name:'Flame', icon:'🔥'}, {name:'Peacock', icon:'🦚'}, {name:'Jasmine', icon:'🌼'}, {name:'Star', icon:'⭐'},
+];
+
+const CHARACTERS = {
+  WARRIOR:  {icon:'⚔', name:'Warrior',  perk:'Bodyguard — cancel the 1st Heartbreak on you.'},
+  SAGE:     {icon:'✦', name:'Sage',     perk:'Insight — peek a rival\'s crush at setup.'},
+  TRAITOR:  {icon:'⚯', name:'Traitor',  perk:'Spite — if you break, drag down an attacker.'},
+  FOOL:     {icon:'◊', name:'Fool',     perk:'Slippery — immune to the 1st Friendzone.'},
+  GUARDIAN: {icon:'⚜', name:'Guardian', perk:'Fortress — needs 3 hits to break, not 2.'},
+  DREAMER:  {icon:'☾', name:'Dreamer',  perk:'Vanish — once, be untouchable for a round.'},
+  SOLDIER:  {icon:'⚑', name:'Soldier',  perk:'Vanguard — draw +1 on your first 3 turns.'},
+};
+const CHAR_KEYS = Object.keys(CHARACTERS);
+
+// play deck card definitions
+const CARD = {
+  HEARTBREAK:{icon:'💔', fam:'attack',     tag:'Break a heart.',         needsTarget:'other', desc:'Remove a Protector, or crack a bare Heart.'},
+  SOLDIER:   {icon:'⚑', fam:'attack',     tag:'Advance.',               needsTarget:'other', desc:'Remove a Protector. No effect on a bare Heart.'},
+  WARRIOR:   {icon:'⚔', fam:'defense',    tag:'Shield.',                needsTarget:'self',  desc:'Place on your Heart as a Protector.'},
+  FRIENDZONE:{icon:'🤝', fam:'defense',    tag:'Just friends.',          needsTarget:'other', desc:'Void that player\'s crush on you.'},
+  DREAMER:   {icon:'☾', fam:'defense',    tag:'Daydream.',              needsTarget:'self',  desc:'Be Untouchable until your next turn.'},
+  SAGE:      {icon:'✦', fam:'info',       tag:'Insight.',               needsTarget:'peek',  desc:'Secretly peek a crush or a Protector.'},
+  TRAITOR:   {icon:'⚯', fam:'disruption', tag:'Betrayal.',              needsTarget:'other', desc:'Steal a random card from a hand.'},
+  FOOL:      {icon:'◊', fam:'disruption', tag:'Wild.',                  needsTarget:'wild',  desc:'Copy any one character\'s effect.'},
+  CRUSH:     {icon:'💘', fam:'love',       tag:'Send a sign.',           needsTarget:'other', desc:'A public, deniable flirt. Mutual scores +2.'},
+  DEVOTION:  {icon:'💍', fam:'devotion',   tag:'True love.',             needsTarget:'devotion', desc:'Repair your Heart, or declare your crush.'},
+};
+const DECK_COMP = {HEARTBREAK:9,SOLDIER:8,WARRIOR:9,FRIENDZONE:8,DREAMER:6,SAGE:7,TRAITOR:7,FOOL:6,CRUSH:7,DEVOTION:3};
+
+// ---------- helpers ----------
+const $ = sel => document.querySelector(sel);
+const app = $('#app');
+function rnd(n){ return Math.floor(Math.random()*n); }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=rnd(i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function pick(a){ return a[rnd(a.length)]; }
+function esc(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function toast(msg){
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  $('#toast-host').appendChild(t); setTimeout(()=>t.remove(), 2200);
+}
+
+// ---------- sound engine (synthesized via Web Audio — no asset files) ----------
+const SFX = (function(){
+  let ctx=null, muted=false;
+  try{ muted = localStorage.getItem('pyaar_mute')==='1'; }catch(e){}
+  function ac(){
+    if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ ctx=null; } }
+    if(ctx && ctx.state==='suspended'){ try{ ctx.resume(); }catch(e){} }
+    return ctx;
+  }
+  function tone(freq, dur, type, gain, when){
+    const c=ac(); if(!c||muted) return;
+    const t=c.currentTime+(when||0);
+    const o=c.createOscillator(), g=c.createGain();
+    o.type=type||'sine'; o.frequency.setValueAtTime(freq,t);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(gain||0.2,t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t+dur+0.03);
+  }
+  function noise(dur, gain, filterFreq, when){
+    const c=ac(); if(!c||muted) return;
+    const t=c.currentTime+(when||0);
+    const n=Math.max(1,Math.floor(c.sampleRate*dur));
+    const buf=c.createBuffer(1,n,c.sampleRate); const d=buf.getChannelData(0);
+    for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/n,2);
+    const s=c.createBufferSource(); s.buffer=buf;
+    const f=c.createBiquadFilter(); f.type='lowpass'; f.frequency.value=filterFreq||2200;
+    const g=c.createGain(); g.gain.value=gain||0.2;
+    s.connect(f).connect(g).connect(c.destination); s.start(t);
+  }
+  return {
+    isMuted:()=>muted,
+    resume(){ ac(); },
+    toggle(){ muted=!muted; try{localStorage.setItem('pyaar_mute',muted?'1':'0');}catch(e){} if(!muted){ ac(); this.click(); } return muted; },
+    click(){ tone(430,0.05,'triangle',0.12); },
+    deal(n){ const k=Math.max(1,n||1); for(let i=0;i<k;i++) noise(0.08,0.13,3000,i*0.07); },
+    shuffle(){ for(let i=0;i<8;i++) noise(0.05,0.09,3800,i*0.045); },
+    play(){ noise(0.09,0.22,3600); tone(280,0.06,'square',0.05); },        // card slap
+    shield(){ tone(620,0.08,'triangle',0.16); tone(940,0.10,'triangle',0.12,0.06); }, // chip click
+    hit(){ tone(150,0.30,'sawtooth',0.22); noise(0.14,0.13,700); },         // heartbreak thud
+    crush(){ tone(880,0.12,'sine',0.16); tone(1320,0.18,'sine',0.12,0.09); }, // sparkle
+    friendzone(){ tone(440,0.10,'sine',0.12); tone(330,0.14,'sine',0.10,0.07); },
+    turn(){ tone(587,0.10,'sine',0.13); tone(880,0.12,'sine',0.11,0.06); },  // your-turn cue
+    soulmate(){ [523,659,784,1047,1319].forEach((f,i)=>tone(f,0.5,'sine',0.17,i*0.12)); },
+    win(){ [392,523,659,784,1047].forEach((f,i)=>tone(f,0.45,'triangle',0.15,i*0.1)); },
+  };
+})();
+
+// ---------- game state ----------
+let G = null;        // the whole game
+let UI = {};         // transient ui state (selections, pending action)
+
+function newDeck(){
+  const d=[];
+  for(const [k,n] of Object.entries(DECK_COMP)) for(let i=0;i<n;i++) d.push(k);
+  return shuffle(d);
+}
+
+function startGame(config){
+  const players = config.players.map((p,i)=>({
+    id:i, name:p.name, isAI:p.isAI, seat:SEATS[i],
+    hand:[], guard:null, crush:null,
+    hits:0, protectors:0, untouchable:false,
+    usedBodyguard:false, usedVanish:false, usedSlippery:false,
+    turnsTaken:0, publicCrushesFrom:[], crushedTrueTarget:false,
+    score:0, soulmate:false, admirerGuess:null,
+  }));
+  G = {
+    players, deck:newDeck(), discard:[], reshuffled:false,
+    turn:0, phase:'setup', startedFirstHuman:false, log:[], over:false,
+    voided:[], // [aId,bId] friendzone-voided pairs
+  };
+  // auto-config AI; humans go through setup screens
+  UI = {};
+  routeSetup();
+}
+
+function logEvent(html, cls){ G.log.unshift({html, cls:cls||''}); if(G.log.length>40) G.log.pop(); }
+function alive(p){ return heartState(p)!=='broken'; }
+function breakThreshold(p){ return p.guard==='GUARDIAN' ? 3 : 2; }
+function heartState(p){
+  if(p.hits<=0) return 'whole';
+  return p.hits>=breakThreshold(p) ? 'broken' : 'cracked';
+}
+function heartGlyph(s){ return s==='whole'?'❤️':(s==='cracked'?'💛':'💔'); }
+function others(p){ return G.players.filter(q=>q.id!==p.id); }
+function cur(){ return G.players[G.turn]; }
+
+// ---------- deck draw ----------
+function draw(p, n=1){
+  let got=0;
+  for(let i=0;i<n;i++){ if(G.deck.length===0) break; p.hand.push(G.deck.pop()); got++; }
+  return got>0;
+}
+
+// =====================================================================
+//  SETUP FLOW  (each human: choose Protector + Crush; AI auto)
+// =====================================================================
+function routeSetup(){
+  // find next player still needing setup
+  const p = G.players.find(pl=>!pl.guard);
+  if(!p){ finishSetup(); return; }
+  if(p.isAI){
+    p.guard = pick(CHAR_KEYS);
+    p.crush = pick(others(p)).id;
+    routeSetup();
+    return;
+  }
+  // human: pass-gate only matters with 2+ humans (someone to hide secrets from)
+  if(needGate()) renderPassGate(p, ()=>renderSetupChooser(p));
+  else renderSetupChooser(p);
+}
+// The "pass the device" gate is only useful when more than one human shares the screen.
+function needGate(){ return G.players.filter(pl=>!pl.isAI).length > 1; }
+
+function renderSetupChooser(p){
+  UI = {stage:'guard', guard:null, crush:null, peekShown:false};
+  drawSetupChooser(p);
+}
+function drawSetupChooser(p){
+  let html = brand();
+  if(UI.stage==='guard'){
+    html += `<div class="card-box">
+      <h2 class="center">${p.seat.icon} ${esc(p.name)}</h2>
+      <p class="center muted small">Choose the character who will <b>protect your Heart</b>. (Secret — each gives a different perk.)</p>
+      <div class="char-grid">`;
+    for(const k of CHAR_KEYS){
+      const c=CHARACTERS[k]; const on = UI.guard===k?'on':'';
+      html += `<div class="char-opt ${on}" data-g="${k}"><div class="ci">${c.icon}</div><div class="cn">${c.name}</div><div class="cp">${esc(c.perk)}</div></div>`;
+    }
+    html += `</div><div style="height:12px"></div>
+      <button class="btn primary" id="guard-next" ${UI.guard?'':'disabled'}>Confirm Protector →</button></div>`;
+  } else {
+    html += `<div class="card-box">
+      <h2 class="center">${p.seat.icon} ${esc(p.name)}</h2>
+      <p class="center muted small">Now the secret. Look around the table and <b>aim your Heart</b> at the one you fancy. No one will know — until the Reveal.</p>
+      <div class="picker">`;
+    for(const q of others(p)){
+      const on = UI.crush===q.id?'sel':'';
+      html += `<button class="btn pick-btn ${on}" data-c="${q.id}"><span style="font-size:22px">${q.seat.icon}</span> <b>${esc(q.name)}</b></button>`;
+    }
+    html += `</div><div style="height:12px"></div>
+      <button class="btn primary" id="crush-next" ${UI.crush!=null?'':'disabled'}>Lock my secret 💘</button></div>`;
+  }
+  app.innerHTML = html;
+
+  app.querySelectorAll('[data-g]').forEach(el=>el.onclick=()=>{ UI.guard=el.dataset.g; drawSetupChooser(p); });
+  const gn=$('#guard-next'); if(gn) gn.onclick=()=>{
+    p.guard=UI.guard; UI.stage='crush';
+    // Sage perk: peek a rival's crush at setup (but rivals haven't all chosen yet → defer)
+    drawSetupChooser(p);
+  };
+  app.querySelectorAll('[data-c]').forEach(el=>el.onclick=()=>{ UI.crush=+el.dataset.c; drawSetupChooser(p); });
+  const cn=$('#crush-next'); if(cn) cn.onclick=()=>{ p.crush=UI.crush; routeSetup(); };
+}
+
+function finishSetup(){
+  // deal opening hands
+  for(const p of G.players) draw(p, 5);
+  // Sage setup-peek perk: reveal one random rival's crush to Sage-guards (queued at first turn)
+  G.phase='play'; G.turn=0;
+  logEvent('All hearts are set. Let the courting begin.');
+  SFX.shuffle(); SFX.deal(G.players.length);
+  routeTurn();
+}
+
+// =====================================================================
+//  TURN FLOW
+// =====================================================================
+function routeTurn(){
+  if(G.over) return renderReveal();
+  // end check: deck exhausted and a player cannot draw at turn start handled in beginTurn
+  const p = cur();
+  // skip fully broken players? They still play (kingmaker). Keep them in.
+  if(p.isAI){
+    renderBoard({aiThinking:true});
+    setTimeout(()=>aiTurn(p), 850);
+  } else if(needGate()){
+    renderPassGate(p, ()=>beginHumanTurn(p));
+  } else {
+    beginHumanTurn(p);   // solo human vs AI — no gate, straight to your turn
+  }
+}
+
+function beginTurn(p){
+  // The deck makes a single pass — when it can no longer feed the start-of-turn
+  // draw, the season is over. This keeps the game tight (~the rulebook's 15-25 min).
+  if(G.deck.length===0){ endGame('the cards have run out'); return false; }
+  const extra = (p.guard==='SOLDIER' && p.turnsTaken<3) ? 1 : 0;
+  draw(p, 1+extra);
+  p.untouchable=false; // clears at the start of own turn
+  // Sage perk peek (once): reveal a random rival crush — only for humans (info), AI ignores
+  if(p.guard==='SAGE' && !p.sagePeeked){
+    p.sagePeeked=true;
+    if(!p.isAI){
+      const tgt = pick(others(p)); const obj = G.players[tgt.crush];
+      UI.sagePeek = `${tgt.seat.icon} ${tgt.name}'s heart secretly points at ${obj.seat.icon} ${obj.name}.`;
+    }
+  }
+  return true;
+}
+
+function beginHumanTurn(p){
+  if(!beginTurn(p)) return;
+  UI = {sel:null, pending:null, sagePeek:UI.sagePeek};
+  SFX.turn();
+  renderBoard({});
+  if(UI.sagePeek){ const m=UI.sagePeek; UI.sagePeek=null; openModal(`<h3>✦ Sage's Insight</h3><p>${esc(m)}</p><button class="btn primary" id="okm">Keep the secret</button>`, ()=> $('#okm').onclick=closeModal); }
+}
+
+function endTurn(){
+  const p=cur();
+  p.turnsTaken++;
+  // hand limit 7
+  if(p.hand.length>7){
+    if(p.isAI){ while(p.hand.length>7) G.discard.push(p.hand.splice(rnd(p.hand.length),1)[0]); }
+    else { return renderDiscard(p); }
+  }
+  advance();
+}
+function advance(){
+  if(G.over) return renderReveal();
+  G.turn = (G.turn+1) % G.players.length;
+  routeTurn();
+}
+
+// ---------- playing a card ----------
+function canTargetOther(){ return others(cur()).filter(q=>true); }
+
+function playCard(idx){
+  const p=cur(); const key=p.hand[idx];
+  UI.sel=idx;
+  const def=CARD[key];
+  // route by target type
+  if(key==='WARRIOR'){ resolveCard(p, idx, key, {self:true}); return; }
+  if(key==='DREAMER'){ resolveCard(p, idx, key, {self:true}); return; }
+  if(key==='DEVOTION'){ openDevotion(p, idx); return; }
+  if(key==='FOOL'){ openFool(p, idx); return; }
+  if(key==='SAGE'){ openSagePick(p, idx); return; }
+  // needs an "other" target
+  openTargetPicker(p, idx, key);
+}
+
+function openTargetPicker(p, idx, key){
+  const def=CARD[key];
+  let html=`<h3>${def.icon} ${key[0]+key.slice(1).toLowerCase()}</h3><p class="muted small">${esc(def.desc)} Choose a target:</p><div class="picker">`;
+  for(const q of others(p)){
+    const st=heartState(q);
+    html+=`<button class="btn pick-btn" data-t="${q.id}"><span style="font-size:22px">${q.seat.icon}</span> <b>${esc(q.name)}</b> <span class="muted small" style="margin-left:auto">${heartGlyph(st)} ${q.protectors?('🛡×'+q.protectors):''} ${q.untouchable?'· untouchable':''}</span></button>`;
+  }
+  html+=`</div><div style="height:10px"></div><button class="btn ghost" id="cancelpick">Cancel</button>`;
+  openModal(html, ()=>{
+    document.querySelectorAll('[data-t]').forEach(el=>el.onclick=()=>{ closeModal(); resolveCard(p, idx, key, {target:+el.dataset.t}); });
+    $('#cancelpick').onclick=()=>{ closeModal(); UI.sel=null; renderBoard({}); };
+  });
+}
+
+function openSagePick(p, idx){
+  let html=`<h3>✦ Sage — Insight</h3><p class="muted small">Peek one secret:</p><div class="picker">`;
+  for(const q of others(p)){
+    html+=`<button class="btn pick-btn" data-peek="crush:${q.id}">🔮 ${q.seat.icon} <b>${esc(q.name)}</b>'s crush</button>`;
+    html+=`<button class="btn pick-btn" data-peek="guard:${q.id}">🛡 ${q.seat.icon} <b>${esc(q.name)}</b>'s Protector</button>`;
+  }
+  html+=`</div><div style="height:10px"></div><button class="btn ghost" id="cancelpick">Cancel</button>`;
+  openModal(html, ()=>{
+    document.querySelectorAll('[data-peek]').forEach(el=>el.onclick=()=>{
+      const [what,qid]=el.dataset.peek.split(':'); const q=G.players[+qid];
+      let reveal = what==='crush'
+        ? `${q.seat.icon} ${q.name}'s heart points at ${G.players[q.crush].seat.icon} ${G.players[q.crush].name}.`
+        : `${q.seat.icon} ${q.name} is guarded by ${CHARACTERS[q.guard].icon} the ${CHARACTERS[q.guard].name}.`;
+      discardPlayed(p, idx); logEvent(`<b>${p.seat.icon} ${esc(p.name)}</b> gazes into a secret… ✦`);
+      openModal(`<h3>✦ You alone see…</h3><p>${esc(reveal)}</p><button class="btn primary" id="okm">Keep it secret</button>`, ()=> $('#okm').onclick=()=>{ closeModal(); endTurn(); });
+    });
+    $('#cancelpick').onclick=()=>{ closeModal(); UI.sel=null; renderBoard({}); };
+  });
+}
+
+function openFool(p, idx){
+  const opts=['HEARTBREAK','SOLDIER','WARRIOR','FRIENDZONE','SAGE','TRAITOR','DREAMER'];
+  let html=`<h3>◊ Fool — Wild</h3><p class="muted small">Copy which character's effect?</p><div class="picker">`;
+  for(const k of opts){ const d=CARD[k]; html+=`<button class="btn pick-btn" data-as="${k}">${d.icon} <b>${k[0]+k.slice(1).toLowerCase()}</b> <span class="muted small" style="margin-left:auto">${esc(d.tag)}</span></button>`; }
+  html+=`</div><div style="height:10px"></div><button class="btn ghost" id="cancelpick">Cancel</button>`;
+  openModal(html, ()=>{
+    document.querySelectorAll('[data-as]').forEach(el=>el.onclick=()=>{
+      const k=el.dataset.as; closeModal();
+      // discard the fool now; then act as k (without discarding a second card)
+      discardPlayed(p, idx);
+      logEvent(`<b>${p.seat.icon} ${esc(p.name)}</b> plays the ◊ Fool as ${CARD[k].icon} ${k.toLowerCase()}.`);
+      if(k==='WARRIOR'||k==='DREAMER'){ applyEffect(p, k, {self:true}); endTurn(); }
+      else if(k==='SAGE'){ // simple: peek random
+        const q=pick(others(p)); openModal(`<h3>✦ Insight</h3><p>${q.seat.icon} ${esc(q.name)}'s heart points at ${G.players[q.crush].seat.icon} ${esc(G.players[q.crush].name)}.</p><button class="btn primary" id="okm">Keep secret</button>`, ()=> $('#okm').onclick=()=>{closeModal(); endTurn();}); }
+      else { // needs other target
+        UI._foolAs=k; openTargetPickerFor(p, k);
+      }
+    });
+    $('#cancelpick').onclick=()=>{ closeModal(); UI.sel=null; renderBoard({}); };
+  });
+}
+function openTargetPickerFor(p, key){
+  let html=`<h3>${CARD[key].icon} ${key[0]+key.slice(1).toLowerCase()}</h3><p class="muted small">Choose a target:</p><div class="picker">`;
+  for(const q of others(p)) html+=`<button class="btn pick-btn" data-t="${q.id}"><span style="font-size:22px">${q.seat.icon}</span> <b>${esc(q.name)}</b></button>`;
+  html+=`</div>`;
+  openModal(html, ()=>{ document.querySelectorAll('[data-t]').forEach(el=>el.onclick=()=>{ closeModal(); applyEffect(p, key, {target:+el.dataset.t}); endTurn(); }); });
+}
+
+function openDevotion(p, idx){
+  const obj=G.players[p.crush];
+  let html=`<h3>💍 Devotion</h3><div class="picker">
+    <button class="btn pick-btn" data-d="repair">❤️ <b>Repair your Heart</b> one step</button>
+    <button class="btn pick-btn" data-d="declare">💘 <b>Declare your crush</b> on ${obj.seat.icon} ${esc(obj.name)} — if mutual, Soulmates!</button>
+  </div><div style="height:10px"></div><button class="btn ghost" id="cancelpick">Cancel</button>`;
+  openModal(html, ()=>{
+    document.querySelectorAll('[data-d]').forEach(el=>el.onclick=()=>{
+      closeModal(); discardPlayed(p, idx);
+      if(el.dataset.d==='repair'){
+        if(p.hits>0) p.hits--;
+        logEvent(`<b>${p.seat.icon} ${esc(p.name)}</b> renews their Heart with devotion. ❤️`,'love');
+        endTurn();
+      } else {
+        const mutual = obj.crush===p.id && !isVoided(p.id,obj.id);
+        logEvent(`<b>${p.seat.icon} ${esc(p.name)}</b> declares true love for ${obj.seat.icon} ${esc(obj.name)}!`,'love');
+        if(mutual){
+          p.soulmate=true; obj.soulmate=true; p.crushedTrueTarget=true; SFX.soulmate();
+          openModal(`<h3>💍✨ Soulmates!</h3><p>${p.seat.icon} ${esc(p.name)} and ${obj.seat.icon} ${esc(obj.name)} secretly chose <b>each other</b>. The round ends in their honour.</p><button class="btn primary" id="okm">To the Reveal →</button>`, ()=> $('#okm').onclick=()=>{ closeModal(); endGame('a Soulmate bond was declared'); });
+          return;
+        } else {
+          openModal(`<h3>💔 Unrequited… for now</h3><p>${obj.seat.icon} ${esc(obj.name)} did not secretly choose ${esc(p.name)}. The declaration stands, brave heart.</p><button class="btn primary" id="okm">Continue</button>`, ()=> $('#okm').onclick=()=>{ closeModal(); endTurn(); });
+          return;
+        }
+      }
+    });
+    $('#cancelpick').onclick=()=>{ closeModal(); UI.sel=null; renderBoard({}); };
+  });
+}
+
+// resolve a normal card (discards it, applies effect, ends turn)
+function resolveCard(p, idx, key, opt){
+  discardPlayed(p, idx);
+  applyEffect(p, key, opt);
+  if(!G.over) endTurn();
+}
+function discardPlayed(p, idx){
+  // idx may be stale if hand changed; find by removing the played key once
+  const k=p.hand[idx];
+  p.hand.splice(idx,1); G.discard.push(k); UI.sel=null;
+  SFX.play();
+}
+// transient visual fx consumed by the next renderBoard (e.g. seat shake / heart pulse)
+function fx(kind, id){ if(!G) return; G.fx=G.fx||{}; (G.fx[kind]=G.fx[kind]||[]).push(id); }
+
+// the core rules — applies an effect to the board
+function applyEffect(p, key, opt){
+  const me=p;
+  if(key==='WARRIOR'){
+    me.protectors++; SFX.shield(); logEvent(`<b>${me.seat.icon} ${esc(me.name)}</b> raises a ⚔ Warrior to guard their Heart. (🛡×${me.protectors})`);
+    return;
+  }
+  if(key==='DREAMER'){
+    me.untouchable=true; logEvent(`<b>${me.seat.icon} ${esc(me.name)}</b> drifts into a ☾ daydream — untouchable until their next turn.`);
+    return;
+  }
+  const t = G.players[opt.target];
+  if(!t) return;
+
+  if(key==='CRUSH'){
+    t.publicCrushesFrom.push(me.id);
+    if(t.id===me.crush) me.crushedTrueTarget = me.crushedTrueTarget || true;
+    SFX.crush(); fx('pulse', t.id);
+    logEvent(`<b>${me.seat.icon} ${esc(me.name)}</b> sends a 💘 to ${t.seat.icon} ${esc(t.name)}…`,'love');
+    return;
+  }
+  if(key==='FRIENDZONE'){
+    if(t.guard==='FOOL' && !t.usedSlippery){ t.usedSlippery=true; logEvent(`${t.seat.icon} ${esc(t.name)} slips the Friendzone (Fool). 😜`); return; }
+    addVoid(me.id, t.id); SFX.friendzone(); // t can't be mutual-counted with me
+    logEvent(`<b>${me.seat.icon} ${esc(me.name)}</b> 🤝 friendzones ${t.seat.icon} ${esc(t.name)} — "let's just be friends."`);
+    return;
+  }
+  if(key==='TRAITOR'){
+    if(t.untouchable){ logEvent(`${me.seat.icon} ${esc(me.name)}'s betrayal finds only mist (${t.seat.icon} untouchable).`); return; }
+    if(t.hand.length){ const stolen=t.hand.splice(rnd(t.hand.length),1)[0]; me.hand.push(stolen);
+      logEvent(`<b>${me.seat.icon} ${esc(me.name)}</b> ⚯ steals a card from ${t.seat.icon} ${esc(t.name)}.`); }
+    else logEvent(`${me.seat.icon} ${esc(me.name)} finds ${t.seat.icon} ${esc(t.name)}'s hand empty.`);
+    return;
+  }
+  if(key==='HEARTBREAK' || key==='SOLDIER'){
+    if(t.untouchable){ logEvent(`${t.seat.icon} ${esc(t.name)} is untouchable — the blow misses.`,'atk'); return; }
+    // Warrior bodyguard perk vs Heartbreak
+    if(key==='HEARTBREAK' && t.guard==='WARRIOR' && !t.usedBodyguard){
+      t.usedBodyguard=true; logEvent(`${t.seat.icon} ${esc(t.name)}'s ⚔ Bodyguard turns aside the first Heartbreak.`,'atk'); return;
+    }
+    if(t.protectors>0){ t.protectors--; logEvent(`<b>${me.seat.icon} ${esc(me.name)}</b> ${CARD[key].icon} strips a Protector from ${t.seat.icon} ${esc(t.name)}. (🛡×${t.protectors})`,'atk'); return; }
+    if(key==='SOLDIER'){ logEvent(`${me.seat.icon} ${esc(me.name)}'s ⚑ Soldier advances on ${t.seat.icon} ${esc(t.name)} — but the bare Heart holds.`,'atk'); return; }
+    // bare heart + heartbreak → crack
+    t.hits++;
+    const st=heartState(t);
+    SFX.hit(); fx('shake', t.id);
+    logEvent(`<b>${me.seat.icon} ${esc(me.name)}</b> 💔 wounds ${t.seat.icon} ${esc(t.name)}'s Heart — now ${st}.`,'atk');
+    if(st==='broken'){
+      logEvent(`💔 ${t.seat.icon} ${esc(t.name)}'s Heart is BROKEN.`,'atk');
+      if(t.guard==='TRAITOR'){ // spite: drag attacker's protector or crack
+        if(me.protectors>0){ me.protectors--; logEvent(`${t.seat.icon} ${esc(t.name)}'s ⚯ Spite tears a Protector from ${me.seat.icon} ${esc(me.name)}!`,'atk'); }
+        else { me.hits++; logEvent(`${t.seat.icon} ${esc(t.name)}'s ⚯ Spite wounds ${me.seat.icon} ${esc(me.name)} in revenge!`,'atk'); }
+      }
+      // last heart standing — if only one beating heart remains, the season ends
+      if(G.players.filter(alive).length<=1){ endGame('only one heart still beats'); }
+    }
+    return;
+  }
+}
+
+function addVoid(a,b){ G.voided.push([a,b]); }
+function isVoided(a,b){ return G.voided.some(([x,y])=>(x===a&&y===b)||(x===b&&y===a)); }
+
+// ---------- discard-down screen ----------
+function renderDiscard(p){
+  let html=brand()+`<div class="card-box"><h3 class="center">Hand limit — keep 7</h3><p class="center muted small">Tap cards to discard until you have 7.</p><div class="hand">`;
+  p.hand.forEach((k,i)=>{ html+=miniCard(k,i,'dz'); });
+  html+=`</div><button class="btn primary" id="donedz" ${p.hand.length<=7?'':'disabled'}>Done</button></div>`;
+  app.innerHTML=html;
+  app.querySelectorAll('[data-dz]').forEach(el=>el.onclick=()=>{ const i=+el.dataset.dz; G.discard.push(p.hand.splice(i,1)[0]); renderDiscard(p); });
+}
+
+// =====================================================================
+//  AI
+// =====================================================================
+function aiTurn(p){
+  if(!beginTurn(p)){ return; }
+  const hand=p.hand;
+  const foes = others(p).filter(q=>alive(q));
+  const pool = foes.length ? foes : others(p);   // never empty (≥2 others always)
+  const has = k => hand.indexOf(k);
+
+  // 1) if my heart is hurt and I have a Warrior, shield up
+  if(p.hits>0 && has('WARRIOR')>=0 && p.protectors<2){ return aiPlay(p, has('WARRIOR'), {self:true}); }
+  // 2) defend: low protectors & threatened → shield
+  if(p.protectors===0 && has('WARRIOR')>=0 && Math.random()<0.5){ return aiPlay(p, has('WARRIOR'), {self:true}); }
+  // 3) repair if broken-ish via devotion
+  if(p.hits>0 && has('DEVOTION')>=0 && Math.random()<0.6){ p.hand.splice(has('DEVOTION'),1); G.discard.push('DEVOTION'); if(p.hits>0)p.hits--; logEvent(`<b>${p.seat.icon} ${esc(p.name)}</b> renews their Heart with devotion. ❤️`,'love'); return endTurn(); }
+  // 4) send a crush to its secret target sometimes (signal)
+  if(has('CRUSH')>=0 && Math.random()<0.55){ const tgt=alive(G.players[p.crush])?p.crush:pick(pool).id; return aiPlay(p, has('CRUSH'), {target:tgt}); }
+  // 5) attack: prefer the leader / most-protected / nearest-to-winning foe
+  if(has('HEARTBREAK')>=0 && foes.length){ const t=aiPickFoe(p,foes); return aiPlay(p, has('HEARTBREAK'), {target:t.id}); }
+  if(has('SOLDIER')>=0){ const withProt=foes.filter(q=>q.protectors>0); if(withProt.length){ return aiPlay(p, has('SOLDIER'), {target:pick(withProt).id}); } }
+  // 6) info / disruption
+  if(has('TRAITOR')>=0 && others(p).some(q=>q.hand.length)){ const t=pick(others(p).filter(q=>q.hand.length)); return aiPlay(p, has('TRAITOR'), {target:t.id}); }
+  if(has('DREAMER')>=0 && Math.random()<0.3){ return aiPlay(p, has('DREAMER'), {self:true}); }
+  if(has('SAGE')>=0){ p.hand.splice(has('SAGE'),1); G.discard.push('SAGE'); logEvent(`${p.seat.icon} ${esc(p.name)} studies a secret. ✦`); return endTurn(); }
+  // 7) fallback: dump the least useful card
+  const order=['SOLDIER','FRIENDZONE','FOOL','CRUSH','SAGE','DREAMER','TRAITOR','WARRIOR','HEARTBREAK','DEVOTION'];
+  let idx=0; for(const k of order){ if(has(k)>=0){ idx=has(k); break; } }
+  const key=hand[idx];
+  if(CARD[key].needsTarget==='other'||key==='FRIENDZONE'){ return aiPlay(p, idx, {target:pick(pool).id}); }
+  if(key==='FOOL'){ p.hand.splice(idx,1); G.discard.push('FOOL'); applyEffect(p,'HEARTBREAK',{target:pick(pool).id}); return endTurn(); }
+  return aiPlay(p, idx, {self:true});
+}
+function aiPickFoe(p, foes){
+  // target highest threat: bare heart + many escorts? here: prefer bare-heart foes to crack, else most protectors
+  const bare=foes.filter(q=>q.protectors===0 && !q.untouchable);
+  if(bare.length){ return bare.sort((a,b)=>a.hits-b.hits).reverse()[0]; } // closest to breaking
+  const tch=foes.filter(q=>!q.untouchable); return tch.length?pick(tch):pick(foes);
+}
+function aiPlay(p, idx, opt){
+  const key=p.hand[idx];
+  if(key==='WARRIOR'||key==='DREAMER'){ p.hand.splice(idx,1); G.discard.push(key); applyEffect(p,key,{self:true}); return endTurn(); }
+  p.hand.splice(idx,1); G.discard.push(key); applyEffect(p,key,opt); if(!G.over) endTurn();
+}
+
+// =====================================================================
+//  END / REVEAL / SCORING
+// =====================================================================
+function endGame(reason){
+  G.over=true; logEvent(`The game ends — ${reason}.`);
+  // begin reveal (with optional admirer guesses for humans)
+  G.revealQueue = G.players.filter(p=>!p.isAI);
+  scoreAll();
+  routeReveal();
+}
+function scoreAll(){
+  for(const p of G.players){
+    p.score=0;
+    const st=heartState(p);
+    p.score += st==='whole'?3 : st==='cracked'?1 : -2;
+    const obj=G.players[p.crush];
+    const mutual = obj.crush===p.id && !isVoided(p.id,obj.id);
+    if(mutual){ p.score+=5; p.soulmate=true; if(p.crushedTrueTarget) p.score+=2; }
+  }
+}
+function routeReveal(){
+  // ask each human to guess their secret admirer (optional, +2)
+  const p = (G.revealQueue||[]).find(x=>x.admirerGuess===undefined? false : false); // disabled-complex; simplified below
+  renderReveal();
+}
+
+// =====================================================================
+//  RENDERING
+// =====================================================================
+function brand(){
+  return `<div class="brand"><span class="mark">⚜</span><div><div class="name">PYAAR</div></div></div>
+    <div class="center sub" style="margin-bottom:10px">HIDDEN HEARTS</div>`;
+}
+
+function renderConfig(){
+  if(!UI.cfg) UI.cfg = {n:4, players:[
+    {name:'You', isAI:false},{name:'Rumi', isAI:true},{name:'Layla', isAI:true},{name:'Kai', isAI:true},
+    {name:'Sol', isAI:true},{name:'Vera', isAI:true},{name:'Ash', isAI:true},
+  ]};
+  const c=UI.cfg;
+  let html=brand();
+  html+=`<div class="card-box center">
+    <p class="muted" style="margin-top:0">Protect your heart. Aim it at someone. Pray they aimed back.</p>
+    <div class="stepper"><button id="minus">−</button><div class="v">${c.n}</div><button id="plus">+</button></div>
+    <div class="muted small">players · pass one device around</div>
+  </div>`;
+  html+=`<div class="card-box">`;
+  for(let i=0;i<c.n;i++){
+    const pl=c.players[i];
+    html+=`<div class="pl-row">
+      <span class="seat">${SEATS[i].icon}</span>
+      <input type="text" value="${esc(pl.name)}" data-name="${i}" maxlength="14"/>
+      <div class="seg" data-seg="${i}">
+        <button data-h="${i}" class="${pl.isAI?'':'on'}">Human</button>
+        <button data-a="${i}" class="${pl.isAI?'on':''}">AI</button>
+      </div>
+    </div>`;
+  }
+  html+=`</div>
+    <button class="btn primary" id="start">Begin — choose hearts ❤️</button>
+    <div class="row" style="margin-top:10px">
+      <button class="btn ghost sm" id="rules">📖 How to play</button>
+    </div>
+    <div class="footer">PYAAR · Hidden Hearts — pass-and-play edition</div>`;
+  app.innerHTML=html;
+
+  $('#minus').onclick=()=>{ if(c.n>3){c.n--; renderConfig();} };
+  $('#plus').onclick=()=>{ if(c.n<7){c.n++; renderConfig();} };
+  app.querySelectorAll('[data-name]').forEach(el=>el.oninput=()=>{ c.players[+el.dataset.name].name=el.value||('Player'+(+el.dataset.name+1)); });
+  app.querySelectorAll('[data-h]').forEach(el=>el.onclick=()=>{ c.players[+el.dataset.h].isAI=false; renderConfig(); });
+  app.querySelectorAll('[data-a]').forEach(el=>el.onclick=()=>{ c.players[+el.dataset.a].isAI=true; renderConfig(); });
+  $('#rules').onclick=showRules;
+  $('#start').onclick=()=>{
+    SFX.resume(); SFX.click();   // unlock audio on first user gesture
+    const players=c.players.slice(0,c.n).map((p,i)=>({name:(p.name||('Player'+(i+1))).trim(), isAI:p.isAI}));
+    if(players.every(p=>p.isAI)) players[0].isAI=false; // ensure at least one human
+    startGame({players});
+  };
+}
+
+function renderPassGate(p, onReady){
+  app.innerHTML = brand()+`<div class="gate">
+    <div class="big">📱➡️</div>
+    <div class="muted">Pass the device to</div>
+    <div class="who">${p.seat.icon} ${esc(p.name)}</div>
+    <div class="muted small">Everyone else: look away — secrets ahead.</div>
+    <div style="height:8px"></div>
+    <button class="btn primary" id="ready" style="max-width:280px">I'm ${esc(p.name)} — show me</button>
+  </div>`;
+  $('#ready').onclick=onReady;
+}
+
+function seatChip(p, activeId){
+  const st=heartState(p);
+  const badges=[];
+  if(p.protectors) badges.push(`🛡${p.protectors}`);
+  if(p.untouchable) badges.push('☾');
+  if(p.publicCrushesFrom.length) badges.push(`💘${p.publicCrushesFrom.length}`);
+  if(p.soulmate) badges.push('💞');
+  const active = p.id===activeId ? 'active' : '';
+  const broken = st==='broken' ? 'broken' : '';
+  const f=G.fx||{};
+  const shake = (f.shake||[]).includes(p.id) ? 'shake' : '';
+  const pulse = (f.pulse||[]).includes(p.id) ? 'pulse' : '';
+  const bdgHtml = badges.length ? badges.map(b=>`<span class="bdg">${b}</span>`).join('') : `<span class="bdg dim">—</span>`;
+  return `<div class="chip ${active} ${broken} ${shake} ${pulse}">
+    <div class="avatar">${p.seat.icon}<span class="hs">${heartGlyph(st)}</span></div>
+    <div class="cnm">${esc(p.name)}${p.isAI?' <span class="ai-badge">AI</span>':''}</div>
+    <div class="badges">${bdgHtml}</div>
+  </div>`;
+}
+
+function renderBoard(o){
+  closeModal(); // clear any stale modal before drawing the board
+  const p=cur();
+  const np=G.players.length;
+
+  // seats sit around an oval; the player whose turn it is sits at the bottom (you).
+  let chips='';
+  for(const q of G.players){
+    const rel=(q.id - G.turn + np)%np;                 // 0 = current player → bottom
+    const ang=(90 + rel*(360/np)) * Math.PI/180;       // 90° = bottom of the felt
+    const rx=41, ry=43;                                 // % radii of the felt box
+    const x=50 + rx*Math.cos(ang);
+    const y=50 + ry*Math.sin(ang);
+    chips+=`<div class="chip-pos" style="left:${x}%; top:${y}%">${seatChip(q, p.id)}</div>`;
+  }
+
+  const topDisc=G.discard[G.discard.length-1];
+  const tableTalk=(G.log[0] ? G.log[0].html : '');
+
+  let html=`
+    <div class="topbar-mini"><span class="mark">⚜</span><b>PYAAR</b><span class="muted small">Hidden Hearts</span>
+      <span class="status">${G.players.filter(alive).length}♥ · ${G.deck.length} cards${G.deck.length<=np?' · final!':''}</span>
+      <button class="mute-btn" id="mute" title="Sound">${SFX.isMuted()?'🔇':'🔊'}</button></div>
+    <div class="table-wrap"><div class="felt">
+      <div class="table-center">
+        <div class="piles">
+          <div class="pile deck"><span class="pc">${G.deck.length}</span><span class="pl">draw</span></div>
+          <div class="pile disc">${topDisc?CARD[topDisc].icon:'—'}<span class="pl">played</span></div>
+        </div>
+        <div class="talk">${tableTalk || 'The table is set… let the courting begin.'}</div>
+      </div>
+      ${chips}
+    </div></div>`;
+
+  if(o.aiThinking){
+    html+=`<div class="hand-area thinking"><div class="dots">${p.seat.icon} <b>${esc(p.name)}</b> is taking their turn<span class="d">…</span></div></div>`;
+  } else {
+    const obj=G.players[p.crush];
+    html+=`<div class="hand-area">
+      <div class="secret-strip">Your secret 💘 <b>${obj.seat.icon} ${esc(obj.name)}</b> · guarded by ${CHARACTERS[p.guard].icon} ${CHARACTERS[p.guard].name}</div>
+      <div class="hand">`;
+    p.hand.forEach((k,i)=>{ html+=fullCard(k,i); });
+    html+=`</div><div class="hint-line">Tap a card to play it.</div></div>`;
+  }
+
+  html+=`<div class="log">`;
+  for(const e of G.log.slice(0,4)) html+=`<div class="e ${e.cls}">${e.html}</div>`;
+  html+=`</div>`;
+  app.innerHTML=html;
+
+  G.fx=null; // visual fx are one-shot, consumed by this render
+
+  const mb=$('#mute'); if(mb) mb.onclick=()=>{ const m=SFX.toggle(); mb.textContent=m?'🔇':'🔊'; };
+  if(!o.aiThinking){
+    app.querySelectorAll('[data-play]').forEach(el=>el.onclick=()=>playCard(+el.dataset.play));
+  }
+}
+
+function fullCard(key, i){
+  const d=CARD[key]; const sel = UI.sel===i?'sel':'';
+  return `<div class="pcard f-${d.fam} ${sel}" data-play="${i}">
+    <div class="band"></div>
+    <div class="ic">${d.icon}</div>
+    <div class="ti">${key[0]+key.slice(1).toLowerCase()}</div>
+    <div class="tg">${esc(d.tag)}</div>
+    <div class="bd">${esc(d.desc)}</div>
+  </div>`;
+}
+function miniCard(key, i, dz){
+  const d=CARD[key];
+  return `<div class="pcard f-${d.fam}" data-${dz}="${i}"><div class="band"></div><div class="ic">${d.icon}</div><div class="ti">${key[0]+key.slice(1).toLowerCase()}</div></div>`;
+}
+
+function renderReveal(){
+  if(!G._revealSung){ G._revealSung=true; SFX.win(); }
+  const ranked=[...G.players].sort((a,b)=> b.score-a.score || (a.hits-b.hits) || (b.publicCrushesFrom.length-a.publicCrushesFrom.length));
+  const winner=ranked[0];
+  let html=brand();
+  html+=`<div class="card-box center">
+    <h2>The Reveal</h2>
+    <div style="font-size:46px">${winner.seat.icon}</div>
+    <h3 style="color:var(--gold)">${esc(winner.name)} protected their love best</h3>
+    <div class="muted small">${winner.soulmate?'…and found a Soulmate. 💞':''}</div>
+  </div>`;
+  // soulmate pairs
+  const pairs=[];
+  for(const p of G.players){ const o=G.players[p.crush]; if(o.crush===p.id && !isVoided(p.id,o.id) && p.id<o.id) pairs.push([p,o]); }
+  if(pairs.length){
+    html+=`<div class="card-box center"><h3>💞 Soulmates</h3>`;
+    for(const [a,b] of pairs) html+=`<div style="font-size:18px; margin:4px 0">${a.seat.icon} ${esc(a.name)} 💘 ${b.seat.icon} ${esc(b.name)}</div>`;
+    html+=`</div>`;
+  }
+  html+=`<div class="card-box"><h3 class="center">Hearts revealed</h3>`;
+  for(const p of ranked){
+    const o=G.players[p.crush]; const st=heartState(p);
+    const mutual = o.crush===p.id && !isVoided(p.id,o.id);
+    html+=`<div class="pl-row"><span class="seat">${p.seat.icon}</span>
+      <div style="flex:1"><b>${esc(p.name)}</b> ${p.isAI?'<span class="ai-badge">AI</span>':''}
+        <div class="meta">${heartGlyph(st)} ${st} · 💘 chose ${o.seat.icon} ${esc(o.name)} ${mutual?'· <b style="color:#f6a">mutual!</b>':''} · ${CHARACTERS[p.guard].icon} ${CHARACTERS[p.guard].name}</div>
+      </div>
+      <div class="right"><b style="font-size:18px; color:var(--gold)">${p.score>=0?'+':''}${p.score}</b></div>
+    </div>`;
+  }
+  html+=`</div>
+    <button class="btn primary" id="again">Play again ❤️</button>
+    <div class="footer">PYAAR · Hidden Hearts</div>`;
+  app.innerHTML=html;
+  $('#again').onclick=()=>{ UI={}; renderConfig(); };
+}
+
+// ---------- modal ----------
+function openModal(inner, wire){
+  let host=$('#modal-host');
+  if(!host){ host=document.createElement('div'); host.id='modal-host'; document.body.appendChild(host); }
+  host.innerHTML=`<div class="overlay"><div class="modal">${inner}</div></div>`;
+  if(wire) wire();
+}
+function closeModal(){ const h=$('#modal-host'); if(h) h.innerHTML=''; }
+
+function showRules(){
+  openModal(`<h2>How to play</h2>
+    <p class="small">Everyone secretly <b>aims their Heart at another player</b> (your crush) and picks a <b>Protector</b> character. On your turn: <b>draw 1, play 1.</b></p>
+    <ul class="small">
+      <li>💔 <b>Heartbreak</b> — strip a Protector, or crack a bare Heart.</li>
+      <li>⚔ <b>Warrior</b> — add a Protector (🛡) to your own Heart.</li>
+      <li>🤝 <b>Friendzone</b> — void someone's crush on you.</li>
+      <li>☾ <b>Dreamer</b> — be untouchable until your next turn.</li>
+      <li>✦ <b>Sage</b> — secretly peek a crush or Protector.</li>
+      <li>⚯ <b>Traitor</b> — steal a random card.</li>
+      <li>◊ <b>Fool</b> — copy any character.</li>
+      <li>💘 <b>Crush</b> — a public flirt; mutual scores +2.</li>
+      <li>💍 <b>Devotion</b> — repair your Heart, or declare your crush (mutual = Soulmates, instant end).</li>
+    </ul>
+    <p class="small">When the deck runs out, hearts are revealed. <b>Whole +3 · Cracked +1 · Broken −2 · Mutual crush +5.</b> Most points wins — and Soulmates win the night.</p>
+    <button class="btn primary" id="okm">Got it</button>`, ()=> $('#okm').onclick=closeModal);
+}
+
+// ---------- boot ----------
+renderConfig();
+</script>
+</body>
+</html>

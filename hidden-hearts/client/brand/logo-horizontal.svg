@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 520" width="1600" height="520" role="img" aria-label="PYAAR — Hidden Hearts logo">
+  <defs>
+    <radialGradient id="bg" cx="30%" cy="30%" r="100%">
+      <stop offset="0%" stop-color="#48224e"/><stop offset="55%" stop-color="#291430"/><stop offset="100%" stop-color="#160b1a"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#ffe9b0"/><stop offset="42%" stop-color="#edbd66"/><stop offset="100%" stop-color="#c8842f"/>
+    </linearGradient>
+    <linearGradient id="goldring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f3d188"/><stop offset="50%" stop-color="#b9863c"/><stop offset="100%" stop-color="#f3d188"/>
+    </linearGradient>
+    <symbol id="emblem" viewBox="0 0 512 512">
+      <circle cx="256" cy="256" r="214" fill="none" stroke="url(#goldring)" stroke-width="3.4"/>
+      <circle cx="256" cy="256" r="200" fill="none" stroke="#e9c373" stroke-width="1" stroke-dasharray="1 8" opacity="0.4"/>
+      <g fill="url(#gold)"><circle cx="256" cy="42" r="4"/><circle cx="256" cy="470" r="4"/><circle cx="42" cy="256" r="4"/><circle cx="470" cy="256" r="4"/></g>
+      <text x="256" y="150" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-size="72" fill="url(#gold)">⚜</text>
+      <path transform="translate(166,185) scale(5.6)" fill="url(#gold)" d="M23.6 0c-3.4 0-6.3 2.7-7.6 5.6C14.7 2.7 11.8 0 8.4 0 3.8 0 0 3.8 0 8.4c0 9.4 9.5 11.9 16 21.2 6.1-9.3 16-12 16-21.2C32 3.8 28.2 0 23.6 0z"/>
+      <ellipse cx="216" cy="238" rx="33" ry="20" fill="#fff6df" opacity="0.32"/>
+      <g fill="#1c0f22"><circle cx="256" cy="262" r="16"/><path d="M247 271 L265 271 L273 309 L239 309 Z"/></g>
+    </symbol>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="520" rx="64" fill="url(#bg)"/>
+  <use href="#emblem" x="64" y="46" width="428" height="428"/>
+
+  <g>
+    <text x="556" y="288" font-family="Georgia,'Times New Roman',serif" font-weight="700" font-size="168" letter-spacing="6" fill="url(#gold)">PYAAR</text>
+    <text x="562" y="356" font-family="system-ui,'Segoe UI',sans-serif" font-size="40" letter-spacing="20" fill="#e7d3bf">HIDDEN HEARTS</text>
+    <line x1="562" y1="392" x2="1180" y2="392" stroke="#7a5a3a" stroke-width="2"/>
+    <text x="871" y="382" text-anchor="middle" font-family="Georgia,serif" font-size="34" fill="#e0a458">♥</text>
+  </g>
+</svg>

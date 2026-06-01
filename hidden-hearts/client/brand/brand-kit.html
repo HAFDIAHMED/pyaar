@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PYAAR — Brand Kit</title>
+<style>
+  :root{--gold:#e0a458;--line:#3c2a42;}
+  body{margin:0;background:radial-gradient(120% 80% at 50% -10%,#3a1d3f,#160b1a 60%);color:#f3e9df;font-family:"Segoe UI",system-ui,sans-serif;padding:24px;}
+  h1{font-family:Georgia,serif;color:var(--gold);text-align:center;letter-spacing:1px;}
+  p.sub{text-align:center;color:#b6a3b0;margin-top:-6px;}
+  .grid{display:flex;flex-wrap:wrap;gap:20px;justify-content:center;margin-top:24px;}
+  .card{background:#241826cc;border:1px solid var(--line);border-radius:16px;padding:16px;width:340px;}
+  .card h3{margin:0 0 10px;font-family:Georgia,serif;color:var(--gold);font-size:16px;}
+  .frame{border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#0e0712;display:flex;align-items:center;justify-content:center;}
+  .frame.sq{aspect-ratio:1/1;}
+  .frame img{width:100%;height:100%;object-fit:contain;display:block;}
+  .frame.circle img{border-radius:50%;}
+  .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+  button{background:#2c1d30;border:1px solid var(--line);color:#f3e9df;border-radius:9px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;}
+  button:hover{background:#3a2742;}
+  button.gold{background:linear-gradient(180deg,#edb86a,#e0a458);color:#2a1320;border-color:#caa15a;}
+  .note{color:#b6a3b0;font-size:12px;text-align:center;max-width:680px;margin:18px auto;line-height:1.5;}
+  .swatches{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px;}
+  .sw{width:64px;height:48px;border-radius:8px;border:1px solid #0006;display:flex;align-items:flex-end;justify-content:center;font-size:10px;color:#000a;font-weight:700;padding-bottom:2px;}
+</style>
+</head>
+<body>
+  <h1>⚜ PYAAR — Brand Kit</h1>
+  <p class="sub">Tap a download button to save a ready-to-post PNG (generated in your browser).</p>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="card" style="width:auto;max-width:720px;margin:24px auto 0">
+    <h3>Palette</h3>
+    <div class="swatches">
+      <div class="sw" style="background:#e0a458">#e0a458</div>
+      <div class="sw" style="background:#edbd66">#edbd66</div>
+      <div class="sw" style="background:#c8842f;color:#fff8">#c8842f</div>
+      <div class="sw" style="background:#3a1d3f;color:#fff8">#3a1d3f</div>
+      <div class="sw" style="background:#160b1a;color:#fff8">#160b1a</div>
+      <div class="sw" style="background:#e85c86">#e85c86</div>
+    </div>
+  </div>
+
+  <p class="note">
+    <b>For Instagram:</b> use the square <b>Icon</b> as your profile photo — download <b>1080</b> (IG crops it to a circle; the design is built for that). Use <b>512</b> for most apps, <b>180</b> for a favicon.
+    The SVG files are the master art (infinitely scalable) and live in this folder: <code>icon.svg</code>, <code>logo-horizontal.svg</code>, <code>logo-stacked.svg</code>.
+  </p>
+
+<script>
+const ASSETS = [
+  { id:'icon', title:'Profile Icon (square)', file:'icon.svg', frame:'sq circle', sizes:[1080,512,180] },
+  { id:'logo-stacked', title:'Stacked logo / IG post (4:5)', file:'logo-stacked.svg', frame:'', w:1080, h:1350, sizes:[1080] },
+  { id:'logo-horizontal', title:'Horizontal logo / banner', file:'logo-horizontal.svg', frame:'', w:1600, h:520, sizes:[1600,800] },
+];
+const grid = document.getElementById('grid');
+
+async function loadSvg(file){ const r = await fetch(file); return await r.text(); }
+
+function svgToPng(svgText, size, outW, outH){
+  return new Promise((resolve,reject)=>{
+    const blob = new Blob([svgText],{type:'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = ()=>{
+      const ratio = outH/outW;
+      const w = size, h = outH&&outW ? Math.round(size*ratio) : size;
+      const c = document.createElement('canvas'); c.width=w; c.height=h;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      c.toBlob(b=>resolve(b),'image/png');
+    };
+    img.onerror = reject; img.src = url;
+  });
+}
+
+function download(blob, name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+
+(async ()=>{
+  for(const a of ASSETS){
+    const svg = await loadSvg(a.file);
+    const card = document.createElement('div'); card.className='card';
+    const frame = document.createElement('div'); frame.className='frame '+a.frame;
+    if(a.w){ frame.style.aspectRatio = a.w+'/'+a.h; }
+    const img = document.createElement('img'); img.src = a.file; frame.appendChild(img);
+    const btns = document.createElement('div'); btns.className='btns';
+    a.sizes.forEach((s,i)=>{
+      const b=document.createElement('button'); if(i===0)b.className='gold';
+      b.textContent = '⬇ PNG '+s+(a.w?'w':'px');
+      b.onclick = async ()=>{ const png = await svgToPng(svg, s, a.w, a.h); download(png, a.id+'-'+s+'.png'); };
+      btns.appendChild(b);
+    });
+    const sb=document.createElement('button'); sb.textContent='⬇ SVG';
+    sb.onclick=()=>download(new Blob([svg],{type:'image/svg+xml'}), a.file);
+    btns.appendChild(sb);
+    const h3=document.createElement('h3'); h3.textContent=a.title;
+    card.appendChild(h3); card.appendChild(frame); card.appendChild(btns); grid.appendChild(card);
+  }
+})();
+</script>
+</body>
+</html>

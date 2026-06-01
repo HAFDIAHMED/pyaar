@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.local
+*.log
+npm-debug.log*
+oracle-data/
+wallet/
+data/
+dist/
+.DS_Store

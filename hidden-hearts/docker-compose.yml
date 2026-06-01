@@ -1,0 +1,23 @@
+# Local Oracle for development. Production (Hostinger) points DB_CONNECT_STRING
+# at a hosted Oracle (e.g. Oracle Cloud Autonomous DB) instead of this container.
+services:
+  oracle:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: pyaar-oracle
+    ports:
+      - "1521:1521"
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_SYS_PASSWORD:-pyaar_sys_pw}   # SYS / SYSTEM password
+      APP_USER: ${DB_USER:-pyaar}                              # app schema, created in XEPDB1
+      APP_USER_PASSWORD: ${DB_PASSWORD:-pyaar_pw}
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+volumes:
+  oracle-data:

@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080" role="img" aria-label="PYAAR Hidden Hearts icon">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="36%" r="78%">
+      <stop offset="0%" stop-color="#54275a"/>
+      <stop offset="48%" stop-color="#2b1530"/>
+      <stop offset="100%" stop-color="#160b1a"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0%" stop-color="#ffe9b0"/>
+      <stop offset="42%" stop-color="#edbd66"/>
+      <stop offset="100%" stop-color="#c8842f"/>
+    </linearGradient>
+    <linearGradient id="goldring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f3d188"/>
+      <stop offset="50%" stop-color="#b9863c"/>
+      <stop offset="100%" stop-color="#f3d188"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="14" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect x="0" y="0" width="1080" height="1080" rx="220" fill="url(#bg)"/>
+
+  <!-- ornate medallion ring -->
+  <circle cx="540" cy="540" r="452" fill="none" stroke="url(#goldring)" stroke-width="7"/>
+  <circle cx="540" cy="540" r="424" fill="none" stroke="#e9c373" stroke-width="2" stroke-dasharray="2 16" opacity="0.4"/>
+  <g fill="url(#gold)">
+    <circle cx="540" cy="88"  r="8"/><circle cx="540" cy="992" r="8"/>
+    <circle cx="88"  cy="540" r="8"/><circle cx="992" cy="540" r="8"/>
+    <circle cx="220" cy="220" r="6"/><circle cx="860" cy="220" r="6"/>
+    <circle cx="220" cy="860" r="6"/><circle cx="860" cy="860" r="6"/>
+  </g>
+
+  <!-- crown mark -->
+  <text x="540" y="312" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="150" fill="url(#gold)" filter="url(#glow)">⚜</text>
+
+  <!-- the hidden heart -->
+  <g filter="url(#glow)">
+    <path transform="translate(348,392) scale(12)" fill="url(#gold)"
+      d="M23.6 0c-3.4 0-6.3 2.7-7.6 5.6C14.7 2.7 11.8 0 8.4 0 3.8 0 0 3.8 0 8.4c0 9.4 9.5 11.9 16 21.2 6.1-9.3 16-12 16-21.2C32 3.8 28.2 0 23.6 0z"/>
+  </g>
+  <!-- gloss highlight -->
+  <ellipse cx="455" cy="500" rx="70" ry="42" fill="#fff6df" opacity="0.35" filter="url(#soft)"/>
+
+  <!-- keyhole (the 'hidden' secret) cut into the heart -->
+  <g fill="#1c0f22">
+    <circle cx="540" cy="548" r="34"/>
+    <path d="M521 560 L559 560 L576 642 L504 642 Z"/>
+  </g>
+  <circle cx="540" cy="548" r="34" fill="none" stroke="#8a5a20" stroke-width="3" opacity="0.55"/>
+
+  <!-- sparkles -->
+  <g fill="#ffeec2">
+    <path d="M792 350 l9 24 24 9 -24 9 -9 24 -9 -24 -24 -9 24 -9z" opacity="0.85"/>
+    <path d="M300 690 l6 16 16 6 -16 6 -6 16 -6 -16 -16 -6 16 -6z" opacity="0.7"/>
+  </g>
+</svg>

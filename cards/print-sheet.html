@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PYAAR — Hidden Hearts · Print Sheet</title>
+<style>
+  :root{
+    --ink:#2b211a; --paper:#fbf6ec; --line:#d9c7a8;
+    --attack:#b3253a; --defense:#2a4a78; --info:#2f6b4a;
+    --disruption:#5a2a78; --love:#c8345c; --devotion:#b47010;
+    --heart:#a61e44; --char:#8a5a18; --seat:#555;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    background:#1c1712; color:#f3ead9;
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+
+  /* ---------- screen-only control bar ---------- */
+  .toolbar{
+    position:sticky; top:0; z-index:50;
+    background:#241b14; border-bottom:1px solid #3a2d22;
+    padding:14px 20px; display:flex; flex-wrap:wrap; gap:14px 22px; align-items:center;
+  }
+  .toolbar h1{font-size:18px; margin:0; font-family:Georgia,serif; color:#e0a458; letter-spacing:.5px;}
+  .toolbar h1 small{display:block; font-size:11px; color:#b09b82; letter-spacing:2px; font-family:system-ui;}
+  .toggles{display:flex; flex-wrap:wrap; gap:6px 16px; font-size:13px;}
+  .toggles label{display:flex; gap:6px; align-items:center; color:#d8c7a8; cursor:pointer; user-select:none;}
+  .count{font-size:12px; color:#b09b82;}
+  .btn{
+    background:#e0a458; color:#241b14; border:0; border-radius:8px;
+    padding:9px 18px; font-weight:700; font-size:14px; cursor:pointer;
+  }
+  .btn:hover{background:#edb86a;}
+  .hint{font-size:12px; color:#8d7a60; max-width:520px; line-height:1.45;}
+
+  /* ---------- sheets ---------- */
+  .deck{padding:18px 0;}
+  .deck > .deck-title{
+    text-align:center; color:#e0a458; font-family:Georgia,serif;
+    font-size:15px; letter-spacing:3px; text-transform:uppercase; margin:8px 0 14px;
+  }
+  .sheet{display:flex; flex-wrap:wrap; width:189mm; margin:0 auto; justify-content:flex-start;}
+
+  /* ---------- a card ---------- */
+  .card{
+    width:63mm; height:88mm; box-sizing:border-box;
+    background:var(--paper); color:var(--ink);
+    border:0.2mm solid #b9a276; outline:0.2mm solid #b9a276; /* cut guide */
+    display:flex; flex-direction:column; position:relative; overflow:hidden;
+    padding:4.5mm 4mm;
+  }
+  .card .band{position:absolute; left:0; right:0; height:6mm;}
+  .card .band.top{top:0;} .card .band.bot{bottom:0;}
+  .card .corner{
+    position:absolute; font-weight:800; font-size:3.4mm; line-height:1;
+    color:#fff; z-index:2;
+  }
+  .card .corner.tl{top:1.4mm; left:2.2mm;}
+  .card .corner.br{bottom:1.4mm; right:2.2mm; transform:rotate(180deg);}
+  .card .fam{
+    position:absolute; top:1.5mm; right:2.4mm; z-index:2;
+    font-size:2.3mm; letter-spacing:.6mm; text-transform:uppercase; color:#fff; font-weight:700;
+  }
+  .card .icon{
+    margin-top:9mm; text-align:center; font-size:18mm; line-height:1;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.18));
+  }
+  .card .title{
+    text-align:center; font-family:Georgia,serif; font-size:5.6mm; font-weight:700;
+    margin-top:1.5mm; color:var(--ink);
+  }
+  .card .tag{
+    text-align:center; font-style:italic; font-size:3mm; color:#8a6f4c; margin-top:.6mm;
+  }
+  .card .body{
+    margin-top:auto; margin-bottom:6.2mm;
+    background:rgba(0,0,0,.035); border-radius:1.5mm; padding:2.2mm 2.6mm;
+    font-size:2.85mm; line-height:1.32; text-align:center; color:#3a2c1e;
+  }
+  .card .brand{
+    position:absolute; bottom:1.3mm; left:0; right:0; text-align:center;
+    font-size:2.1mm; letter-spacing:1.2mm; color:#b08a52; text-transform:uppercase;
+  }
+
+  /* family colors */
+  .f-attack .band{background:var(--attack);}      .f-attack .corner{color:var(--attack);} .f-attack .fam{color:var(--attack);}
+  .f-defense .band{background:var(--defense);}     .f-defense .corner{color:var(--defense);} .f-defense .fam{color:var(--defense);}
+  .f-info .band{background:var(--info);}           .f-info .corner{color:var(--info);} .f-info .fam{color:var(--info);}
+  .f-disruption .band{background:var(--disruption);} .f-disruption .corner{color:var(--disruption);} .f-disruption .fam{color:var(--disruption);}
+  .f-love .band{background:var(--love);}           .f-love .corner{color:var(--love);} .f-love .fam{color:var(--love);}
+  .f-devotion .band{background:var(--devotion);}   .f-devotion .corner{color:var(--devotion);} .f-devotion .fam{color:var(--devotion);}
+  .f-char .band{background:var(--char);}           .f-char .corner{color:var(--char);} .f-char .fam{color:var(--char);}
+  .f-seat .band{background:var(--seat);}           .f-seat .corner{color:var(--seat);} .f-seat .fam{color:var(--seat);}
+  .f-heart .band{background:var(--heart);}         .f-heart .corner{color:var(--heart);} .f-heart .fam{color:var(--heart);}
+  /* corner pip text sits on the colored band, so keep it white there */
+  .card .corner{color:#fff;}
+
+  /* heart card special */
+  .card.heart .icon{font-size:30mm; margin-top:12mm;}
+  .card.heart .states{font-size:2.6mm; text-align:center; color:#7a5a3a; margin-top:1mm;}
+
+  /* card back */
+  .card.back{background:radial-gradient(circle at 50% 38%, #3a2d5c 0%, #241b3a 60%, #181228 100%); color:#e9dffb;}
+  .card.back .bk-mark{margin:auto; text-align:center;}
+  .card.back .bk-mark .m{font-size:24mm; color:#e0a458;}
+  .card.back .bk-mark .n{font-family:Georgia,serif; font-size:7mm; letter-spacing:3mm; margin-top:2mm; color:#f3ead9;}
+  .card.back .bk-mark .s{font-size:2.4mm; letter-spacing:2.5mm; color:#b09b82; margin-top:2mm;}
+
+  .hidden{display:none !important;}
+
+  @media print{
+    body{background:#fff;}
+    .toolbar, .deck-title, .no-print{display:none !important;}
+    .deck{padding:0;}
+    .sheet{width:auto;}
+    .card{break-inside:avoid;}
+    @page{size:A4; margin:6mm;}
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar no-print">
+  <h1>PYAAR · Hidden Hearts<small>PRINT &amp; PLAY SHEET</small></h1>
+  <div class="toggles" id="toggles"></div>
+  <span class="count" id="count"></span>
+  <button class="btn" onclick="window.print()">🖨 Print</button>
+  <span class="hint">Poker size (63×88mm), 9 per A4 page. Tick the decks you want, then Print → "Save as PDF" or print on cardstock. Thin grey outlines are cut guides. For hidden hands, also print enough <b>Card backs</b> (or use a single shared back).</span>
+</div>
+
+<div id="root"></div>
+
+<script>
+// ----- card data (mirrors CARDS.md) -----
+const PLAY = [
+  {t:'Heartbreak',i:'💔',n:9,fam:'attack',tag:'Break a heart.',x:'Target one player. Remove one Protector. If their Heart is bare, crack it instead. Cancelled by Warrior or Friendzone.'},
+  {t:'Soldier',i:'⚑',n:8,fam:'attack',tag:'Advance.',x:'Target one player. Remove one Protector. Cannot crack a bare Heart by itself.'},
+  {t:'Warrior',i:'⚔',n:9,fam:'defense',tag:'Shield.',x:'Reaction. Cancel one attack aimed at your Heart. May instead be played onto your own Heart as a Protector.'},
+  {t:'Friendzone',i:'🤝',n:8,fam:'defense',tag:'“Let’s just be friends.”',x:'Reaction. Cancel a Crush or Heartbreak aimed at you. Cancelling a Crush voids that pairing forever.'},
+  {t:'Dreamer',i:'☾',n:6,fam:'defense',tag:'Daydream.',x:'Until your next turn you are Untouchable — no card may target you. The Dreamer never attacks.'},
+  {t:'Sage',i:'✦',n:7,fam:'info',tag:'Insight.',x:'Secretly look at one face-down card: any player’s Crush, or any Heart’s Protector.'},
+  {t:'Traitor',i:'⚯',n:7,fam:'disruption',tag:'Betrayal.',x:'Steal one random card from a hand, OR redirect an attack aimed at you onto another player.'},
+  {t:'Fool',i:'◊',n:6,fam:'disruption',tag:'Wild.',x:'Copies any one Character’s effect as you play it. OR force two players to swap one random card.'},
+  {t:'Crush',i:'💘',n:7,fam:'love',tag:'Send a sign.',x:'Place face-up before any player — a public, deniable flirt. If they are your secret Crush and it ends mutual, scores +2.'},
+  {t:'Devotion',i:'💍',n:3,fam:'devotion',tag:'True love.',x:'Repair your Heart one step, OR declare your secret Crush now — if mutual, you become Soulmates and the round ends.'},
+];
+
+const CHARS = [
+  {t:'Warrior',i:'⚔',x:'Bodyguard — cancel the first Heartbreak aimed at you for free.'},
+  {t:'Sage',i:'✦',x:'Insight — at setup, peek at one other player’s Crush.'},
+  {t:'Traitor',i:'⚯',x:'Spite — if your Heart Breaks, remove one Protector from any Heart.'},
+  {t:'Fool',i:'◊',x:'Slippery — immune to the first Friendzone played on you.'},
+  {t:'Guardian',i:'⚜',x:'Fortress — your Heart needs 3 hits to Break instead of 2.'},
+  {t:'Dreamer',i:'☾',x:'Vanish — once per game, be Untouchable until your next turn.'},
+  {t:'Soldier',i:'⚑',x:'Vanguard — draw an extra card on each of your first 3 turns.'},
+];
+
+const SEATS = [
+  {name:'Rose',i:'🌹'},{name:'Lotus',i:'🪷'},{name:'Moon',i:'🌙'},{name:'Flame',i:'🔥'},
+  {name:'Peacock',i:'🦚'},{name:'Jasmine',i:'🌼'},{name:'Star',i:'⭐'},
+];
+
+// ----- card builder -----
+function card({fam, icon, title, tag, body, klass='', famLabel='', pip=''}){
+  return `<div class="card f-${fam} ${klass}">
+    <div class="band top"></div>
+    ${pip?`<div class="corner tl">${pip}</div><div class="corner br">${pip}</div>`:''}
+    ${famLabel?`<div class="fam">${famLabel}</div>`:''}
+    <div class="icon">${icon}</div>
+    <div class="title">${title}</div>
+    ${tag?`<div class="tag">${tag}</div>`:''}
+    ${body?`<div class="body">${body}</div>`:''}
+    <div class="band bot"></div>
+    <div class="brand">PYAAR · Hidden Hearts</div>
+  </div>`;
+}
+
+function sheet(id, title, cardsHTML){
+  return `<section class="deck" data-deck="${id}">
+    <div class="deck-title">${title}</div>
+    <div class="sheet">${cardsHTML}</div>
+  </section>`;
+}
+
+// ----- build each deck -----
+function buildPlay(){
+  let h='';
+  for(const c of PLAY){
+    for(let k=0;k<c.n;k++){
+      h+=card({fam:c.fam, icon:c.i, title:c.t, tag:c.tag, body:c.x, famLabel:c.fam, pip:c.i});
+    }
+  }
+  return h;
+}
+function buildChars(){ // 7 of each character = 49
+  let h='';
+  for(const c of CHARS){
+    for(let k=0;k<7;k++){
+      h+=card({fam:'char', icon:c.i, title:c.t, tag:'Protector', body:c.x, famLabel:'character', pip:c.i});
+    }
+  }
+  return h;
+}
+function buildHearts(){
+  let h='';
+  for(const s of SEATS){
+    h+=card({fam:'heart', klass:'heart', icon:'❤', title:'Your Heart',
+      tag:s.i+' '+s.name, body:'Whole → Cracked → Broken. Protect it. Aim it. Reveal it.', famLabel:'love', pip:'♥'});
+  }
+  return h;
+}
+function buildSeats(){
+  let h='';
+  for(const s of SEATS){
+    h+=card({fam:'seat', icon:s.i, title:s.name, tag:'Seat', body:'You are known at the table as '+s.name+'.', famLabel:'seat'});
+  }
+  return h;
+}
+function buildAim(){ // each player gets the 6 OTHER symbols + a Pass
+  let h='';
+  for(const me of SEATS){
+    for(const other of SEATS){
+      if(other.name===me.name) continue;
+      h+=card({fam:'love', icon:other.i, title:'Aim', tag:me.i+' '+me.name+'’s set',
+        body:'Secret Crush → '+other.name+'. Place face-down at setup.', famLabel:'crush', pip:'💘'});
+    }
+    h+=card({fam:'love', icon:'💛', title:'Pass', tag:me.i+' '+me.name+'’s set',
+      body:'Keep-it-kind: reveal a friendly 💛 instead of a crush.', famLabel:'pass', pip:'💛'});
+  }
+  return h;
+}
+function buildBacks(){ // one full page of identical backs
+  let h='';
+  for(let k=0;k<9;k++){
+    h+=`<div class="card back"><div class="bk-mark"><div class="m">⚜</div><div class="n">PYAAR</div><div class="s">HIDDEN HEARTS</div></div></div>`;
+  }
+  return h;
+}
+
+const DECKS = [
+  {id:'play',  label:'Play Deck (70)',        on:true,  build:buildPlay},
+  {id:'hearts',label:'Hearts (7)',            on:true,  build:buildHearts},
+  {id:'seats', label:'Seat symbols (7)',      on:true,  build:buildSeats},
+  {id:'chars', label:'Character/Protector (49)',on:false, build:buildChars},
+  {id:'aim',   label:'Crush Aim cards (49)',  on:false, build:buildAim},
+  {id:'backs', label:'Card backs (1 page)',   on:false, build:buildBacks},
+];
+
+// ----- render + toggles -----
+const root=document.getElementById('root');
+const toggles=document.getElementById('toggles');
+root.innerHTML = DECKS.map(d=>sheet(d.id, d.label, d.build())).join('');
+toggles.innerHTML = DECKS.map(d=>
+  `<label><input type="checkbox" data-id="${d.id}" ${d.on?'checked':''}> ${d.label}</label>`
+).join('');
+
+function apply(){
+  let total=0;
+  DECKS.forEach(d=>{
+    const cb=toggles.querySelector(`input[data-id="${d.id}"]`);
+    const sec=root.querySelector(`section[data-deck="${d.id}"]`);
+    if(cb.checked){ sec.classList.remove('hidden'); total+=sec.querySelectorAll('.card').length; }
+    else sec.classList.add('hidden');
+  });
+  document.getElementById('count').textContent = total+' cards selected · '+Math.ceil(total/9)+' page(s)';
+}
+toggles.addEventListener('change', apply);
+apply();
+</script>
+</body>
+</html>
