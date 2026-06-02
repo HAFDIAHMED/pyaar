@@ -16,14 +16,19 @@ export const STAGE_NAMES = ['—', 'Spark', 'Dating', 'Crazy for them'];
 export const READY = 3;                                                // commit from here
 
 export const CARD = {
-  MOMENT:     { icon: '❤️', fam: 'love',   needsTarget: 'self',  tag: 'Grow closer.',     desc: 'Advance your romance. At stage 3, Commit to win — if they love you back.' },
-  GLANCE:     { icon: '👀', fam: 'info',   needsTarget: 'other', tag: 'Scout a heart.',   desc: 'Secretly see who a player fancies — check before you commit!' },
-  SWAY:       { icon: '💘', fam: 'self2',  needsTarget: 'other', tag: 'Fall for another.', desc: 'Re-aim your crush at someone new (your romance cools one stage).' },
-  HEARTBREAK: { icon: '💔', fam: 'attack', needsTarget: 'other', tag: 'Break a heart.',   desc: 'Knock a rival back one stage.' },
-  GUARDIAN:   { icon: '🛡️', fam: 'block',  needsTarget: 'self',  tag: 'Guard your love.', desc: 'Block the next Heartbreak or Friendzone on you.' },
-  FRIENDZONE: { icon: '🤝', fam: 'block2', needsTarget: 'other', tag: 'Just friends.',    desc: 'A rival loses their next turn.' },
+  MOMENT:     { icon: '❤️', fam: 'love',     needsTarget: 'self',  tag: 'Grow closer.',      desc: 'Advance your romance. At stage 3, Commit to win — if they love you back.' },
+  GLANCE:     { icon: '👀', fam: 'info',     needsTarget: 'other', tag: 'Scout a heart.',    desc: 'Secretly see who a player fancies — check before you commit!' },
+  SWAY:       { icon: '💘', fam: 'self2',    needsTarget: 'other', tag: 'Fall for another.', desc: 'Re-aim your crush at someone new (your romance cools one stage).' },
+  HEARTBREAK: { icon: '💔', fam: 'attack',   needsTarget: 'other', tag: 'Break a heart.',    desc: 'Knock any rival back one stage.' },
+  JEALOUSY:   { icon: '💚', fam: 'jealousy', needsTarget: 'other', tag: 'Green with envy.',  desc: "Hit a rival at Dating or closer: knock them back a stage AND expose their secret crush to everyone." },
+  GUARDIAN:   { icon: '🛡️', fam: 'block',    needsTarget: 'self',  tag: 'Guard your love.',  desc: 'Block the next Heartbreak, Jealousy or Friendzone on you.' },
+  FRIENDZONE: { icon: '🤝', fam: 'block2',   needsTarget: 'other', tag: 'Just friends.',     desc: 'A rival loses their next turn.' },
 };
-export const DECK_COMP = { MOMENT: 18, GLANCE: 9, SWAY: 6, HEARTBREAK: 8, GUARDIAN: 6, FRIENDZONE: 5 };
+// 52-card deck (sim-tuned, config "D3"). Guardian scarce (4, down from 6) so setbacks land;
+// Jealousy (4) is the gated anti-leader/expose card; Heartbreak eased to 5 and Moment raised
+// to 21 so players can still close. Yields ~93/70/44% decisive (Commit) endings at 3/4/5p,
+// winner in mutual love 98/86/74%, seats fair to ~3pt, 0 illegal actions.
+export const DECK_COMP = { MOMENT: 21, GLANCE: 8, SWAY: 5, HEARTBREAK: 5, JEALOUSY: 4, GUARDIAN: 4, FRIENDZONE: 5 };
 
 const rndInt = (rng, n) => Math.floor(rng() * n);
 const pick = (rng, a) => a[rndInt(rng, a.length)];
@@ -77,10 +82,12 @@ export function legalActions(s, playerId) {
   if (s.over || s.phase !== 'play' || s.turn !== playerId) return [];
   const p = byId(s, playerId);
   const someProgress = others(s, p).some(q => q.stage > 0 && !q.hbImmune && !q.shield);
+  const someRival = others(s, p).some(q => q.stage >= 2);                 // someone Dating+ to envy
   return p.hand.map((card, i) => {
     let disabled = false;
     if (card === 'GUARDIAN') disabled = p.shield;
     if (card === 'HEARTBREAK') disabled = !someProgress;
+    if (card === 'JEALOUSY') disabled = !someRival;
     return { cardIndex: i, card, needsTarget: CARD[card].needsTarget, isCommit: card === 'MOMENT' && p.stage >= READY, disabled };
   });
 }
@@ -120,6 +127,16 @@ export function applyAction(s, playerId, action, rng = Math.random) {
     else if (t.hbImmune) { log(s, `${p.seat.icon} ${p.name} 💔 strikes ${t.seat.icon} ${t.name}, but they're already aching.`); }
     else if (t.stage > 0) { t.stage--; t.hbImmune = true; log(s, `💔 ${p.seat.icon} ${p.name} breaks ${t.seat.icon} ${t.name}'s heart — back to ${STAGE_NAMES[t.stage]}.`); }
     else log(s, `${p.seat.icon} ${p.name} 💔 strikes ${t.seat.icon} ${t.name}, but there's nothing to break yet.`);
+  } else if (card === 'JEALOUSY') {
+    if (t.shield) { t.shield = false; log(s, `${p.seat.icon} ${p.name} 💚 envies ${t.seat.icon} ${t.name} — their guard holds.`); }
+    else {
+      const wasHidden = !t.revealed;
+      t.revealed = true;                                   // the spite: their crush is now public
+      const o = byId(s, t.crush);
+      const exposeTxt = o ? `everyone now sees they pine for ${o.seat.icon} ${o.name}` : `everyone sees their heart is empty`;
+      if (!t.hbImmune && t.stage > 0) { t.stage--; t.hbImmune = true; log(s, `💚 ${p.seat.icon} ${p.name}, green with envy, sets ${t.seat.icon} ${t.name} back to ${STAGE_NAMES[t.stage]} — and ${exposeTxt}.`); }
+      else log(s, `💚 ${p.seat.icon} ${p.name}, green with envy, ${wasHidden ? 'exposes' : 're-exposes'} ${t.seat.icon} ${t.name} — ${exposeTxt}.`);
+    }
   } else if (card === 'GUARDIAN') {
     p.shield = true; log(s, `${p.seat.icon} ${p.name} guards their heart 🛡️.`);
   } else if (card === 'FRIENDZONE') {
@@ -138,6 +155,7 @@ export function aiAction(s, playerId, rng = Math.random) {
   const A = (c, e = {}) => ({ cardIndex: c, ...e });
   const foes = others(s, p);
   const hittable = q => q.stage > 0 && !q.shield && !q.hbImmune;
+  const enviable = q => q.stage >= 2 && !q.shield && !q.hbImmune;        // Jealousy lands a knockback here
   const lead = list => list.slice().sort((a, b) => b.stage - a.stage || (rng() - 0.5))[0];
   const admirers = foes.filter(q => q.crush === p.id);
 
@@ -146,6 +164,7 @@ export function aiAction(s, playerId, rng = Math.random) {
   // 2) stop a rival at the brink who is mutual (about to win)
   const threats = foes.filter(q => q.stage >= READY && mutual(s, q));
   if (threats.length && has('HEARTBREAK') >= 0) { const h = threats.filter(hittable); if (h.length) return A(has('HEARTBREAK'), { target: pick(rng, h).id }); }
+  if (threats.length && has('JEALOUSY') >= 0) { const j = threats.filter(enviable); if (j.length) return A(has('JEALOUSY'), { target: pick(rng, j).id }); }
   if (threats.length && has('FRIENDZONE') >= 0) { const f = threats.filter(q => !q.frozen && !q.shield); if (f.length) return A(has('FRIENDZONE'), { target: pick(rng, f).id }); }
   // 3) shield when at the brink & threatened
   if (has('GUARDIAN') >= 0 && !p.shield && p.stage >= READY - 1 && foes.some(q => q.stage >= p.stage - 1)) return A(has('GUARDIAN'));
@@ -155,7 +174,8 @@ export function aiAction(s, playerId, rng = Math.random) {
   if (!mutual(s, p) && admirers.length && has('SWAY') >= 0 && (p.stage <= 1 || p.crush == null) && rng() < 0.35) return A(has('SWAY'), { target: pick(rng, admirers).id });
   // 5) build
   if (has('MOMENT') >= 0 && (p.stage < READY || mutual(s, p))) return A(has('MOMENT'));
-  // 6) knock back the leader
+  // 6) knock back the leader — Jealousy first (also exposes them) when they're Dating+
+  if (has('JEALOUSY') >= 0) { const opts = foes.filter(enviable); if (opts.length) return A(has('JEALOUSY'), { target: lead(opts).id }); }
   if (has('HEARTBREAK') >= 0) { const opts = foes.filter(hittable); if (opts.length) return A(has('HEARTBREAK'), { target: lead(opts).id }); }
   // 7) still not mutual & stuck at the brink → sometimes pivot to an admirer
   if (!mutual(s, p) && admirers.length && has('SWAY') >= 0 && rng() < 0.35) return A(has('SWAY'), { target: pick(rng, admirers).id });
@@ -167,9 +187,17 @@ export function aiAction(s, playerId, rng = Math.random) {
     const k = hand[i];
     if (k === 'GUARDIAN' && p.shield) continue;
     if (k === 'HEARTBREAK' && !foes.some(hittable)) continue;
+    if (k === 'JEALOUSY' && !foes.some(q => q.stage >= 2)) continue;     // no one Dating+ to envy
     if (k === 'MOMENT' && p.stage >= READY && !mutual(s, p)) continue;   // don't commit into a sure rejection
     const a = { cardIndex: i };
-    if (CARD[k].needsTarget === 'other') a.target = (k === 'HEARTBREAK' ? lead(foes.filter(hittable)) : (k === 'SWAY' && admirers.length && rng() < 0.5 ? pick(rng, admirers) : pick(rng, foes))).id;
+    if (CARD[k].needsTarget === 'other') {
+      let tgt;
+      if (k === 'HEARTBREAK') tgt = lead(foes.filter(hittable));
+      else if (k === 'JEALOUSY') tgt = lead(foes.filter(q => q.stage >= 2));
+      else if (k === 'SWAY' && admirers.length && rng() < 0.5) tgt = pick(rng, admirers);
+      else tgt = pick(rng, foes);
+      a.target = (tgt || pick(rng, foes)).id;
+    }
     return a;
   }
   return A(0, { discard: true });

@@ -13,7 +13,7 @@
 2. On your turn: **draw 1 card, play 1.**
 3. Play ❤️ **Moment** cards to grow your romance up three stages: **✨ Spark → 🌹 Dating → 💋 Crazy-for-them.**
 4. Once you reach 💋, you may **Commit** (play another ❤️) — *declare your crush out loud.* If they secretly fancy **you** back → **you both win as Soulmates.** If not → you're **rejected** (your secret's out, you slip back a stage).
-5. Use 👀 **Glance** to peek at who someone fancies (find out if your crush likes you *before* you risk it), 💔 **Heartbreak** to knock a rival back, and more.
+5. Use 👀 **Glance** to peek at who someone fancies (find out if your crush likes you *before* you risk it), 💔 **Heartbreak** to knock a rival back, and 💚 **Jealousy** to set back *and* publicly expose whoever's pulling ahead.
 
 First mutual commit wins. That's the whole game.
 
@@ -45,14 +45,15 @@ This is a flirting game in disguise. Your "crush" is a real person at the table,
 ## 5. Your turn — draw 1, play 1
 On your turn: **draw 1 card**, then **play 1 card** and resolve it. If you truly can't or won't use a card, discard one (you must play or discard something). Then pass.
 
-### The six cards
+### The seven cards
 | Card | What it does |
 |---|---|
 | ❤️ **Moment** | Advance your romance one stage (✨→🌹→💋). **At 💋, playing a Moment is your Commit** (see below). |
 | 👀 **Glance** | Secretly look at **who one player fancies.** Your best tool — peek at your crush to learn if they like you back *before* you commit. |
 | 💘 **Sway** | Re-aim **your** crush at a new player. Your romance **cools one stage** (your eye wandered). Use it to chase someone who actually likes you. |
-| 💔 **Heartbreak** | Knock a rival **back one stage.** (A player can only be knocked back **once per round** — they're then numb until their next turn.) |
-| 🛡️ **Guardian** | **Shield** yourself — blocks the next Heartbreak or Friendzone aimed at you. |
+| 💔 **Heartbreak** | Knock **any** rival **back one stage.** (A player can only be knocked back **once per round** — they're then numb until their next turn.) |
+| 💚 **Jealousy** | Choose a rival who's at **🌹 Dating or closer**: knock them back a stage **and flip their secret crush face-up for everyone.** (Already knocked back this round? The setback is absorbed, but you *still* expose them.) Blocked by Guardian. |
+| 🛡️ **Guardian** | **Shield** yourself — blocks the next Heartbreak, Jealousy or Friendzone aimed at you. |
 | 🤝 **Friendzone** | A rival **loses their next turn.** |
 
 ---
@@ -76,6 +77,7 @@ This is the heart of the game. **Don't commit blind** — 👀 Glance your crush
 - **Scout before you leap.** A Glance on your crush turns a terrifying gamble into a sure thing. Hold your Commit until you know — or are willing to risk it.
 - **Chase who chases you.** If your crush doesn't fancy you back, Sway toward someone who does (you'll find out by Glancing around). It costs a stage, but unrequited love never wins.
 - **Snipe the frontrunner.** Heartbreak the player who looks ready to commit — knock them off 💋 right before they seal it.
+- **Weaponise envy.** Jealousy not only sets the leader back — it *outs their crush*. Use it on a frontrunner to learn who they love (maybe it's you!) and hand the whole table the info to gang up.
 - **Guard at the brink.** When you're at 💋 and about to commit, a Guardian protects you from a last-second Heartbreak.
 
 ---

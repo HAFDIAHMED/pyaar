@@ -1,17 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" width="1080" height="1350" role="img" aria-label="PYAAR">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" width="1080" height="1350" role="img" aria-label="PYAAR — the love card game">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#ff8fb4"/><stop offset="55%" stop-color="#ff5d79"/><stop offset="100%" stop-color="#f23a63"/>
-    </linearGradient>
-    <linearGradient id="heart" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#fff0f4"/></linearGradient>
-    <filter id="sh" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="12" stdDeviation="20" flood-color="#8e1437" flood-opacity="0.28"/></filter>
+    <radialGradient id="felt" cx="50%" cy="34%" r="80%"><stop offset="0%" stop-color="#1f7a4d"/><stop offset="55%" stop-color="#14572f"/><stop offset="100%" stop-color="#0a3320"/></radialGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e23950"/><stop offset="100%" stop-color="#c01e36"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#edca78"/><stop offset="100%" stop-color="#cda353"/></linearGradient>
+    <filter id="cs" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000" flood-opacity="0.4"/></filter>
   </defs>
-  <rect x="0" y="0" width="1080" height="1350" fill="url(#bg)"/>
-  <g filter="url(#sh)">
-    <path transform="translate(372,300) scale(12)" fill="#ffffff" opacity="0.28" d="M23.6 0c-3.4 0-6.3 2.7-7.6 5.6C14.7 2.7 11.8 0 8.4 0 3.8 0 0 3.8 0 8.4c0 9.4 9.5 11.9 16 21.2 6.1-9.3 16-12 16-21.2C32 3.8 28.2 0 23.6 0z"/>
-    <path transform="translate(336,326) scale(13)" fill="url(#heart)" d="M23.6 0c-3.4 0-6.3 2.7-7.6 5.6C14.7 2.7 11.8 0 8.4 0 3.8 0 0 3.8 0 8.4c0 9.4 9.5 11.9 16 21.2 6.1-9.3 16-12 16-21.2C32 3.8 28.2 0 23.6 0z"/>
+  <rect x="0" y="0" width="1080" height="1350" fill="url(#felt)"/>
+
+  <!-- card mark -->
+  <g transform="rotate(9 540 410)"><rect x="446" y="178" width="252" height="368" rx="28" fill="#ece7da" stroke="#cdc7b6" stroke-width="3"/></g>
+  <g transform="rotate(-5 540 410)" filter="url(#cs)">
+    <rect x="402" y="156" width="276" height="414" rx="30" fill="#fff" stroke="#d7d2c5" stroke-width="3"/>
+    <text x="432" y="240" font-family="Georgia,serif" font-size="56" font-weight="700" fill="url(#red)">A</text>
+    <path transform="translate(462,372) scale(6.1)" fill="url(#red)" d="M23.6 0c-3.4 0-6.3 2.7-7.6 5.6C14.7 2.7 11.8 0 8.4 0 3.8 0 0 3.8 0 8.4c0 9.4 9.5 11.9 16 21.2 6.1-9.3 16-12 16-21.2C32 3.8 28.2 0 23.6 0z"/>
   </g>
-  <text x="540" y="930" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-weight="800" font-size="220" letter-spacing="16" fill="#ffffff">PYAAR</text>
-  <text x="540" y="1010" text-anchor="middle" font-family="'Segoe UI',Arial,sans-serif" font-weight="600" font-size="46" letter-spacing="22" fill="#ffe2ea">THE LOVE CARD GAME</text>
-  <text x="540" y="1140" text-anchor="middle" font-family="'Segoe UI',Arial,sans-serif" font-size="40" fill="#ffd0dc">Build your love. Win their heart.</text>
+
+  <text x="540" y="880" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-weight="700" font-size="218" letter-spacing="14" fill="url(#gold)">PYAAR</text>
+  <text x="540" y="958" text-anchor="middle" font-family="'Segoe UI',Arial,sans-serif" font-weight="600" font-size="46" letter-spacing="22" fill="#dfe7d8">THE LOVE CARD GAME</text>
+  <text x="540" y="1086" text-anchor="middle" font-family="'Segoe UI',Arial,sans-serif" font-size="40" fill="#9fc0a8">Build your love. Win their heart.</text>
 </svg>

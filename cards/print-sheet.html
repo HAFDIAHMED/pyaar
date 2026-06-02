@@ -9,7 +9,7 @@
     --ink:#2b211a; --paper:#fbf6ec; --line:#d9c7a8;
     --attack:#b3253a; --defense:#2a4a78; --info:#2f6b4a;
     --disruption:#5a2a78; --love:#c8345c; --devotion:#b47010;
-    --heart:#a61e44; --char:#8a5a18; --seat:#555;
+    --heart:#a61e44; --char:#8a5a18; --seat:#555; --jealousy:#0e7c70;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;}
@@ -91,6 +91,7 @@
   .f-defense .band{background:var(--defense);}     .f-defense .corner{color:var(--defense);} .f-defense .fam{color:var(--defense);}
   .f-info .band{background:var(--info);}           .f-info .corner{color:var(--info);} .f-info .fam{color:var(--info);}
   .f-disruption .band{background:var(--disruption);} .f-disruption .corner{color:var(--disruption);} .f-disruption .fam{color:var(--disruption);}
+  .f-jealousy .band{background:var(--jealousy);}   .f-jealousy .corner{color:var(--jealousy);} .f-jealousy .fam{color:var(--jealousy);}
   .f-love .band{background:var(--love);}           .f-love .corner{color:var(--love);} .f-love .fam{color:var(--love);}
   .f-devotion .band{background:var(--devotion);}   .f-devotion .corner{color:var(--devotion);} .f-devotion .fam{color:var(--devotion);}
   .f-char .band{background:var(--char);}           .f-char .corner{color:var(--char);} .f-char .fam{color:var(--char);}
@@ -137,11 +138,12 @@
 <script>
 // ----- card data (mirrors CARDS.md) -----
 const PLAY = [
-  {t:'Moment',i:'❤️',n:18,fam:'love',tag:'Grow closer.',x:'Advance your romance one stage: ✨ Spark → 🌹 Dating → 💋 Crazy-for-them. At 💋, playing a Moment is your COMMIT — declare your crush. Mutual → you both win (Soulmates). Not → rejected: secret out, back to 🌹, lose a turn.'},
-  {t:'Glance',i:'👀',n:9,fam:'info',tag:'Scout a heart.',x:'Secretly look at who one player fancies. Check whether your crush likes you back before you risk a commit.'},
-  {t:'Sway',i:'💘',n:6,fam:'love',tag:'Fall for another.',x:'Re-aim YOUR crush at a new player. Your romance cools one stage (your eye wandered).'},
-  {t:'Heartbreak',i:'💔',n:8,fam:'attack',tag:'Break a heart.',x:'Knock a rival back one stage. A player can only be knocked back once per round.'},
-  {t:'Guardian',i:'🛡️',n:6,fam:'defense',tag:'Guard your love.',x:'Block the next Heartbreak or Friendzone aimed at you.'},
+  {t:'Moment',i:'❤️',n:21,fam:'love',tag:'Grow closer.',x:'Advance your romance one stage: ✨ Spark → 🌹 Dating → 💋 Crazy-for-them. At 💋, playing a Moment is your COMMIT — declare your crush. Mutual → you both win (Soulmates). Not → rejected: secret out, back to 🌹, lose a turn.'},
+  {t:'Glance',i:'👀',n:8,fam:'info',tag:'Scout a heart.',x:'Secretly look at who one player fancies. Check whether your crush likes you back before you risk a commit.'},
+  {t:'Sway',i:'💘',n:5,fam:'love',tag:'Fall for another.',x:'Re-aim YOUR crush at a new player. Your romance cools one stage (your eye wandered).'},
+  {t:'Heartbreak',i:'💔',n:5,fam:'attack',tag:'Break a heart.',x:'Knock any rival back one stage. A player can only be knocked back once per round.'},
+  {t:'Jealousy',i:'💚',n:4,fam:'jealousy',tag:'Green with envy.',x:'Choose a rival at 🌹 Dating or closer: knock them back one stage AND flip their secret crush face-up for all to see. Already knocked back this round? The setback is absorbed, but you still expose them. Blocked by Guardian.'},
+  {t:'Guardian',i:'🛡️',n:4,fam:'defense',tag:'Guard your love.',x:'Block the next Heartbreak, Jealousy or Friendzone aimed at you.'},
   {t:'Friendzone',i:'🤝',n:5,fam:'defense',tag:'Just friends.',x:'A rival loses their next turn.'},
 ];
 

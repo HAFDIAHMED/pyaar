@@ -1,8 +1,8 @@
 import * as engine from './shared/engine.js';
 
-// Model player 0 as a HUMAN: picks a crush at setup and NEVER sways (keeps building).
-// Players 1..n-1 are AI using the real aiAction. Measure how often each player ends
-// up a soulmate (mutual) and how often each wins.
+// P0 = HUMAN model: picks a crush at setup and NEVER sways (keeps building toward it).
+// P1..n-1 are AI using the real aiAction. We measure fairness, decisiveness, length,
+// and whether the new JEALOUSY card actually gets used / doesn't stall the game.
 function humanPolicy(s, id) {
   const a = engine.aiAction(s, id);
   const hand = s.players[id].hand;
@@ -20,6 +20,7 @@ function humanPolicy(s, id) {
 function run(nPlayers, trials) {
   const soulmate = Array(nPlayers).fill(0);
   const wins = Array(nPlayers).fill(0);
+  let devotion = 0, timeout = 0, illegal = 0, moves = 0, jealousy = 0, heartbreak = 0, winnerInLove = 0;
   for (let g = 0; g < trials; g++) {
     const s = engine.createGame({ players: Array.from({ length: nPlayers }, (_, i) => ({ name: 'P' + i, isAI: true })) });
     for (let i = 0; i < nPlayers; i++) engine.aiSecret(s, i);
@@ -28,18 +29,28 @@ function run(nPlayers, trials) {
     while (!s.over && guard++ < 8000) {
       const t = s.turn;
       const action = t === 0 ? humanPolicy(s, t) : engine.aiAction(s, t);
-      let res = engine.applyAction(s, t, action);
-      if (!res.ok) engine.applyAction(s, t, { cardIndex: 0, discard: true });
+      const card = s.players[t].hand[action.cardIndex];
+      const res = engine.applyAction(s, t, action);
+      if (!res.ok) { illegal++; engine.applyAction(s, t, { cardIndex: 0, discard: true }); }
+      else if (!action.discard) { moves++; if (card === 'JEALOUSY') jealousy++; if (card === 'HEARTBREAK') heartbreak++; }
     }
-    for (let i = 0; i < nPlayers; i++) { if (s.players[i].soulmate) soulmate[i]++; }
-    if (s.winnerId != null) wins[s.winnerId]++;
+    if (s.endReason === 'devotion') devotion++; else if (s.endReason === 'timeout') timeout++;
+    for (let i = 0; i < nPlayers; i++) if (s.players[i].soulmate) soulmate[i]++;
+    if (s.winnerId != null) { wins[s.winnerId]++; if (s.players[s.winnerId].soulmate) winnerInLove++; }
   }
   const pct = a => a.map(x => (100 * x / trials).toFixed(1) + '%');
-  console.log(`\n=== ${nPlayers} players, ${trials} games (P0 = human, never sways) ===`);
-  console.log('Soulmate rate per player:', pct(soulmate).join('  '), `   (fair share = ${(100/nPlayers).toFixed(1)}%)`);
-  console.log('Win rate per player:     ', pct(wins).join('  '));
+  const winPcts = wins.map(x => 100 * x / trials);
+  const spread = (Math.max(...winPcts) - Math.min(...winPcts)).toFixed(1);
+  console.log(`\n=== ${nPlayers} players · ${trials} games  (P0 = human, never sways) ===`);
+  console.log('Soulmate rate/player :', pct(soulmate).join('  '), `   (fair = ${(100 / nPlayers).toFixed(1)}%)`);
+  console.log('Win rate/player      :', pct(wins).join('  '), `   seat spread = ${spread}pt`);
+  console.log(`Decisive (Commit win): ${(100 * devotion / trials).toFixed(1)}%   ·   Ran out of cards: ${(100 * timeout / trials).toFixed(1)}%`);
+  console.log(`Winner was in mutual love: ${(100 * winnerInLove / trials).toFixed(1)}%`);
+  console.log(`Avg moves/game: ${(moves / trials).toFixed(1)}   ·   Jealousy played/game: ${(jealousy / trials).toFixed(2)}   ·   Heartbreak/game: ${(heartbreak / trials).toFixed(2)}`);
+  console.log(`Illegal actions across all games: ${illegal}`);
 }
 
-run(3, 3000);
-run(4, 3000);
-run(5, 3000);
+run(3, 4000);
+run(4, 4000);
+run(5, 4000);
+run(6, 2000);

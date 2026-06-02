@@ -1,7 +1,7 @@
 # PYAAR — Build Your Love · Card List (print-and-play manifest)
 
 Print on cardstock, cut, sleeve if you can. Suggested size **63 × 88 mm** (poker).
-Color-code by family: **love = pink · attack = red · info = green · defense = blue.**
+Color-code by family: **love = pink · attack = red · info = green · defense = blue · jealousy = teal.**
 
 ---
 
@@ -9,25 +9,28 @@ Color-code by family: **love = pink · attack = red · info = green · defense =
 
 > Title · count · the exact text to print.
 
-**❤️ Moment ×18** *(love)*
+**❤️ Moment ×21** *(love)*
 > *"Grow closer."* Advance your romance one stage: ✨ Spark → 🌹 Dating → 💋 Crazy-for-them. **At 💋, playing a Moment is your Commit** — declare your crush; if they fancy you back you both win, if not you're rejected (back to 🌹, lose a turn).
 
-**👀 Glance ×9** *(info)*
+**👀 Glance ×8** *(info)*
 > *"Scout a heart."* Secretly look at **who one player fancies.** Check if your crush likes you *before* you commit.
 
-**💘 Sway ×6** *(love)*
+**💘 Sway ×5** *(love)*
 > *"Fall for another."* Re-aim **your** crush at a new player. Your romance **cools one stage.**
 
-**💔 Heartbreak ×8** *(attack)*
-> *"Break a heart."* Knock a rival **back one stage.** A player can only be knocked back once per round.
+**💔 Heartbreak ×5** *(attack)*
+> *"Break a heart."* Knock **any** rival **back one stage.** A player can only be knocked back once per round.
 
-**🛡️ Guardian ×6** *(defense)*
-> *"Guard your love."* Block the next **Heartbreak or Friendzone** aimed at you.
+**💚 Jealousy ×4** *(jealousy)*
+> *"Green with envy."* Choose a rival who is **🌹 Dating or closer**: knock them **back one stage AND turn their secret crush face-up for everyone to see.** (If they were already knocked back this round, the setback is absorbed but you still expose them.) Blocked by Guardian.
+
+**🛡️ Guardian ×4** *(defense)*
+> *"Guard your love."* Block the next **Heartbreak, Jealousy or Friendzone** aimed at you.
 
 **🤝 Friendzone ×5** *(defense)*
 > *"Just friends."* A rival **loses their next turn.**
 
-**Play Deck total:** 18 + 9 + 6 + 8 + 6 + 5 = **52 cards.**
+**Play Deck total:** 21 + 8 + 5 + 5 + 4 + 4 + 5 = **52 cards.**
 
 ---
 

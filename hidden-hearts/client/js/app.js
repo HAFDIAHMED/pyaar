@@ -51,7 +51,7 @@ function renderHome() {
         <button class="btn ghost" id="rules">📖 How to play</button>
       </div>
     </section>
-    <div class="foot">PYAAR · Hidden Hearts — play solo, or invite friends with a room code.</div>`;
+    <div class="foot">PYAAR · the love card game — play solo, or invite friends with a room code.</div>`;
   $('#cminus').onclick = () => { if (S.soloCount > 3) { S.soloCount--; $('#cval').textContent = S.soloCount; } };
   $('#cplus').onclick = () => { if (S.soloCount < 7) { S.soloCount++; $('#cval').textContent = S.soloCount; } };
   $('#play-ai').onclick = playVsComputer;
@@ -116,12 +116,14 @@ function renderTable() {
     const rel = (p.id - v.youAre + n) % n;                 // you at the bottom
     const ang = (90 + rel * (360 / n)) * Math.PI / 180;
     const x = 50 + 41 * Math.cos(ang), y = 50 + 43 * Math.sin(ang);
-    const validTgt = aiming && p.id !== v.youAre && (S.sel.key !== 'HEARTBREAK' || p.stage > 0);
+    const validTgt = aiming && p.id !== v.youAre
+      && (S.sel.key !== 'HEARTBREAK' || p.stage > 0)
+      && (S.sel.key !== 'JEALOUSY' || p.stage >= 2);     // only the envy-worthy (Dating+)
     const tgt = validTgt ? ' targetable' : '';
     chips += `<div class="chip-pos${tgt}" data-seat="${p.id}" style="left:${x}%;top:${y}%">${chipHTML(p, v.turn, v.youAre)}</div>`;
   }
   const aimCard = aiming ? S.sel.key : null;
-  const aimHint = { GLANCE: 'to peek their heart', SWAY: 'to aim your heart at', HEARTBREAK: 'to break their heart', FRIENDZONE: 'to friendzone' };
+  const aimHint = { GLANCE: 'to peek their heart', SWAY: 'to aim your heart at', HEARTBREAK: 'to break their heart', JEALOUSY: 'to expose & rattle (Dating+)', FRIENDZONE: 'to friendzone' };
   app.innerHTML = `
     <div class="table-status"><span>💌 ${v.deckCount} cards left${v.deckCount <= n ? ' · final round!' : ''}</span>
       <span class="${myTurn ? 'turnnow' : 'muted'}">${myTurn ? 'Your turn' : 'Turn: ' + v.players[v.turn].name}</span></div>
@@ -216,6 +218,7 @@ function finishTarget(seatId) {
 function unplayable(me, v, key) {
   if (key === 'GUARDIAN' && me.shield) return 'your heart is already guarded';
   if (key === 'HEARTBREAK' && !v.players.some(p => p.id !== v.youAre && p.stage > 0)) return 'no one has any love to break yet';
+  if (key === 'JEALOUSY' && !v.players.some(p => p.id !== v.youAre && p.stage >= 2)) return 'no rival is Dating yet — no one to envy';
   return null;
 }
 function playCard(i) {
@@ -326,16 +329,17 @@ function accountMenu() {
 }
 function showRules() {
   modal(`<h3>How to play</h3>
-    <p class="small">You secretly <b>fancy one player</b>. On your turn: <b>draw 1, play 1.</b> The goal: <b>build your romance up 4 stages to 💍 Devotion before rivals break your heart.</b></p>
+    <p class="small">You secretly <b>fancy one player</b>. On your turn: <b>draw 1, play 1.</b> Build your romance ✨ <b>Spark</b> → 🌹 <b>Dating</b> → 💋 <b>Crazy for them</b>, then <b>Commit</b> — but you only win if <b>they love you back</b> (Soulmates 💞).</p>
     <ul class="small">
-      <li>❤️ <b>Moment</b> — grow your romance one stage (👀→🌹→💋→💍).</li>
-      <li>💔 <b>Heartbreak</b> — knock a rival <b>back</b> one stage.</li>
-      <li>🛡️ <b>Guardian</b> — shield yourself from the next Heartbreak/Friendzone.</li>
+      <li>❤️ <b>Moment</b> — grow your romance one stage. At 💋, play it again to <b>Commit / confess</b>.</li>
+      <li>👀 <b>Glance</b> — secretly see who a player fancies (scout before you commit!).</li>
+      <li>💘 <b>Sway</b> — re-aim your own secret crush (your romance cools one stage).</li>
+      <li>💔 <b>Heartbreak</b> — knock any rival <b>back</b> one stage.</li>
+      <li>💚 <b>Jealousy</b> — hit a rival who's Dating or closer: knock them back <b>and expose their secret crush to everyone</b>.</li>
+      <li>🛡️ <b>Guardian</b> — shield yourself from the next Heartbreak, Jealousy or Friendzone.</li>
       <li>🤝 <b>Friendzone</b> — a rival loses their next turn.</li>
-      <li>👀 <b>Glance</b> — secretly see who a player fancies.</li>
-      <li>💘 <b>Sway</b> — re-aim your own secret crush.</li>
     </ul>
-    <p class="small">First to <b>💍 Devotion</b> wins the love. If you built toward each other, you're <b>Soulmates 💞</b>. (Deck runs out → whoever got closest wins.)</p>
+    <p class="small">Confess at 💋 and it's mutual → <b>you win, Soulmates 💞</b>. Confess unrequited → you're <b>rejected</b> (cool off, miss a turn, your crush is revealed). Deck runs out → whoever got closest to love wins.</p>
     <button class="btn primary" id="x">Got it</button>`, () => $('#x').onclick = closeModal);
 }
 
@@ -398,7 +402,8 @@ function cues(prev, v) {
   if (!prev || prev.phase !== 'play' || v.phase !== 'play') { if (v.phase === 'play' && v.turn === v.youAre) SFX.turn(); S.wasMyTurn = v.turn === v.youAre; return; }
   const top = v.log[0];
   if (top && top !== S.lastLogTop) {
-    if (/breaks .*heart|💔/.test(top)) SFX.hit();
+    if (/green with envy|💚/.test(top)) SFX.hit();
+    else if (/breaks .*heart|💔/.test(top)) SFX.hit();
     else if (/grows closer/.test(top)) SFX.crush();
     else if (/guards their heart/.test(top)) SFX.shield();
     else if (/friendzones/.test(top)) SFX.friendzone();

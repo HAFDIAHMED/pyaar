@@ -130,7 +130,9 @@ function driveAI(room) {
     broadcastState(room);
     afterTurn(room);
   };
-  room.aiTimer = setTimeout(step, 800);
+  // ~1.3–2.1s of "thinking" per AI turn so a human can actually read each move
+  // (and see their own play land) before the table moves on.
+  room.aiTimer = setTimeout(step, 1300 + Math.floor(Math.random() * 800));
 }
 
 function afterTurn(room) {
