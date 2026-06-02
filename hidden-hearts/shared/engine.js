@@ -149,14 +149,16 @@ export function aiAction(s, playerId, rng = Math.random) {
   if (threats.length && has('FRIENDZONE') >= 0) { const f = threats.filter(q => !q.frozen && !q.shield); if (f.length) return A(has('FRIENDZONE'), { target: pick(rng, f).id }); }
   // 3) shield when at the brink & threatened
   if (has('GUARDIAN') >= 0 && !p.shield && p.stage >= READY - 1 && foes.some(q => q.stage >= p.stage - 1)) return A(has('GUARDIAN'));
-  // 4) if not mutual, steer toward a mutual: aim at an admirer (cheaper while low)
-  if (!mutual(s, p) && admirers.length && has('SWAY') >= 0 && (p.stage <= 1 || p.crush == null)) return A(has('SWAY'), { target: pick(rng, admirers).id });
+  // 4) if not mutual, sometimes steer toward a mutual: aim at an admirer (cheaper while low).
+  //    Gated by chance so the AI doesn't *reliably* reciprocate whoever fancies it —
+  //    that made soulmates near-guaranteed (especially for a human, who keeps one crush).
+  if (!mutual(s, p) && admirers.length && has('SWAY') >= 0 && (p.stage <= 1 || p.crush == null) && rng() < 0.35) return A(has('SWAY'), { target: pick(rng, admirers).id });
   // 5) build
   if (has('MOMENT') >= 0 && (p.stage < READY || mutual(s, p))) return A(has('MOMENT'));
   // 6) knock back the leader
   if (has('HEARTBREAK') >= 0) { const opts = foes.filter(hittable); if (opts.length) return A(has('HEARTBREAK'), { target: lead(opts).id }); }
-  // 7) still not mutual & stuck at the brink → pivot to an admirer
-  if (!mutual(s, p) && admirers.length && has('SWAY') >= 0) return A(has('SWAY'), { target: pick(rng, admirers).id });
+  // 7) still not mutual & stuck at the brink → sometimes pivot to an admirer
+  if (!mutual(s, p) && admirers.length && has('SWAY') >= 0 && rng() < 0.35) return A(has('SWAY'), { target: pick(rng, admirers).id });
   if (has('FRIENDZONE') >= 0) { const opts = foes.filter(q => !q.frozen && q.stage > 0 && !q.shield); if (opts.length) return A(has('FRIENDZONE'), { target: lead(opts).id }); }
   if (has('GLANCE') >= 0) return A(has('GLANCE'), { target: pick(rng, foes).id });
   if (has('GUARDIAN') >= 0 && !p.shield) return A(has('GUARDIAN'));
@@ -167,7 +169,7 @@ export function aiAction(s, playerId, rng = Math.random) {
     if (k === 'HEARTBREAK' && !foes.some(hittable)) continue;
     if (k === 'MOMENT' && p.stage >= READY && !mutual(s, p)) continue;   // don't commit into a sure rejection
     const a = { cardIndex: i };
-    if (CARD[k].needsTarget === 'other') a.target = (k === 'HEARTBREAK' ? lead(foes.filter(hittable)) : (k === 'SWAY' && admirers.length ? pick(rng, admirers) : pick(rng, foes))).id;
+    if (CARD[k].needsTarget === 'other') a.target = (k === 'HEARTBREAK' ? lead(foes.filter(hittable)) : (k === 'SWAY' && admirers.length && rng() < 0.5 ? pick(rng, admirers) : pick(rng, foes))).id;
     return a;
   }
   return A(0, { discard: true });
