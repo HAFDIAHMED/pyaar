@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PYAAR — Hidden Hearts · Print Sheet</title>
+<title>PYAAR — Build Your Love · Print Sheet</title>
 <style>
   :root{
     --ink:#2b211a; --paper:#fbf6ec; --line:#d9c7a8;
@@ -125,7 +125,7 @@
 <body>
 
 <div class="toolbar no-print">
-  <h1>PYAAR · Hidden Hearts<small>PRINT &amp; PLAY SHEET</small></h1>
+  <h1>PYAAR · Build Your Love<small>PRINT &amp; PLAY SHEET</small></h1>
   <div class="toggles" id="toggles"></div>
   <span class="count" id="count"></span>
   <button class="btn" onclick="window.print()">🖨 Print</button>
@@ -137,26 +137,12 @@
 <script>
 // ----- card data (mirrors CARDS.md) -----
 const PLAY = [
-  {t:'Heartbreak',i:'💔',n:9,fam:'attack',tag:'Break a heart.',x:'Target one player. Remove one Protector. If their Heart is bare, crack it instead. Cancelled by Warrior or Friendzone.'},
-  {t:'Soldier',i:'⚑',n:8,fam:'attack',tag:'Advance.',x:'Target one player. Remove one Protector. Cannot crack a bare Heart by itself.'},
-  {t:'Warrior',i:'⚔',n:9,fam:'defense',tag:'Shield.',x:'Reaction. Cancel one attack aimed at your Heart. May instead be played onto your own Heart as a Protector.'},
-  {t:'Friendzone',i:'🤝',n:8,fam:'defense',tag:'“Let’s just be friends.”',x:'Reaction. Cancel a Crush or Heartbreak aimed at you. Cancelling a Crush voids that pairing forever.'},
-  {t:'Dreamer',i:'☾',n:6,fam:'defense',tag:'Daydream.',x:'Until your next turn you are Untouchable — no card may target you. The Dreamer never attacks.'},
-  {t:'Sage',i:'✦',n:7,fam:'info',tag:'Insight.',x:'Secretly look at one face-down card: any player’s Crush, or any Heart’s Protector.'},
-  {t:'Traitor',i:'⚯',n:7,fam:'disruption',tag:'Betrayal.',x:'Steal one random card from a hand, OR redirect an attack aimed at you onto another player.'},
-  {t:'Fool',i:'◊',n:6,fam:'disruption',tag:'Wild.',x:'Copies any one Character’s effect as you play it. OR force two players to swap one random card.'},
-  {t:'Crush',i:'💘',n:7,fam:'love',tag:'Send a sign.',x:'Place face-up before any player — a public, deniable flirt. If they are your secret Crush and it ends mutual, scores +2.'},
-  {t:'Devotion',i:'💍',n:3,fam:'devotion',tag:'True love.',x:'Repair your Heart one step, OR declare your secret Crush now — if mutual, you become Soulmates and the round ends.'},
-];
-
-const CHARS = [
-  {t:'Warrior',i:'⚔',x:'Bodyguard — cancel the first Heartbreak aimed at you for free.'},
-  {t:'Sage',i:'✦',x:'Insight — at setup, peek at one other player’s Crush.'},
-  {t:'Traitor',i:'⚯',x:'Spite — if your Heart Breaks, remove one Protector from any Heart.'},
-  {t:'Fool',i:'◊',x:'Slippery — immune to the first Friendzone played on you.'},
-  {t:'Guardian',i:'⚜',x:'Fortress — your Heart needs 3 hits to Break instead of 2.'},
-  {t:'Dreamer',i:'☾',x:'Vanish — once per game, be Untouchable until your next turn.'},
-  {t:'Soldier',i:'⚑',x:'Vanguard — draw an extra card on each of your first 3 turns.'},
+  {t:'Moment',i:'❤️',n:18,fam:'love',tag:'Grow closer.',x:'Advance your romance one stage: ✨ Spark → 🌹 Dating → 💋 Crazy-for-them. At 💋, playing a Moment is your COMMIT — declare your crush. Mutual → you both win (Soulmates). Not → rejected: secret out, back to 🌹, lose a turn.'},
+  {t:'Glance',i:'👀',n:9,fam:'info',tag:'Scout a heart.',x:'Secretly look at who one player fancies. Check whether your crush likes you back before you risk a commit.'},
+  {t:'Sway',i:'💘',n:6,fam:'love',tag:'Fall for another.',x:'Re-aim YOUR crush at a new player. Your romance cools one stage (your eye wandered).'},
+  {t:'Heartbreak',i:'💔',n:8,fam:'attack',tag:'Break a heart.',x:'Knock a rival back one stage. A player can only be knocked back once per round.'},
+  {t:'Guardian',i:'🛡️',n:6,fam:'defense',tag:'Guard your love.',x:'Block the next Heartbreak or Friendzone aimed at you.'},
+  {t:'Friendzone',i:'🤝',n:5,fam:'defense',tag:'Just friends.',x:'A rival loses their next turn.'},
 ];
 
 const SEATS = [
@@ -175,7 +161,7 @@ function card({fam, icon, title, tag, body, klass='', famLabel='', pip=''}){
     ${tag?`<div class="tag">${tag}</div>`:''}
     ${body?`<div class="body">${body}</div>`:''}
     <div class="band bot"></div>
-    <div class="brand">PYAAR · Hidden Hearts</div>
+    <div class="brand">PYAAR · Build Your Love</div>
   </div>`;
 }
 
@@ -196,20 +182,11 @@ function buildPlay(){
   }
   return h;
 }
-function buildChars(){ // 7 of each character = 49
-  let h='';
-  for(const c of CHARS){
-    for(let k=0;k<7;k++){
-      h+=card({fam:'char', icon:c.i, title:c.t, tag:'Protector', body:c.x, famLabel:'character', pip:c.i});
-    }
-  }
-  return h;
-}
-function buildHearts(){
+function buildLoveLines(){
   let h='';
   for(const s of SEATS){
-    h+=card({fam:'heart', klass:'heart', icon:'❤', title:'Your Heart',
-      tag:s.i+' '+s.name, body:'Whole → Cracked → Broken. Protect it. Aim it. Reveal it.', famLabel:'love', pip:'♥'});
+    h+=card({fam:'love', klass:'heart', icon:'❤️', title:'Love Line',
+      tag:s.i+' '+s.name, body:'✨ Spark → 🌹 Dating → 💋 Crazy → 💍 Commit! Put a token here and slide it as your romance grows.', famLabel:'track', pip:s.i});
   }
   return h;
 }
@@ -236,18 +213,17 @@ function buildAim(){ // each player gets the 6 OTHER symbols + a Pass
 function buildBacks(){ // one full page of identical backs
   let h='';
   for(let k=0;k<9;k++){
-    h+=`<div class="card back"><div class="bk-mark"><div class="m">⚜</div><div class="n">PYAAR</div><div class="s">HIDDEN HEARTS</div></div></div>`;
+    h+=`<div class="card back"><div class="bk-mark"><div class="m">❤</div><div class="n">PYAAR</div><div class="s">BUILD YOUR LOVE</div></div></div>`;
   }
   return h;
 }
 
 const DECKS = [
-  {id:'play',  label:'Play Deck (70)',        on:true,  build:buildPlay},
-  {id:'hearts',label:'Hearts (7)',            on:true,  build:buildHearts},
-  {id:'seats', label:'Seat symbols (7)',      on:true,  build:buildSeats},
-  {id:'chars', label:'Character/Protector (49)',on:false, build:buildChars},
-  {id:'aim',   label:'Crush Aim cards (49)',  on:false, build:buildAim},
-  {id:'backs', label:'Card backs (1 page)',   on:false, build:buildBacks},
+  {id:'play',  label:'Play Deck (52)',         on:true,  build:buildPlay},
+  {id:'lines', label:'Love Line tracks (7)',   on:true,  build:buildLoveLines},
+  {id:'seats', label:'Seat symbols (7)',       on:true,  build:buildSeats},
+  {id:'aim',   label:'Crush slips (49)',       on:false, build:buildAim},
+  {id:'backs', label:'Card backs (1 page)',    on:false, build:buildBacks},
 ];
 
 // ----- render + toggles -----

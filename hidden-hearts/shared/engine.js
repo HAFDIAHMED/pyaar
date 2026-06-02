@@ -1,145 +1,90 @@
 // ============================================================================
-// PYAAR — Hidden Hearts · pure game engine (framework-agnostic).
-// No DOM, no audio, no network. Used by the server authoritatively and can be
-// reused by the client for local/AI play. ESM — works in Node and the browser.
+// PYAAR — BUILD YOUR LOVE · pure game engine (crush-central edition).
+// Build your romance up 3 stages, then COMMIT — you only win if your secret
+// crush loves you back (Soulmates). Scout with Glance, chase with Sway, sabotage
+// with Heartbreak, shield with Guardian. No DOM/audio/network.
 // ============================================================================
 
 export const SEATS = [
   { name: 'Rose', icon: '🌹' }, { name: 'Lotus', icon: '🪷' }, { name: 'Moon', icon: '🌙' },
-  { name: 'Flame', icon: '🔥' }, { name: 'Peacock', icon: '🦚' }, { name: 'Jasmine', icon: '🌼' }, { name: 'Star', icon: '⭐' },
+  { name: 'Flame', icon: '🔥' }, { name: 'Peacock', icon: '🦚' }, { name: 'Jasmine', icon: '🌼' },
+  { name: 'Star', icon: '⭐' }, { name: 'Dove', icon: '🕊️' },
 ];
 
-export const CHARACTERS = {
-  WARRIOR:  { icon: '⚔', name: 'Warrior',  perk: 'Bodyguard — cancel the 1st Heartbreak on you.' },
-  SAGE:     { icon: '✦', name: 'Sage',     perk: "Insight — peek a rival's crush at setup." },
-  TRAITOR:  { icon: '⚯', name: 'Traitor',  perk: 'Spite — if you break, drag down an attacker.' },
-  FOOL:     { icon: '◊', name: 'Fool',     perk: 'Slippery — immune to the 1st Friendzone.' },
-  GUARDIAN: { icon: '⚜', name: 'Guardian', perk: 'Fortress — needs 3 hits to break, not 2.' },
-  DREAMER:  { icon: '☾', name: 'Dreamer',  perk: 'Vanish — once, be untouchable for a round.' },
-  SOLDIER:  { icon: '⚑', name: 'Soldier',  perk: 'Vanguard — draw +1 on your first 3 turns.' },
-};
-export const CHAR_KEYS = Object.keys(CHARACTERS);
+export const STAGES = ['', '✨', '🌹', '💋'];                          // 0..3 (3 = ready to commit)
+export const STAGE_NAMES = ['—', 'Spark', 'Dating', 'Crazy for them'];
+export const READY = 3;                                                // commit from here
 
 export const CARD = {
-  HEARTBREAK: { icon: '💔', fam: 'attack',     tag: 'Break a heart.',  needsTarget: 'other' },
-  SOLDIER:    { icon: '⚑', fam: 'attack',     tag: 'Advance.',        needsTarget: 'other' },
-  WARRIOR:    { icon: '⚔', fam: 'defense',    tag: 'Shield.',         needsTarget: 'self' },
-  FRIENDZONE: { icon: '🤝', fam: 'defense',    tag: 'Just friends.',   needsTarget: 'other' },
-  DREAMER:    { icon: '☾', fam: 'defense',    tag: 'Daydream.',       needsTarget: 'self' },
-  SAGE:       { icon: '✦', fam: 'info',       tag: 'Insight.',        needsTarget: 'peek' },
-  TRAITOR:    { icon: '⚯', fam: 'disruption', tag: 'Betrayal.',       needsTarget: 'other' },
-  FOOL:       { icon: '◊', fam: 'disruption', tag: 'Wild.',           needsTarget: 'wild' },
-  CRUSH:      { icon: '💘', fam: 'love',       tag: 'Send a sign.',    needsTarget: 'other' },
-  DEVOTION:   { icon: '💍', fam: 'devotion',   tag: 'True love.',      needsTarget: 'devotion' },
+  MOMENT:     { icon: '❤️', fam: 'love',   needsTarget: 'self',  tag: 'Grow closer.',     desc: 'Advance your romance. At stage 3, Commit to win — if they love you back.' },
+  GLANCE:     { icon: '👀', fam: 'info',   needsTarget: 'other', tag: 'Scout a heart.',   desc: 'Secretly see who a player fancies — check before you commit!' },
+  SWAY:       { icon: '💘', fam: 'self2',  needsTarget: 'other', tag: 'Fall for another.', desc: 'Re-aim your crush at someone new (your romance cools one stage).' },
+  HEARTBREAK: { icon: '💔', fam: 'attack', needsTarget: 'other', tag: 'Break a heart.',   desc: 'Knock a rival back one stage.' },
+  GUARDIAN:   { icon: '🛡️', fam: 'block',  needsTarget: 'self',  tag: 'Guard your love.', desc: 'Block the next Heartbreak or Friendzone on you.' },
+  FRIENDZONE: { icon: '🤝', fam: 'block2', needsTarget: 'other', tag: 'Just friends.',    desc: 'A rival loses their next turn.' },
 };
-export const DECK_COMP = { HEARTBREAK: 9, SOLDIER: 8, WARRIOR: 9, FRIENDZONE: 8, DREAMER: 6, SAGE: 7, TRAITOR: 7, FOOL: 6, CRUSH: 7, DEVOTION: 3 };
+export const DECK_COMP = { MOMENT: 18, GLANCE: 9, SWAY: 6, HEARTBREAK: 8, GUARDIAN: 6, FRIENDZONE: 5 };
 
-// ---------- helpers ----------
 const rndInt = (rng, n) => Math.floor(rng() * n);
 const pick = (rng, a) => a[rndInt(rng, a.length)];
 function shuffle(rng, a) { for (let i = a.length - 1; i > 0; i--) { const j = rndInt(rng, i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-
-export function heartState(p) {
-  const threshold = p.guard === 'GUARDIAN' ? 3 : 2;
-  if (p.hits <= 0) return 'whole';
-  return p.hits >= threshold ? 'broken' : 'cracked';
-}
-const alive = (p) => heartState(p) !== 'broken';
+const byId = (s, id) => (id == null ? null : s.players.find(p => p.id === id));
 const others = (s, p) => s.players.filter(q => q.id !== p.id);
-const byId = (s, id) => s.players.find(p => p.id === id);
-function log(s, msg) { s.log.unshift(msg); if (s.log.length > 60) s.log.pop(); }
-function isVoided(s, a, b) { return s.voided.some(([x, y]) => (x === a && y === b) || (x === b && y === a)); }
+const current = (s) => s.players[s.turn];
+const mutual = (s, p) => p.crush != null && byId(s, p.crush)?.crush === p.id;
+function log(s, m) { s.log.unshift(m); if (s.log.length > 60) s.log.pop(); }
+function newDeck(rng) { const d = []; for (const [k, n] of Object.entries(DECK_COMP)) for (let i = 0; i < n; i++) d.push(k); return shuffle(rng, d); }
+export { current, mutual };
 
-function newDeck(rng) {
-  const d = [];
-  for (const [k, n] of Object.entries(DECK_COMP)) for (let i = 0; i < n; i++) d.push(k);
-  return shuffle(rng, d);
-}
-
-// ---------- lifecycle ----------
 export function createGame({ players, code = null, rng = Math.random }) {
   const ps = players.map((p, i) => ({
-    id: i, name: p.name, isAI: !!p.isAI, userId: p.userId ?? null, seat: SEATS[i],
-    hand: [], guard: null, crush: null,
-    hits: 0, protectors: 0, untouchable: false,
-    usedBodyguard: false, usedSlippery: false, sagePeeked: false,
-    turnsTaken: 0, publicCrushesFrom: [], crushedTrueTarget: false, soulmate: false,
+    id: i, name: p.name, isAI: !!p.isAI, userId: p.userId ?? null, seat: SEATS[i % SEATS.length],
+    hand: [], crush: null, stage: 0, shield: false, frozen: false, hbImmune: false, skipNext: false, revealed: false,
+    score: 0, soulmate: false, won: false,
   }));
-  return {
-    code, players: ps, deck: newDeck(rng), discard: [],
-    turn: 0, phase: 'setup', voided: [], log: [],
-    over: false, winnerId: null, endReason: null,
-  };
+  return { code, players: ps, deck: newDeck(rng), discard: [], turn: 0, startSeat: 0,
+    phase: 'setup', over: false, winnerId: null, endReason: null, log: [], _privateOut: [], _rng: rng };
 }
-
-export function setSecret(s, playerId, { guard, crush }) {
+export function setSecret(s, playerId, { crush }) {
   const p = byId(s, playerId);
-  if (!p || s.phase !== 'setup') return false;
-  if (!CHAR_KEYS.includes(guard)) return false;
-  if (crush === playerId || !byId(s, crush)) return false;
-  p.guard = guard; p.crush = crush;
-  return true;
+  if (!p || s.phase !== 'setup' || crush === playerId || !byId(s, crush)) return false;
+  p.crush = crush; return true;
 }
-export function allSecretsSet(s) { return s.players.every(p => p.guard != null && p.crush != null); }
-
-// AI fills its own secret choices
-export function aiSecret(s, playerId, rng = Math.random) {
-  const p = byId(s, playerId);
-  return setSecret(s, playerId, { guard: pick(rng, CHAR_KEYS), crush: pick(rng, others(s, p)).id });
-}
+export function aiSecret(s, playerId, rng = Math.random) { const p = byId(s, playerId); return setSecret(s, playerId, { crush: pick(rng, others(s, p)).id }); }
+export function allSecretsSet(s) { return s.players.every(p => p.crush != null); }
 
 export function startPlay(s, rng = Math.random) {
   if (s.phase !== 'setup' || !allSecretsSet(s)) return false;
-  for (const p of s.players) for (let i = 0; i < 5; i++) draw(s, p);
-  // Randomise who opens — removes the systematic last-mover seat advantage.
-  s.startSeat = Math.floor(rng() * s.players.length);
-  s.phase = 'play'; s.turn = s.startSeat;
-  log(s, `All hearts are set. ${s.players[s.turn].seat.icon} ${s.players[s.turn].name} opens — let the courting begin.`);
-  beginTurn(s);
-  return true;
+  for (const p of s.players) draw(s, p, 3);
+  s.startSeat = rndInt(rng, s.players.length); s.turn = s.startSeat; s.phase = 'play';
+  log(s, `Hearts set in secret. ${current(s).seat.icon} ${current(s).name} makes the first move.`);
+  beginTurn(s); return true;
 }
+function draw(s, p, n = 1) { let g = 0; for (let i = 0; i < n; i++) { if (!s.deck.length) break; p.hand.push(s.deck.pop()); g++; } return g; }
 
-function draw(s, p, n = 1) { let got = 0; for (let i = 0; i < n; i++) { if (!s.deck.length) break; p.hand.push(s.deck.pop()); got++; } return got; }
-
-// Called at the start of a player's turn (single deck pass = the game clock).
 function beginTurn(s) {
   if (s.over) return;
-  if (s.deck.length === 0) { endGame(s, 'the cards have run out'); return; }
-  const p = s.players[s.turn];
-  const extra = (p.guard === 'SOLDIER' && p.turnsTaken < 3) ? 1 : 0;
-  draw(s, p, 1 + extra);
-  p.untouchable = false;
-  // Sage perk: a one-time private peek (delivered as a private event by the caller)
-  if (p.guard === 'SAGE' && !p.sagePeeked) {
-    p.sagePeeked = true;
-    if (s._privateOut && !p.isAI) {
-      const t = others(s, p)[rndIntDeterministic(s, others(s, p).length)];
-      const obj = byId(s, t.crush);
-      s._privateOut.push({ to: p.id, kind: 'peek', text: `${t.seat.icon} ${t.name}'s heart secretly points at ${obj.seat.icon} ${obj.name}.` });
-    }
-  }
+  if (s.deck.length === 0) { endGame(s, 'timeout'); return; }
+  const p = current(s);
+  p.hbImmune = false;
+  if (p.frozen || p.skipNext) { const why = p.frozen ? 'friendzoned' : 'nursing a broken heart'; p.frozen = false; p.skipNext = false; log(s, `${p.seat.icon} ${p.name} is ${why} — loses a turn.`); advance(s); return; }
+  draw(s, p);
 }
-// minimal deterministic-ish index for the sage peek (avoids needing rng here)
-function rndIntDeterministic(s, n) { return (s.turn * 7 + s.players[s.turn].turnsTaken) % Math.max(1, n); }
+function advance(s) { s.turn = (s.turn + 1) % s.players.length; beginTurn(s); }
+function endTurn(s) { advance(s); }
 
-export const current = (s) => s.players[s.turn];
-
-// ---------- legality ----------
-// All cards in hand are playable on your turn; targets are chosen by the player.
-// This returns the hand with per-card targeting metadata for the UI.
 export function legalActions(s, playerId) {
   if (s.over || s.phase !== 'play' || s.turn !== playerId) return [];
   const p = byId(s, playerId);
-  return p.hand.map((card, i) => ({
-    cardIndex: i, card, needsTarget: CARD[card].needsTarget,
-    targets: CARD[card].needsTarget === 'other' || CARD[card].needsTarget === 'wild'
-      ? others(s, p).map(q => q.id) : [],
-  }));
+  const someProgress = others(s, p).some(q => q.stage > 0 && !q.hbImmune && !q.shield);
+  return p.hand.map((card, i) => {
+    let disabled = false;
+    if (card === 'GUARDIAN') disabled = p.shield;
+    if (card === 'HEARTBREAK') disabled = !someProgress;
+    return { cardIndex: i, card, needsTarget: CARD[card].needsTarget, isCommit: card === 'MOMENT' && p.stage >= READY, disabled };
+  });
 }
 
-// ---------- apply an action ----------
-// action: { cardIndex, target?, as?, peek?:{what,target}, mode?:'repair'|'declare' }
-// Returns { ok, error?, privateOut:[{to,kind,text}] }
 export function applyAction(s, playerId, action, rng = Math.random) {
   if (s.over || s.phase !== 'play') return { ok: false, error: 'not in play' };
   if (s.turn !== playerId) return { ok: false, error: 'not your turn' };
@@ -149,179 +94,119 @@ export function applyAction(s, playerId, action, rng = Math.random) {
   const card = p.hand[idx];
 
   s._privateOut = [];
+  if (action.discard) { p.hand.splice(idx, 1); s.discard.push(card); log(s, `${p.seat.icon} ${p.name} bides their time.`); endTurn(s); return { ok: true, privateOut: [] }; }
 
-  // FOOL copies another card; resolve as that key (no second discard)
-  let key = card, opt = action;
-  if (card === 'FOOL') {
-    key = action.as || 'HEARTBREAK';
-    if (!CARD[key] || key === 'FOOL' || key === 'DEVOTION') key = 'HEARTBREAK';
-  }
+  const t = (CARD[card].needsTarget === 'other') ? byId(s, action.target) : null;
+  if (CARD[card].needsTarget === 'other' && (!t || t.id === p.id)) return { ok: false, error: 'choose another player' };
 
-  // remove played card → discard
   p.hand.splice(idx, 1); s.discard.push(card);
 
-  const ok = applyEffect(s, p, key, opt, rng);
-  if (!ok.ok) { /* effect still consumed the card; treat as played-but-fizzled */ }
+  if (card === 'MOMENT') {
+    if (p.stage < READY) { p.stage++; log(s, `${p.seat.icon} ${p.name} grows closer — ${STAGE_NAMES[p.stage]} ${STAGES[p.stage]}.`); }
+    else {                                  // COMMIT — the gamble
+      const o = byId(s, p.crush);
+      if (mutual(s, p)) { log(s, `💍✨ ${p.seat.icon} ${p.name} commits to ${o.seat.icon} ${o.name} — and it's MUTUAL! Soulmates!`); endGame(s, 'devotion', p.id); }
+      else { p.stage = READY - 1; p.skipNext = true; p.revealed = true; log(s, `💔 ${p.seat.icon} ${p.name} pours their heart out to ${o.seat.icon} ${o.name}… not returned. Rejected!`); }
+    }
+  } else if (card === 'GLANCE') {
+    const o = byId(s, t.crush);
+    s._privateOut.push({ to: p.id, kind: 'peek', text: o ? `${t.seat.icon} ${t.name} secretly fancies ${o.seat.icon} ${o.name}.` : `${t.seat.icon} ${t.name} fancies no one.` });
+    log(s, `${p.seat.icon} ${p.name} reads the room… 👀`);
+  } else if (card === 'SWAY') {
+    p.crush = t.id; p.stage = Math.max(0, p.stage - 1);
+    log(s, `${p.seat.icon} ${p.name}'s heart turns to someone new 💘 (their romance cools to ${STAGE_NAMES[p.stage]}).`);
+  } else if (card === 'HEARTBREAK') {
+    if (t.shield) { t.shield = false; log(s, `${p.seat.icon} ${p.name} 💔 strikes ${t.seat.icon} ${t.name} — their guard holds.`); }
+    else if (t.hbImmune) { log(s, `${p.seat.icon} ${p.name} 💔 strikes ${t.seat.icon} ${t.name}, but they're already aching.`); }
+    else if (t.stage > 0) { t.stage--; t.hbImmune = true; log(s, `💔 ${p.seat.icon} ${p.name} breaks ${t.seat.icon} ${t.name}'s heart — back to ${STAGE_NAMES[t.stage]}.`); }
+    else log(s, `${p.seat.icon} ${p.name} 💔 strikes ${t.seat.icon} ${t.name}, but there's nothing to break yet.`);
+  } else if (card === 'GUARDIAN') {
+    p.shield = true; log(s, `${p.seat.icon} ${p.name} guards their heart 🛡️.`);
+  } else if (card === 'FRIENDZONE') {
+    if (t.shield) { t.shield = false; log(s, `${p.seat.icon} ${p.name} 🤝 friendzones ${t.seat.icon} ${t.name} — guard holds.`); }
+    else { t.frozen = true; log(s, `${p.seat.icon} ${p.name} 🤝 friendzones ${t.seat.icon} ${t.name}.`); }
+  }
 
-  if (!s.over) endTurn(s, rng);
-  const out = s._privateOut; s._privateOut = null;
+  if (!s.over) endTurn(s);
+  const out = s._privateOut; s._privateOut = [];
   return { ok: true, privateOut: out };
 }
 
-function applyEffect(s, me, key, opt, rng) {
-  if (key === 'WARRIOR') { me.protectors++; log(s, `${me.seat.icon} ${me.name} raises a ⚔ Warrior. (🛡×${me.protectors})`); return { ok: true }; }
-  if (key === 'DREAMER') { me.untouchable = true; log(s, `${me.seat.icon} ${me.name} drifts into a ☾ daydream — untouchable.`); return { ok: true }; }
-  if (key === 'SAGE') {
-    const peek = opt.peek; const t = peek && byId(s, peek.target);
-    if (t) {
-      const text = peek.what === 'guard'
-        ? `${t.seat.icon} ${t.name} is guarded by ${CHARACTERS[t.guard].icon} the ${CHARACTERS[t.guard].name}.`
-        : `${t.seat.icon} ${t.name}'s heart points at ${byId(s, t.crush).seat.icon} ${byId(s, t.crush).name}.`;
-      s._privateOut.push({ to: me.id, kind: 'peek', text });
-    }
-    log(s, `${me.seat.icon} ${me.name} studies a secret. ✦`);
-    return { ok: true };
-  }
-  if (key === 'DEVOTION') {
-    if (opt.mode === 'declare') {
-      const obj = byId(s, me.crush);
-      const mutual = obj.crush === me.id && !isVoided(s, me.id, obj.id);
-      log(s, `${me.seat.icon} ${me.name} declares true love for ${obj.seat.icon} ${obj.name}!`);
-      if (mutual) { me.soulmate = true; obj.soulmate = true; me.crushedTrueTarget = true; endGame(s, 'a Soulmate bond was declared'); }
-      return { ok: true };
-    }
-    if (me.hits > 0) me.hits--;
-    log(s, `${me.seat.icon} ${me.name} renews their Heart with devotion. ❤️`);
-    return { ok: true };
-  }
-
-  const t = byId(s, opt.target);
-  if (!t) return { ok: false, error: 'bad target' };
-
-  if (key === 'CRUSH') {
-    t.publicCrushesFrom.push(me.id);
-    if (t.id === me.crush) me.crushedTrueTarget = true;
-    log(s, `${me.seat.icon} ${me.name} sends a 💘 to ${t.seat.icon} ${t.name}…`);
-    return { ok: true };
-  }
-  if (key === 'FRIENDZONE') {
-    if (t.guard === 'FOOL' && !t.usedSlippery) { t.usedSlippery = true; log(s, `${t.seat.icon} ${t.name} slips the Friendzone (Fool).`); return { ok: true }; }
-    s.voided.push([me.id, t.id]);
-    log(s, `${me.seat.icon} ${me.name} 🤝 friendzones ${t.seat.icon} ${t.name}.`);
-    return { ok: true };
-  }
-  if (key === 'TRAITOR') {
-    if (t.untouchable) { log(s, `${me.seat.icon} ${me.name}'s betrayal finds only mist.`); return { ok: true }; }
-    if (t.hand.length) { const stolen = t.hand.splice(rndInt(rng, t.hand.length), 1)[0]; me.hand.push(stolen); log(s, `${me.seat.icon} ${me.name} ⚯ steals a card from ${t.seat.icon} ${t.name}.`); }
-    else log(s, `${me.seat.icon} ${me.name} finds ${t.seat.icon} ${t.name}'s hand empty.`);
-    return { ok: true };
-  }
-  if (key === 'HEARTBREAK' || key === 'SOLDIER') {
-    if (t.untouchable) { log(s, `${t.seat.icon} ${t.name} is untouchable — the blow misses.`); return { ok: true }; }
-    if (key === 'HEARTBREAK' && t.guard === 'WARRIOR' && !t.usedBodyguard) { t.usedBodyguard = true; log(s, `${t.seat.icon} ${t.name}'s ⚔ Bodyguard turns aside the first Heartbreak.`); return { ok: true }; }
-    if (t.protectors > 0) { t.protectors--; log(s, `${me.seat.icon} ${me.name} ${CARD[key].icon} strips a Protector from ${t.seat.icon} ${t.name}. (🛡×${t.protectors})`); return { ok: true }; }
-    if (key === 'SOLDIER') { log(s, `${me.seat.icon} ${me.name}'s ⚑ Soldier advances — the bare Heart holds.`); return { ok: true }; }
-    t.hits++;
-    const st = heartState(t);
-    log(s, `${me.seat.icon} ${me.name} 💔 wounds ${t.seat.icon} ${t.name}'s Heart — now ${st}.`);
-    if (st === 'broken') {
-      log(s, `💔 ${t.seat.icon} ${t.name}'s Heart is BROKEN.`);
-      if (t.guard === 'TRAITOR') {
-        if (me.protectors > 0) { me.protectors--; log(s, `${t.seat.icon} ${t.name}'s ⚯ Spite tears a Protector from ${me.seat.icon} ${me.name}!`); }
-        else { me.hits++; log(s, `${t.seat.icon} ${t.name}'s ⚯ Spite wounds ${me.seat.icon} ${me.name}!`); }
-      }
-      if (s.players.filter(alive).length <= 1) endGame(s, 'only one heart still beats');
-    }
-    return { ok: true };
-  }
-  return { ok: false, error: 'unknown card' };
-}
-
-function endTurn(s, rng) {
-  const p = current(s);
-  p.turnsTaken++;
-  while (p.hand.length > 7) s.discard.push(p.hand.splice(rndInt(rng, p.hand.length), 1)[0]);
-  if (s.over) return;
-  s.turn = (s.turn + 1) % s.players.length;
-  beginTurn(s);
-}
-
-// ---------- AI ----------
+// ---------- AI (sees full state; humans must scout) ----------
 export function aiAction(s, playerId, rng = Math.random) {
-  const p = byId(s, playerId);
-  const hand = p.hand;
-  const foes = others(s, p).filter(alive);
-  const pool = foes.length ? foes : others(s, p);
-  const has = k => hand.indexOf(k);
-  const A = (cardIndex, extra = {}) => ({ cardIndex, ...extra });
+  const p = byId(s, playerId); const hand = p.hand; const has = k => hand.indexOf(k);
+  const A = (c, e = {}) => ({ cardIndex: c, ...e });
+  const foes = others(s, p);
+  const hittable = q => q.stage > 0 && !q.shield && !q.hbImmune;
+  const lead = list => list.slice().sort((a, b) => b.stage - a.stage || (rng() - 0.5))[0];
+  const admirers = foes.filter(q => q.crush === p.id);
 
-  if (p.hits > 0 && has('WARRIOR') >= 0 && p.protectors < 2) return A(has('WARRIOR'));
-  if (p.protectors === 0 && has('WARRIOR') >= 0 && rng() < 0.5) return A(has('WARRIOR'));
-  if (p.hits > 0 && has('DEVOTION') >= 0 && rng() < 0.6) return A(has('DEVOTION'), { mode: 'repair' });
-  if (has('CRUSH') >= 0 && rng() < 0.55) { const tgt = alive(byId(s, p.crush)) ? p.crush : pick(rng, pool).id; return A(has('CRUSH'), { target: tgt }); }
-  if (has('HEARTBREAK') >= 0 && foes.length) {
-    const bare = foes.filter(q => q.protectors === 0 && !q.untouchable);
-    let t;
-    if (bare.length) { const mx = Math.max(...bare.map(q => q.hits)); t = pick(rng, bare.filter(q => q.hits === mx)); } // random among most-wounded (no seat bias)
-    else t = pick(rng, foes);
-    return A(has('HEARTBREAK'), { target: t.id });
+  // 1) win: at the brink and it's mutual → commit
+  if (has('MOMENT') >= 0 && p.stage >= READY && mutual(s, p)) return A(has('MOMENT'));
+  // 2) stop a rival at the brink who is mutual (about to win)
+  const threats = foes.filter(q => q.stage >= READY && mutual(s, q));
+  if (threats.length && has('HEARTBREAK') >= 0) { const h = threats.filter(hittable); if (h.length) return A(has('HEARTBREAK'), { target: pick(rng, h).id }); }
+  if (threats.length && has('FRIENDZONE') >= 0) { const f = threats.filter(q => !q.frozen && !q.shield); if (f.length) return A(has('FRIENDZONE'), { target: pick(rng, f).id }); }
+  // 3) shield when at the brink & threatened
+  if (has('GUARDIAN') >= 0 && !p.shield && p.stage >= READY - 1 && foes.some(q => q.stage >= p.stage - 1)) return A(has('GUARDIAN'));
+  // 4) if not mutual, steer toward a mutual: aim at an admirer (cheaper while low)
+  if (!mutual(s, p) && admirers.length && has('SWAY') >= 0 && (p.stage <= 1 || p.crush == null)) return A(has('SWAY'), { target: pick(rng, admirers).id });
+  // 5) build
+  if (has('MOMENT') >= 0 && (p.stage < READY || mutual(s, p))) return A(has('MOMENT'));
+  // 6) knock back the leader
+  if (has('HEARTBREAK') >= 0) { const opts = foes.filter(hittable); if (opts.length) return A(has('HEARTBREAK'), { target: lead(opts).id }); }
+  // 7) still not mutual & stuck at the brink → pivot to an admirer
+  if (!mutual(s, p) && admirers.length && has('SWAY') >= 0) return A(has('SWAY'), { target: pick(rng, admirers).id });
+  if (has('FRIENDZONE') >= 0) { const opts = foes.filter(q => !q.frozen && q.stage > 0 && !q.shield); if (opts.length) return A(has('FRIENDZONE'), { target: lead(opts).id }); }
+  if (has('GLANCE') >= 0) return A(has('GLANCE'), { target: pick(rng, foes).id });
+  if (has('GUARDIAN') >= 0 && !p.shield) return A(has('GUARDIAN'));
+  // fallback
+  for (let i = 0; i < hand.length; i++) {
+    const k = hand[i];
+    if (k === 'GUARDIAN' && p.shield) continue;
+    if (k === 'HEARTBREAK' && !foes.some(hittable)) continue;
+    if (k === 'MOMENT' && p.stage >= READY && !mutual(s, p)) continue;   // don't commit into a sure rejection
+    const a = { cardIndex: i };
+    if (CARD[k].needsTarget === 'other') a.target = (k === 'HEARTBREAK' ? lead(foes.filter(hittable)) : (k === 'SWAY' && admirers.length ? pick(rng, admirers) : pick(rng, foes))).id;
+    return a;
   }
-  if (has('SOLDIER') >= 0) { const wp = foes.filter(q => q.protectors > 0); if (wp.length) return A(has('SOLDIER'), { target: pick(rng, wp).id }); }
-  if (has('TRAITOR') >= 0 && others(s, p).some(q => q.hand.length)) { const t = pick(rng, others(s, p).filter(q => q.hand.length)); return A(has('TRAITOR'), { target: t.id }); }
-  if (has('SAGE') >= 0) { const t = pick(rng, others(s, p)); return A(has('SAGE'), { peek: { what: 'crush', target: t.id } }); }
-  if (has('DREAMER') >= 0 && rng() < 0.3) return A(has('DREAMER'));
-  // fallback: dump something reasonable
-  const order = ['SOLDIER', 'FRIENDZONE', 'FOOL', 'CRUSH', 'SAGE', 'DREAMER', 'TRAITOR', 'WARRIOR', 'HEARTBREAK', 'DEVOTION'];
-  let idx = 0; for (const k of order) { if (has(k) >= 0) { idx = has(k); break; } }
-  const key = hand[idx];
-  if (key === 'FOOL') return A(idx, { as: 'HEARTBREAK', target: pick(rng, pool).id });
-  if (CARD[key].needsTarget === 'other') return A(idx, { target: pick(rng, pool).id });
-  if (key === 'SAGE') return A(idx, { peek: { what: 'crush', target: pick(rng, others(s, p)).id } });
-  if (key === 'DEVOTION') return A(idx, { mode: 'repair' });
-  return A(idx);
+  return A(0, { discard: true });
 }
 
-// ---------- end / scoring ----------
-function endGame(s, reason) {
+function endGame(s, reason, winnerId = null) {
   if (s.over) return;
   s.over = true; s.endReason = reason; s.phase = 'over';
-  log(s, `The game ends — ${reason}.`);
-  scoreAll(s);
-  const ranked = [...s.players].sort((a, b) => b.score - a.score || a.hits - b.hits || b.publicCrushesFrom.length - a.publicCrushesFrom.length);
-  s.winnerId = ranked[0].id;
-}
-
-export function scoreAll(s) {
-  for (const p of s.players) {
-    const st = heartState(p);
-    p.score = st === 'whole' ? 3 : st === 'cracked' ? 1 : -2;
-    const obj = byId(s, p.crush);
-    const mutual = obj.crush === p.id && !isVoided(s, p.id, obj.id);
-    if (mutual) { p.score += 5; p.soulmate = true; if (p.crushedTrueTarget) p.score += 2; }
+  for (const p of s.players) if (mutual(s, p)) p.soulmate = true;
+  if (reason === 'devotion') {
+    const w = byId(s, winnerId); w.won = true; w.score = 5; w.soulmate = true; s.winnerId = w.id;
+    const o = byId(s, w.crush); if (o) { o.soulmate = true; o.score = Math.max(o.score, 3); }
+  } else {
+    const mx = Math.max(...s.players.map(p => p.stage));
+    const cands = s.players.filter(p => p.stage === mx);
+    const souls = cands.filter(p => p.soulmate);
+    const pool = souls.length ? souls : cands;
+    const w = pool[Math.floor((s._rng || Math.random)() * pool.length)];
+    w.won = true; w.score = 3; s.winnerId = w.id;
+    log(s, `The cards run out. ${w.seat.icon} ${w.name} came closest to love — they win the night.`);
   }
 }
 
-// ---------- redacted view for a given viewer (hide others' hands & secrets) ----------
 export function publicView(s, viewerId) {
   return {
-    code: s.code, phase: s.phase, turn: s.turn, over: s.over,
-    winnerId: s.winnerId, endReason: s.endReason,
+    code: s.code, phase: s.phase, turn: s.turn, over: s.over, winnerId: s.winnerId, endReason: s.endReason,
     deckCount: s.deck.length, discardTop: s.discard[s.discard.length - 1] || null,
-    log: s.log.slice(0, 8),
-    youAre: viewerId,
+    log: s.log.slice(0, 8), youAre: viewerId,
     players: s.players.map(p => {
-      const me = p.id === viewerId;
-      const reveal = s.over || me;
+      const me = p.id === viewerId; const reveal = s.over || me || p.revealed;
       return {
         id: p.id, name: p.name, isAI: p.isAI, seat: p.seat,
-        heart: heartState(p), protectors: p.protectors, untouchable: p.untouchable,
-        publicCrushes: p.publicCrushesFrom.length, soulmate: s.over ? p.soulmate : (me ? p.soulmate : false),
-        score: s.over ? p.score : undefined,
-        handCount: p.hand.length,
-        hand: me ? p.hand : undefined,
+        stage: p.stage, ready: p.stage >= READY, shield: p.shield, frozen: p.frozen, revealed: p.revealed,
         crush: reveal ? p.crush : undefined,
-        guard: reveal ? p.guard : undefined,
+        handCount: p.hand.length, hand: me ? p.hand : undefined,
+        won: s.over ? p.won : undefined, soulmate: s.over ? p.soulmate : undefined, score: s.over ? p.score : undefined,
       };
     }),
   };
 }
+
+export function statusOf(p) { return p.won ? 'won' : p.soulmate ? 'mutual' : `stage ${p.stage}`; }

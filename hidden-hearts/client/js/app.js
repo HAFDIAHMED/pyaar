@@ -1,6 +1,6 @@
 import { Net, api } from './net.js';
 import { SFX } from './sfx.js';
-import { SEATS, CHARACTERS, CHAR_KEYS, CARD, heartGlyph, title } from './cards.js';
+import { SEATS, CARD, title, STAGES, STAGE_NAMES, READY } from './cards.js';
 
 const $ = s => document.querySelector(s);
 const app = $('#app');
@@ -30,10 +30,10 @@ function renderHome() {
   S.screen = 'home';
   app.innerHTML = `
     <section class="hero">
-      <div class="logo">⚜</div>
+      <div class="logo">❤</div>
       <h1 class="title">PYAAR</h1>
-      <div class="subtitle">HIDDEN HEARTS</div>
-      <p class="tagline">Protect your heart. Aim it at someone. Pray they aimed back.</p>
+      <div class="subtitle">THE LOVE CARD GAME</div>
+      <p class="tagline">Build your love. Race to Devotion. Don't let them break your heart.</p>
     </section>
     <section class="menu">
       <div class="count-row">
@@ -92,34 +92,18 @@ function renderLobby() {
 function renderWaiting(msg) { app.innerHTML = `<section class="panel center waiting"><div class="spinner">⚜</div><p>${esc(msg)}</p></section>`; }
 
 function renderSetup() {
-  const v = S.view; const me = v.players[v.youAre];
-  const stage = S._setupStage || 'guard';
-  if (stage === 'guard') {
-    app.innerHTML = `<section class="panel">
-      <h3 class="center">${me.seat.icon} Choose your Protector</h3>
-      <p class="center muted small">Secret — each character guards your Heart differently.</p>
-      <div class="char-grid">
-        ${CHAR_KEYS.map(k => `<div class="char-opt ${S._guard === k ? 'on' : ''}" data-g="${k}">
-          <div class="ci">${CHARACTERS[k].icon}</div><div class="cn">${CHARACTERS[k].name}</div>
-          <div class="cp">${esc(CHARACTERS[k].perk)}</div></div>`).join('')}
-      </div>
-      <button class="btn primary" id="gnext" ${S._guard ? '' : 'disabled'}>Confirm Protector →</button>
-    </section>`;
-    app.querySelectorAll('[data-g]').forEach(el => el.onclick = () => { S._guard = el.dataset.g; SFX.click(); renderSetup(); });
-    $('#gnext').onclick = () => { S._setupStage = 'crush'; renderSetup(); };
-  } else {
-    const others = v.players.filter(p => p.id !== v.youAre);
-    app.innerHTML = `<section class="panel">
-      <h3 class="center">Aim your Heart 💘</h3>
-      <p class="center muted small">Secretly choose the one you fancy. No one will know — until the Reveal.</p>
-      <div class="picker">
-        ${others.map(p => `<button class="btn pick ${S._crush === p.id ? 'on' : ''}" data-c="${p.id}"><span class="bi">${p.seat.icon}</span> ${esc(p.name)}</button>`).join('')}
-      </div>
-      <button class="btn primary" id="lock" ${S._crush != null ? '' : 'disabled'}>Lock my secret 💘</button>
-    </section>`;
-    app.querySelectorAll('[data-c]').forEach(el => el.onclick = () => { S._crush = +el.dataset.c; renderSetup(); });
-    $('#lock').onclick = () => { SFX.crush(); S.net.send({ type: 'setSecret', guard: S._guard, crush: S._crush }); S.secretSent = true; renderWaiting('Secret locked. Waiting for the others…'); };
-  }
+  const v = S.view;
+  const others = v.players.filter(p => p.id !== v.youAre);
+  app.innerHTML = `<section class="panel">
+    <h3 class="center">Aim your Heart 💘</h3>
+    <p class="center muted small">Secretly choose the one you fancy. No one knows — until someone confesses.</p>
+    <div class="picker">
+      ${others.map(p => `<button class="btn pick ${S._crush === p.id ? 'on' : ''}" data-c="${p.id}"><span class="bi">${p.seat.icon}</span> ${esc(p.name)}</button>`).join('')}
+    </div>
+    <button class="btn primary" id="lock" ${S._crush != null ? '' : 'disabled'}>Lock my secret 💘</button>
+  </section>`;
+  app.querySelectorAll('[data-c]').forEach(el => el.onclick = () => { S._crush = +el.dataset.c; renderSetup(); });
+  $('#lock').onclick = () => { SFX.crush(); S.net.send({ type: 'setSecret', crush: S._crush }); S.secretSent = true; renderWaiting('Secret locked. Waiting for the others…'); };
 }
 
 // ---------- the felt table ----------
@@ -132,14 +116,16 @@ function renderTable() {
     const rel = (p.id - v.youAre + n) % n;                 // you at the bottom
     const ang = (90 + rel * (360 / n)) * Math.PI / 180;
     const x = 50 + 41 * Math.cos(ang), y = 50 + 43 * Math.sin(ang);
-    const tgt = aiming && p.id !== v.youAre ? ' targetable' : '';
+    const validTgt = aiming && p.id !== v.youAre && (S.sel.key !== 'HEARTBREAK' || p.stage > 0);
+    const tgt = validTgt ? ' targetable' : '';
     chips += `<div class="chip-pos${tgt}" data-seat="${p.id}" style="left:${x}%;top:${y}%">${chipHTML(p, v.turn, v.youAre)}</div>`;
   }
-  const aimCard = aiming ? (S.sel.as || S.sel.key) : null;
+  const aimCard = aiming ? S.sel.key : null;
+  const aimHint = { GLANCE: 'to peek their heart', SWAY: 'to aim your heart at', HEARTBREAK: 'to break their heart', FRIENDZONE: 'to friendzone' };
   app.innerHTML = `
-    <div class="table-status"><span>${v.players.filter(p => p.heart !== 'broken').length}♥ beating · ${v.deckCount} cards${v.deckCount <= n ? ' · final!' : ''}</span>
+    <div class="table-status"><span>💌 ${v.deckCount} cards left${v.deckCount <= n ? ' · final round!' : ''}</span>
       <span class="${myTurn ? 'turnnow' : 'muted'}">${myTurn ? 'Your turn' : 'Turn: ' + v.players[v.turn].name}</span></div>
-    ${aiming ? `<div class="aim-banner">${CARD[aimCard].icon} <b>${title(aimCard)}</b> — tap a player ${aimCard === 'SAGE' ? 'to peek' : ''}<button id="aim-cancel">Cancel</button></div>` : ''}
+    ${aiming ? `<div class="aim-banner">${CARD[aimCard].icon} <b>${title(aimCard)}</b> — tap a player ${aimHint[aimCard] || ''}<button id="aim-cancel">Cancel</button></div>` : ''}
     <div class="table-wrap${aiming ? ' aiming' : ''}"><div class="felt">
       <div class="table-center">
         <div class="piles">
@@ -150,7 +136,7 @@ function renderTable() {
       </div>${chips}
     </div></div>
     <div class="hand-area ${myTurn ? '' : 'idle'}">
-      <div class="secret-strip">Your secret 💘 <b>${v.players[me.crush].seat.icon} ${esc(v.players[me.crush].name)}</b> · guarded by ${CHARACTERS[me.guard].icon} ${CHARACTERS[me.guard].name}</div>
+      <div class="secret-strip">secret 💘 <b>${v.players[me.crush].seat.icon} ${esc(v.players[me.crush].name)}</b> · you're at <b>${STAGE_NAMES[me.stage]} ${STAGES[me.stage] || ''}</b>${me.ready ? ' — 💍 tap ❤️ to Commit!' : ''}</div>
       <div class="hand fan">${(me.hand || []).map((k, i) => cardHTML(k, i)).join('')}</div>
       <div class="hint-line">${myTurn ? 'Tap a card to play it.' : 'Waiting for your turn…'}</div>
     </div>
@@ -167,20 +153,21 @@ function renderTable() {
 }
 
 function chipHTML(p, activeId, meId) {
+  const line = STAGES.slice(1).map((ic, idx) => `<span class="st ${p.stage >= idx + 1 ? 'lit' : ''}">${ic}</span>`).join('')
+    + `<span class="st commit ${p.won ? 'lit' : (p.ready ? 'ready' : '')}">💍</span>`;
   const b = [];
-  if (p.protectors) b.push(`🛡${p.protectors}`);
-  if (p.untouchable) b.push('☾');
-  if (p.publicCrushes) b.push(`💘${p.publicCrushes}`);
+  if (p.shield) b.push('🛡️');
+  if (p.frozen) b.push('🤝');
   if (p.soulmate) b.push('💞');
-  // opponents show a little fan of face-down card-backs (their hand)
   const fan = (p.id !== meId)
-    ? `<div class="minihand">${'<span class="mb"></span>'.repeat(Math.min(5, p.handCount || 0))}<span class="mhc">${p.handCount || 0}</span></div>`
+    ? `<div class="minihand">${'<span class="mb"></span>'.repeat(Math.min(2, p.handCount || 0))}<span class="mhc">${p.handCount || 0}</span></div>`
     : '';
-  return `<div class="chip ${p.id === activeId ? 'active' : ''} ${p.heart === 'broken' ? 'broken' : ''}">
+  return `<div class="chip ${p.id === activeId ? 'active' : ''} ${p.frozen ? 'frozen' : ''} ${p.won ? 'won' : ''}">
     ${fan}
-    <div class="avatar">${p.seat.icon}<span class="hs">${heartGlyph(p.heart)}</span></div>
+    <div class="avatar">${p.seat.icon}</div>
     <div class="cnm">${esc(p.name)}${p.isAI ? ' <span class="ai-badge">AI</span>' : ''}</div>
-    <div class="badges">${b.length ? b.map(x => `<span class="bdg">${x}</span>`).join('') : '<span class="bdg dim">—</span>'}</div>
+    <div class="loveline">${line}</div>
+    <div class="badges">${b.length ? b.map(x => `<span class="bdg">${x}</span>`).join('') : '<span class="bdg dim">·</span>'}</div>
   </div>`;
 }
 // a Solitaire-style playing card: white face, corner indices, big centre motif
@@ -223,44 +210,42 @@ function clearSel() { S.sel = null; renderTable(); }
 function enterTarget(index, key, extra) { S.sel = { index, key, ...(extra || {}) }; SFX.click(); renderTable(); }
 function finishTarget(seatId) {
   const sel = S.sel; if (!sel) return;
-  const a = { cardIndex: sel.index };
-  const eff = sel.as || sel.key;
-  if (eff === 'SAGE') a.peek = { what: 'crush', target: seatId };
-  else a.target = seatId;
-  if (sel.as) a.as = sel.as;
   S.sel = null;
-  act(a);
+  act({ cardIndex: sel.index, target: seatId });
+}
+function unplayable(me, v, key) {
+  if (key === 'GUARDIAN' && me.shield) return 'your heart is already guarded';
+  if (key === 'HEARTBREAK' && !v.players.some(p => p.id !== v.youAre && p.stage > 0)) return 'no one has any love to break yet';
+  return null;
 }
 function playCard(i) {
-  const v = S.view; if (v.turn !== v.youAre) return;
-  const key = v.players[v.youAre].hand[i];
+  const v = S.view; const me = v.players[v.youAre]; if (v.turn !== v.youAre) return;
+  const key = me.hand[i];
   if (S.sel && S.sel.index === i) return clearSel();          // tap the selected card again to cancel
-  if (key === 'WARRIOR' || key === 'DREAMER') { S.sel = null; SFX.click(); return act({ cardIndex: i }); }
-  if (key === 'DEVOTION') return devotionSheet(i);
-  if (key === 'FOOL') return foolSheet(i);
-  if (key === 'SAGE') return enterTarget(i, 'SAGE');          // then tap a player to peek their crush
-  return enterTarget(i, key);                                  // Heartbreak / Soldier / Crush / Friendzone / Traitor
+  const why = unplayable(me, v, key);
+  if (why) return discardSheet(i, key, why);
+  if (key === 'MOMENT' && me.stage >= READY) return commitSheet(i);   // at 💋 → the commit gamble
+  if (CARD[key].needsTarget === 'self') { S.sel = null; SFX.click(); return act({ cardIndex: i }); }  // Moment(<3) / Guardian
+  return enterTarget(i, key);                                  // Heartbreak / Friendzone / Glance / Sway → tap a player
 }
-function devotionSheet(i) {
-  const v = S.view; const obj = v.players[v.players[v.youAre].crush];
-  sheet(`<div class="sheet-title">💍 Devotion</div>
-    <button class="btn pick" data-d="repair">❤️ Repair your Heart one step</button>
-    <button class="btn pick" data-d="declare">💘 Declare your love for ${obj.seat.icon} ${esc(obj.name)} — if mutual, Soulmates!</button>
-    <button class="btn ghost" id="sx">Cancel</button>`, () => {
-    document.querySelectorAll('[data-d]').forEach(el => el.onclick = () => { const mode = el.dataset.d; closeModal(); S.sel = null; act({ cardIndex: i, mode }); });
+function commitSheet(i) {
+  const v = S.view; const me = v.players[v.youAre]; const obj = v.players[me.crush];
+  sheet(`<div class="sheet-title">💍 Commit to ${obj.seat.icon} ${esc(obj.name)}?</div>
+    <p class="center small">You pour your heart out. If they secretly fancy you back → <b class="gold">you both win — Soulmates! 💞</b><br/>
+    If not → you're <b>rejected</b>: your secret is out and you're knocked back a stage.<br/><span class="muted">Tip: 👀 Glance them first to be sure.</span></p>
+    <button class="btn primary" id="docommit">💍 Commit — say it!</button>
+    <button class="btn ghost" id="sx">Not yet</button>`, () => {
+    document.getElementById('docommit').onclick = () => { closeModal(); S.sel = null; act({ cardIndex: i }); };
     document.getElementById('sx').onclick = closeModal;
   });
 }
-function foolSheet(i) {
-  const opts = ['HEARTBREAK', 'SOLDIER', 'WARRIOR', 'FRIENDZONE', 'SAGE', 'TRAITOR', 'DREAMER'];
-  sheet(`<div class="sheet-title">◊ Fool — copy a character</div>
-    <div class="sheet-grid">${opts.map(k => `<button class="btn pick fool f-${CARD[k].fam}" data-as="${k}"><span class="fic">${CARD[k].icon}</span><b>${title(k)}</b></button>`).join('')}</div>
-    <button class="btn ghost" id="sx">Cancel</button>`, () => {
-    document.querySelectorAll('[data-as]').forEach(el => el.onclick = () => {
-      const as = el.dataset.as; closeModal();
-      if (as === 'WARRIOR' || as === 'DREAMER') { S.sel = null; return act({ cardIndex: i, as }); }
-      enterTarget(i, 'FOOL', { as });        // SAGE or an attack → tap a player
-    });
+function discardSheet(i, key, why) {
+  S.sel = null;
+  sheet(`<div class="sheet-title">${CARD[key].icon} Can't play ${title(key)}</div>
+    <p class="center small">${esc(why.charAt(0).toUpperCase() + why.slice(1))}. You must play a card — discard this one, or pick another from your hand.</p>
+    <button class="btn primary" id="dodiscard">Discard ${title(key)}</button>
+    <button class="btn ghost" id="sx">Pick another card</button>`, () => {
+    document.getElementById('dodiscard').onclick = () => { closeModal(); act({ cardIndex: i, discard: true }); };
     document.getElementById('sx').onclick = closeModal;
   });
 }
@@ -269,24 +254,27 @@ function sheet(inner, wire) { $('#modal-host').innerHTML = `<div class="overlay 
 // ---------- reveal ----------
 function renderReveal() {
   const v = S.view;
-  const ranked = [...v.players].sort((a, b) => b.score - a.score);
   const winner = v.players[v.winnerId];
+  const byDevotion = v.endReason === 'devotion';
+  const headline = byDevotion
+    ? `${esc(winner.name)} reached 💍 Devotion — they won the love!`
+    : `${esc(winner.name)} got closest to love — they win the night 🌹`;
   const pairs = [];
   for (const p of v.players) { const o = v.players[p.crush]; if (p.soulmate && o.crush === p.id && p.id < o.id) pairs.push([p, o]); }
   app.innerHTML = `
     <section class="panel center">
       <h2>The Reveal</h2>
       <div class="bigseat">${winner.seat.icon}</div>
-      <h3 class="gold">${esc(winner.name)} protected their love best</h3>
-      ${winner.soulmate ? '<div class="muted">…and found a Soulmate 💞</div>' : ''}
+      <h3 class="gold">${headline}</h3>
+      ${winner.soulmate ? '<div class="muted">…and it was meant to be — a Soulmate win 💞</div>' : ''}
     </section>
     ${pairs.length ? `<section class="panel center"><h3>💞 Soulmates</h3>${pairs.map(([a, b]) => `<div class="pairline">${a.seat.icon} ${esc(a.name)} 💘 ${b.seat.icon} ${esc(b.name)}</div>`).join('')}</section>` : ''}
-    <section class="panel"><h3 class="center">Hearts revealed</h3>
-      ${ranked.map(p => { const o = v.players[p.crush]; const mutual = p.soulmate; return `<div class="revealline">
+    <section class="panel"><h3 class="center">How far each heart got</h3>
+      ${[...v.players].sort((a, b) => b.stage - a.stage).map(p => { const o = v.players[p.crush]; return `<div class="revealline">
         <span class="si">${p.seat.icon}</span>
-        <div class="rl-main"><b>${esc(p.name)}</b>${p.isAI ? ' <span class="ai-badge">AI</span>' : ''}
-          <div class="muted small">${heartGlyph(p.heart)} ${p.heart} · 💘 ${o.seat.icon} ${esc(o.name)}${mutual ? ' · <b class="pink">mutual!</b>' : ''} · ${CHARACTERS[p.guard].icon} ${CHARACTERS[p.guard].name}</div></div>
-        <div class="rl-score">${p.score >= 0 ? '+' : ''}${p.score}</div></div>`; }).join('')}
+        <div class="rl-main"><b>${esc(p.name)}</b>${p.isAI ? ' <span class="ai-badge">AI</span>' : ''}${p.id === v.winnerId ? ' <span class="hosttag">winner</span>' : ''}
+          <div class="muted small">${STAGES[p.stage] || '—'} ${STAGE_NAMES[p.stage]} · 💘 ${o.seat.icon} ${esc(o.name)}${p.soulmate ? ' · <b class="pink">mutual! 💞</b>' : ''}</div></div>
+      </div>`; }).join('')}
     </section>
     <button class="btn primary big" id="again">Play again ❤️</button>`;
   $('#again').onclick = leaveToHome;
@@ -337,9 +325,17 @@ function accountMenu() {
   });
 }
 function showRules() {
-  modal(`<h3>How to play</h3><p class="small">Everyone secretly <b>aims their Heart at another player</b> (your crush) and picks a <b>Protector</b>. On your turn: <b>draw 1, play 1.</b></p>
-    <ul class="small"><li>💔 Heartbreak — strip a Protector or crack a bare Heart</li><li>⚔ Warrior — add a 🛡 Protector to your Heart</li><li>🤝 Friendzone — void a crush on you</li><li>☾ Dreamer — be untouchable</li><li>✦ Sage — peek a secret</li><li>⚯ Traitor — steal a card</li><li>◊ Fool — copy any character</li><li>💘 Crush — public flirt; mutual scores +2</li><li>💍 Devotion — repair, or declare your crush (mutual = Soulmates)</li></ul>
-    <p class="small">Deck runs out → Reveal. Whole +3 · Cracked +1 · Broken −2 · Mutual +5. Most points wins.</p>
+  modal(`<h3>How to play</h3>
+    <p class="small">You secretly <b>fancy one player</b>. On your turn: <b>draw 1, play 1.</b> The goal: <b>build your romance up 4 stages to 💍 Devotion before rivals break your heart.</b></p>
+    <ul class="small">
+      <li>❤️ <b>Moment</b> — grow your romance one stage (👀→🌹→💋→💍).</li>
+      <li>💔 <b>Heartbreak</b> — knock a rival <b>back</b> one stage.</li>
+      <li>🛡️ <b>Guardian</b> — shield yourself from the next Heartbreak/Friendzone.</li>
+      <li>🤝 <b>Friendzone</b> — a rival loses their next turn.</li>
+      <li>👀 <b>Glance</b> — secretly see who a player fancies.</li>
+      <li>💘 <b>Sway</b> — re-aim your own secret crush.</li>
+    </ul>
+    <p class="small">First to <b>💍 Devotion</b> wins the love. If you built toward each other, you're <b>Soulmates 💞</b>. (Deck runs out → whoever got closest wins.)</p>
     <button class="btn primary" id="x">Got it</button>`, () => $('#x').onclick = closeModal);
 }
 
@@ -402,10 +398,11 @@ function cues(prev, v) {
   if (!prev || prev.phase !== 'play' || v.phase !== 'play') { if (v.phase === 'play' && v.turn === v.youAre) SFX.turn(); S.wasMyTurn = v.turn === v.youAre; return; }
   const top = v.log[0];
   if (top && top !== S.lastLogTop) {
-    if (/BROKEN|💔 wounds/.test(top)) SFX.hit();
-    else if (/sends a 💘/.test(top)) SFX.crush();
-    else if (/raises a ⚔/.test(top)) SFX.shield();
+    if (/breaks .*heart|💔/.test(top)) SFX.hit();
+    else if (/grows closer/.test(top)) SFX.crush();
+    else if (/guards their heart/.test(top)) SFX.shield();
     else if (/friendzones/.test(top)) SFX.friendzone();
+    else if (/eye wanders|reads the room/.test(top)) SFX.click();
     else SFX.play();
   }
   S.lastLogTop = top;

@@ -90,7 +90,7 @@ function onBegin(ws) {
 function onSetSecret(ws, m) {
   const room = rooms.get(ws.roomCode); if (!room || !room.started || room.state.phase !== 'setup') return;
   const seat = seatOf(room, ws.id); if (seat < 0) return;
-  if (!engine.setSecret(room.state, seat, { guard: m.guard, crush: m.crush }))
+  if (!engine.setSecret(room.state, seat, { crush: m.crush }))
     return send(ws, { type: 'error', error: 'invalid secret choice' });
   broadcastState(room);
   maybeStartPlay(room);
@@ -124,7 +124,8 @@ function driveAI(room) {
     const cur = room.seats[room.state.turn];
     if (!cur || !cur.isAI) return;            // human's turn — wait
     const action = engine.aiAction(room.state, room.state.turn);
-    const res = engine.applyAction(room.state, room.state.turn, action);
+    let res = engine.applyAction(room.state, room.state.turn, action);
+    if (!res.ok) res = engine.applyAction(room.state, room.state.turn, { cardIndex: 0, discard: true }); // safety: never stall
     deliverPrivate(room, res.privateOut);
     broadcastState(room);
     afterTurn(room);
@@ -153,7 +154,7 @@ async function persist(room) {
     players: room.seats.map((seat, i) => {
       const p = s.players[i];
       return { userId: seat.userId, seat: i, name: p.name, isAI: p.isAI, score: p.score,
-        heart: engine.heartState(p), soulmate: p.soulmate, isWinner: i === s.winnerId };
+        heart: engine.statusOf(p), soulmate: p.soulmate, isWinner: i === s.winnerId };
     }),
   });
 }
