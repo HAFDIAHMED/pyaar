@@ -18,18 +18,24 @@ try {
 function save() { try { mkdirSync(dataDir, { recursive: true }); writeFileSync(file, JSON.stringify(db, null, 2)); } catch {} }
 
 export const usersRepo = {
-  async create(username, passwordHash) {
+  async create(username, passwordHash, email) {
     const id = ++db.seq.users;
-    db.users.push({ id, username, passwordHash, createdAt: new Date().toISOString() });
+    db.users.push({ id, username, email: email ? String(email).toLowerCase() : null, passwordHash, createdAt: new Date().toISOString() });
     save(); return id;
   },
   async findByUsername(username) {
     const u = db.users.find(x => x.username.toLowerCase() === String(username).toLowerCase());
-    return u ? { id: u.id, username: u.username, passwordHash: u.passwordHash } : null;
+    return u ? { id: u.id, username: u.username, email: u.email || null, passwordHash: u.passwordHash } : null;
+  },
+  async findByEmail(email) {
+    const e = String(email || '').toLowerCase();
+    if (!e) return null;
+    const u = db.users.find(x => (x.email || '').toLowerCase() === e);
+    return u ? { id: u.id, username: u.username, email: u.email, passwordHash: u.passwordHash } : null;
   },
   async findById(id) {
     const u = db.users.find(x => x.id === id);
-    return u ? { id: u.id, username: u.username, createdAt: u.createdAt } : null;
+    return u ? { id: u.id, username: u.username, email: u.email || null, createdAt: u.createdAt } : null;
   },
 };
 

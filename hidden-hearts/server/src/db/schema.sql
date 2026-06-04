@@ -5,10 +5,21 @@
 CREATE TABLE users (
   id            NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   username      VARCHAR2(32) NOT NULL,
+  email         VARCHAR2(160),
   password_hash VARCHAR2(100) NOT NULL,
   created_at    TIMESTAMP DEFAULT SYSTIMESTAMP,
-  CONSTRAINT uq_users_username UNIQUE (username)
+  CONSTRAINT uq_users_username UNIQUE (username),
+  CONSTRAINT uq_users_email    UNIQUE (email)
 )
+;
+
+-- Idempotent column add for installs created before the email column existed.
+-- migrate.js ignores ORA-01430 ("column being added already exists"), so this
+-- block is safe to re-run on both fresh and upgraded databases.
+ALTER TABLE users ADD email VARCHAR2(160)
+;
+
+ALTER TABLE users ADD CONSTRAINT uq_users_email UNIQUE (email)
 ;
 
 CREATE TABLE games (

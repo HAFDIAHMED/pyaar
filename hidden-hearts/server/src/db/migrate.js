@@ -23,7 +23,10 @@ async function main() {
       ok++;
       console.log('  ✓', stmt.split('\n')[0].slice(0, 60));
     } catch (e) {
-      if (e.errorNum === 955 || e.errorNum === 1408 || e.errorNum === 2275) {
+      // 955 = object already exists, 1408 = column already indexed,
+      // 2275 = constraint already exists, 1430 = column already exists,
+      // 1442 = column already nullable. All safe to skip on re-run.
+      if (e.errorNum === 955 || e.errorNum === 1408 || e.errorNum === 2275 || e.errorNum === 1430 || e.errorNum === 1442) {
         skipped++;
         console.log('  • exists, skipped:', stmt.split('\n')[0].slice(0, 60));
       } else {

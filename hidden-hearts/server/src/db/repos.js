@@ -1,23 +1,34 @@
 import { query, oracledb } from './pool.js';
 
 export const usersRepo = {
-  async create(username, passwordHash) {
+  async create(username, passwordHash, email) {
     const r = await query(
-      `INSERT INTO users (username, password_hash) VALUES (:u, :h)
+      `INSERT INTO users (username, password_hash, email) VALUES (:u, :h, :e)
        RETURNING id INTO :id`,
-      { u: username, h: passwordHash, id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER } }
+      {
+        u: username, h: passwordHash, e: email ? String(email).toLowerCase() : null,
+        id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
+      }
     );
     return r.outBinds.id[0];
   },
   async findByUsername(username) {
     const r = await query(
-      `SELECT id AS "id", username AS "username", password_hash AS "passwordHash"
-       FROM users WHERE username = :u`, { u: username });
+      `SELECT id AS "id", username AS "username", email AS "email", password_hash AS "passwordHash"
+       FROM users WHERE LOWER(username) = LOWER(:u)`, { u: username });
+    return r.rows[0] || null;
+  },
+  async findByEmail(email) {
+    const e = String(email || '').toLowerCase();
+    if (!e) return null;
+    const r = await query(
+      `SELECT id AS "id", username AS "username", email AS "email", password_hash AS "passwordHash"
+       FROM users WHERE LOWER(email) = :e`, { e });
     return r.rows[0] || null;
   },
   async findById(id) {
     const r = await query(
-      `SELECT id AS "id", username AS "username", created_at AS "createdAt"
+      `SELECT id AS "id", username AS "username", email AS "email", created_at AS "createdAt"
        FROM users WHERE id = :id`, { id });
     return r.rows[0] || null;
   },

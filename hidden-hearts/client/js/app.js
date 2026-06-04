@@ -351,25 +351,160 @@ async function showLeaderboard() {
 }
 
 // ---------- auth ----------
-function authModal(tab = 'login') {
-  modal(`<h3 class="center">${tab === 'login' ? 'Sign in' : 'Create account'}</h3>
-    <div class="tabs"><button class="tab ${tab === 'login' ? 'on' : ''}" id="tab-login">Sign in</button><button class="tab ${tab === 'register' ? 'on' : ''}" id="tab-reg">Register</button></div>
-    <input class="inp" id="u" placeholder="username" autocomplete="username" />
-    <input class="inp" id="p" type="password" placeholder="password" autocomplete="current-password" />
-    <button class="btn primary" id="go">${tab === 'login' ? 'Sign in' : 'Register'}</button>
-    <button class="btn ghost" id="x">Cancel</button>
-    <div class="err" id="err"></div>`, () => {
-    $('#tab-login').onclick = () => authModal('login');
-    $('#tab-reg').onclick = () => authModal('register');
-    $('#x').onclick = closeModal;
-    $('#go').onclick = async () => {
-      const username = $('#u').value.trim(), password = $('#p').value;
-      const path = tab === 'login' ? '/api/auth/login' : '/api/auth/register';
-      const { status, data } = await api.post(path, { username, password });
-      if (status === 200) { S.token = data.token; S.user = data.user; localStorage.setItem('hh_token', S.token); localStorage.setItem('hh_user', JSON.stringify(S.user)); refreshWho(); closeModal(); toast(`Welcome, ${S.user.username}!`); ensurePresenceConnection(); }
-      else { $('#err').textContent = data.error || 'failed'; if (status === 503) $('#err').textContent = 'Accounts need a database — connect Oracle to enable sign-in. You can still play as a guest.'; }
-    };
+// ===================================================================
+// AUTH MODALS
+// Register is a two-step flow:
+//   step 1 — just type an email
+//   step 2 — pick / edit a suggested username, set / generate a password
+//            (with show/hide + regenerate buttons)
+// Sign-in is a single screen that accepts username OR email.
+// ===================================================================
+
+function authModal(mode = 'login') {
+  mode === 'register' ? renderRegisterStep1() : renderSignIn();
+}
+
+const inputStyle = 'width:100%; box-sizing:border-box; margin:6px 0; padding:11px 12px; background:#160d1a; border:1px solid #3c2a42; color:#f3e9df; border-radius:8px; font-size:15px;';
+
+function renderSignIn(prefill = {}) {
+  modal(`<h3 class="center">Sign in</h3>
+    <input id="auth-id" placeholder="username or email" autocomplete="username" value="${esc(prefill.id || '')}" style="${inputStyle}" />
+    <div style="position:relative;">
+      <input id="auth-pw" type="password" placeholder="password" autocomplete="current-password" style="${inputStyle} padding-right:42px;" />
+      <button type="button" id="auth-eye" aria-label="show password" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:transparent; border:0; color:#b6a3b0; font-size:18px; cursor:pointer;">👁</button>
+    </div>
+    <div class="err" id="err" style="color:#e85c86; font-size:13px; min-height:18px; margin:4px 0;"></div>
+    <button class="btn primary" id="go">Sign in →</button>
+    <div style="text-align:center; color:#b6a3b0; margin:10px 0 6px; font-size:13px;">No account?</div>
+    <button class="btn ghost" id="toreg">Create one with your email</button>
+    <button class="btn ghost" id="x">Cancel</button>`, () => {
+    setupPasswordEye('auth-pw', 'auth-eye');
+    document.getElementById('toreg').onclick = () => { closeModal(); renderRegisterStep1(); };
+    document.getElementById('x').onclick = closeModal;
+    document.getElementById('auth-id').focus();
+    document.getElementById('go').onclick = doSignIn;
+    document.getElementById('auth-pw').addEventListener('keydown', e => { if (e.key === 'Enter') doSignIn(); });
+    document.getElementById('auth-id').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('auth-pw').focus(); });
   });
+}
+
+async function doSignIn() {
+  const id = document.getElementById('auth-id').value.trim();
+  const pw = document.getElementById('auth-pw').value;
+  const err = document.getElementById('err');
+  if (!id || !pw) { err.textContent = 'Type your username/email and password.'; return; }
+  const { status, data } = await api.post('/api/auth/login', { username: id, password: pw });
+  if (status === 200) {
+    S.token = data.token; S.user = data.user;
+    localStorage.setItem('hh_token', S.token);
+    localStorage.setItem('hh_user', JSON.stringify(S.user));
+    refreshWho(); closeModal();
+    toast(`Welcome back, ${S.user.username}!`);
+    ensurePresenceConnection();
+  } else err.textContent = data.error || 'Sign-in failed.';
+}
+
+function renderRegisterStep1(prefill = '') {
+  modal(`<h3 class="center">Create your account</h3>
+    <p class="muted small center" style="margin:6px 0 14px;">Start with just your email — we'll handle the rest.</p>
+    <input id="reg-email" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" value="${esc(prefill)}" style="${inputStyle}" />
+    <div class="err" id="err" style="color:#e85c86; font-size:13px; min-height:18px; margin:4px 0;"></div>
+    <button class="btn primary" id="next">Continue →</button>
+    <div style="text-align:center; color:#b6a3b0; margin:10px 0 6px; font-size:13px;">Already have one?</div>
+    <button class="btn ghost" id="tologin">Sign in instead</button>
+    <button class="btn ghost" id="x">Cancel</button>`, () => {
+    const inp = document.getElementById('reg-email');
+    inp.focus();
+    document.getElementById('x').onclick = closeModal;
+    document.getElementById('tologin').onclick = () => { closeModal(); renderSignIn(); };
+    const submit = async () => {
+      const email = inp.value.trim().toLowerCase();
+      const err = document.getElementById('err');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = 'That doesn\'t look like a valid email.'; return; }
+      const { status, data } = await api.post('/api/auth/check-email', { email });
+      if (status === 200) renderRegisterStep2({ email, username: data.suggestedUsername });
+      else if (status === 409) { err.innerHTML = `${esc(data.error)} <a href="#" id="goin" style="color:#e0a458;">Sign in →</a>`; document.getElementById('goin').onclick = e => { e.preventDefault(); closeModal(); renderSignIn({ id: email }); }; }
+      else err.textContent = data.error || 'Could not check that email.';
+    };
+    document.getElementById('next').onclick = submit;
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+  });
+}
+
+function renderRegisterStep2({ email, username }) {
+  const startingPassword = generatePassword();
+  modal(`<h3 class="center">One more step</h3>
+    <p class="muted small center" style="margin:4px 0 12px;">${esc(email)}</p>
+
+    <label class="muted small" style="display:block; margin-top:4px;">Your username (people will see this)</label>
+    <input id="reg-username" autocomplete="username" maxlength="24" value="${esc(username)}" style="${inputStyle}" />
+    <div id="uname-hint" class="muted small" style="font-size:12px; margin-top:-2px;">2–24 letters, digits, or underscore.</div>
+
+    <label class="muted small" style="display:block; margin-top:12px;">Password</label>
+    <div style="position:relative;">
+      <input id="reg-pw" type="password" autocomplete="new-password" value="${esc(startingPassword)}" style="${inputStyle} padding-right:78px;" />
+      <button type="button" id="reg-eye"  aria-label="show password" style="position:absolute; right:38px; top:50%; transform:translateY(-50%); background:transparent; border:0; color:#b6a3b0; font-size:18px; cursor:pointer;">👁</button>
+      <button type="button" id="reg-roll" aria-label="suggest a new password" title="Suggest a new password" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:transparent; border:0; color:#e0a458; font-size:18px; cursor:pointer;">🔄</button>
+    </div>
+    <div class="muted small" style="font-size:12px; margin-top:2px;">We picked one for you — feel free to type your own. Min 6 characters.</div>
+
+    <div class="err" id="err" style="color:#e85c86; font-size:13px; min-height:18px; margin:8px 0 4px;"></div>
+    <button class="btn primary" id="create">Create account ✨</button>
+    <button class="btn ghost" id="back">← Back</button>`, () => {
+    setupPasswordEye('reg-pw', 'reg-eye');
+    document.getElementById('reg-roll').onclick = () => { document.getElementById('reg-pw').value = generatePassword(); document.getElementById('reg-pw').type = 'text'; document.getElementById('reg-eye').textContent = '🙈'; };
+    document.getElementById('back').onclick = () => { closeModal(); renderRegisterStep1(email); };
+    document.getElementById('create').onclick = doRegister;
+    document.getElementById('reg-username').focus();
+    document.getElementById('reg-username').select();
+    // Hide-on-blur for the username hint
+    const uname = document.getElementById('reg-username');
+    uname.addEventListener('input', () => {
+      const v = uname.value;
+      const ok = /^[a-zA-Z0-9_]{2,24}$/.test(v);
+      document.getElementById('uname-hint').style.color = ok ? '#3a9a6a' : '#b6a3b0';
+      document.getElementById('uname-hint').textContent = ok ? '✓ looks good' : '2–24 letters, digits, or underscore.';
+    });
+    async function doRegister() {
+      const username = document.getElementById('reg-username').value.trim();
+      const password = document.getElementById('reg-pw').value;
+      const err = document.getElementById('err');
+      if (!/^[a-zA-Z0-9_]{2,24}$/.test(username)) { err.textContent = 'Pick a username (2–24 letters / digits / _).'; return; }
+      if (password.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+      const { status, data } = await api.post('/api/auth/register', { email, username, password });
+      if (status === 200) {
+        S.token = data.token; S.user = data.user;
+        localStorage.setItem('hh_token', S.token);
+        localStorage.setItem('hh_user', JSON.stringify(S.user));
+        refreshWho(); closeModal();
+        toast(`Welcome, ${S.user.username}! 💞`);
+        ensurePresenceConnection();
+      } else err.textContent = data.error || 'Registration failed.';
+    }
+  });
+}
+
+// Small helper: toggle a password input between password/text and swap the eye icon.
+function setupPasswordEye(inputId, btnId) {
+  const inp = document.getElementById(inputId);
+  const btn = document.getElementById(btnId);
+  if (!inp || !btn) return;
+  btn.onclick = () => {
+    const show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    btn.textContent = show ? '🙈' : '👁';
+    btn.setAttribute('aria-label', show ? 'hide password' : 'show password');
+  };
+}
+
+// Generate a friendly, memorable-ish password: word + digits + symbol.
+function generatePassword() {
+  const adjectives = ['Velvet','Crimson','Moonlit','Silver','Golden','Ember','Coral','Lyric','Lotus','Jasmine','Sable','Bright','Quiet','Wild','Tender','Bold'];
+  const nouns = ['Heart','Bloom','Tide','River','Spark','Petal','Dawn','Whisper','Ember','Note','Star','Vow','Dream','Flame','Halo','Garden'];
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const n = Math.floor(Math.random() * 90 + 10);
+  const sym = '!?$#&'.charAt(Math.floor(Math.random() * 5));
+  return `${pick(adjectives)}-${pick(nouns)}-${n}${sym}`;
 }
 function accountMenu() {
   modal(`<h3 class="center">👤 ${esc(S.user.username)}</h3>
