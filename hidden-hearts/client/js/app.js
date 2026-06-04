@@ -28,7 +28,17 @@ $('#home-link').onclick = () => leaveToHome();
 // ============================================================ SCREENS
 function renderHome() {
   S.screen = 'home';
+  const greeting = S.user ? `
+    <section class="home-greeting">
+      <div class="gi">${heartFor(S.user.username)}</div>
+      <div class="gtxt">
+        <div class="hi">Signed in</div>
+        <div class="nm">${esc(S.user.username)}</div>
+      </div>
+      <div class="badge">● online</div>
+    </section>` : '';
   app.innerHTML = `
+    ${greeting}
     <section class="hero">
       <div class="logo">❤</div>
       <h1 class="title">PYAAR</h1>
@@ -364,14 +374,12 @@ function authModal(mode = 'login') {
   mode === 'register' ? renderRegisterStep1() : renderSignIn();
 }
 
-const inputStyle = 'width:100%; box-sizing:border-box; margin:6px 0; padding:11px 12px; background:#160d1a; border:1px solid #3c2a42; color:#f3e9df; border-radius:8px; font-size:15px;';
-
 function renderSignIn(prefill = {}) {
   modal(`<h3 class="center">Sign in</h3>
-    <input id="auth-id" placeholder="username or email" autocomplete="username" value="${esc(prefill.id || '')}" style="${inputStyle}" />
+    <input id="auth-id" placeholder="username or email" autocomplete="username" value="${esc(prefill.id || '')}" class="auth-input" />
     <div style="position:relative;">
-      <input id="auth-pw" type="password" placeholder="password" autocomplete="current-password" style="${inputStyle} padding-right:42px;" />
-      <button type="button" id="auth-eye" aria-label="show password" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:transparent; border:0; color:#b6a3b0; font-size:18px; cursor:pointer;">👁</button>
+      <input id="auth-pw" type="password" placeholder="password" autocomplete="current-password" class="auth-input" style="padding-right:42px;" />
+      <button type="button" id="auth-eye" class="pw-iconbtn" aria-label="show password" style="position:absolute; right:8px; top:50%; transform:translateY(-50%);">👁</button>
     </div>
     <div class="err" id="err" style="color:#e85c86; font-size:13px; min-height:18px; margin:4px 0;"></div>
     <button class="btn primary" id="go">Sign in →</button>
@@ -399,6 +407,7 @@ async function doSignIn() {
     localStorage.setItem('hh_token', S.token);
     localStorage.setItem('hh_user', JSON.stringify(S.user));
     refreshWho(); closeModal();
+    if (S.screen === 'home') renderHome();   // refresh so the greeting card shows
     toast(`Welcome back, ${S.user.username}!`);
     ensurePresenceConnection();
   } else err.textContent = data.error || 'Sign-in failed.';
@@ -407,7 +416,7 @@ async function doSignIn() {
 function renderRegisterStep1(prefill = '') {
   modal(`<h3 class="center">Create your account</h3>
     <p class="muted small center" style="margin:6px 0 14px;">Start with just your email — we'll handle the rest.</p>
-    <input id="reg-email" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" value="${esc(prefill)}" style="${inputStyle}" />
+    <input id="reg-email" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" value="${esc(prefill)}" class="auth-input" />
     <div class="err" id="err" style="color:#e85c86; font-size:13px; min-height:18px; margin:4px 0;"></div>
     <button class="btn primary" id="next">Continue →</button>
     <div style="text-align:center; color:#b6a3b0; margin:10px 0 6px; font-size:13px;">Already have one?</div>
@@ -437,14 +446,14 @@ function renderRegisterStep2({ email, username }) {
     <p class="muted small center" style="margin:4px 0 12px;">${esc(email)}</p>
 
     <label class="muted small" style="display:block; margin-top:4px;">Your username (people will see this)</label>
-    <input id="reg-username" autocomplete="username" maxlength="24" value="${esc(username)}" style="${inputStyle}" />
+    <input id="reg-username" autocomplete="username" maxlength="24" value="${esc(username)}" class="auth-input" />
     <div id="uname-hint" class="muted small" style="font-size:12px; margin-top:-2px;">2–24 letters, digits, or underscore.</div>
 
     <label class="muted small" style="display:block; margin-top:12px;">Password</label>
     <div style="position:relative;">
-      <input id="reg-pw" type="password" autocomplete="new-password" value="${esc(startingPassword)}" style="${inputStyle} padding-right:78px;" />
-      <button type="button" id="reg-eye"  aria-label="show password" style="position:absolute; right:38px; top:50%; transform:translateY(-50%); background:transparent; border:0; color:#b6a3b0; font-size:18px; cursor:pointer;">👁</button>
-      <button type="button" id="reg-roll" aria-label="suggest a new password" title="Suggest a new password" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:transparent; border:0; color:#e0a458; font-size:18px; cursor:pointer;">🔄</button>
+      <input id="reg-pw" type="password" autocomplete="new-password" value="${esc(startingPassword)}" class="auth-input" style="padding-right:78px;" />
+      <button type="button" id="reg-eye"  class="pw-iconbtn" aria-label="show password"        style="position:absolute; right:40px; top:50%; transform:translateY(-50%);">👁</button>
+      <button type="button" id="reg-roll" class="pw-iconbtn" aria-label="suggest a new password" title="Suggest a new password" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); color:#e0a458;">🔄</button>
     </div>
     <div class="muted small" style="font-size:12px; margin-top:2px;">We picked one for you — feel free to type your own. Min 6 characters.</div>
 
@@ -452,7 +461,14 @@ function renderRegisterStep2({ email, username }) {
     <button class="btn primary" id="create">Create account ✨</button>
     <button class="btn ghost" id="back">← Back</button>`, () => {
     setupPasswordEye('reg-pw', 'reg-eye');
-    document.getElementById('reg-roll').onclick = () => { document.getElementById('reg-pw').value = generatePassword(); document.getElementById('reg-pw').type = 'text'; document.getElementById('reg-eye').textContent = '🙈'; };
+    document.getElementById('reg-roll').onclick = () => {
+      const btn = document.getElementById('reg-roll');
+      btn.classList.remove('spin'); void btn.offsetWidth; btn.classList.add('spin');
+      const pw = document.getElementById('reg-pw');
+      pw.value = generatePassword(); pw.type = 'text';
+      const eye = document.getElementById('reg-eye');
+      eye.textContent = '🙈'; eye.classList.add('eye-shown');
+    };
     document.getElementById('back').onclick = () => { closeModal(); renderRegisterStep1(email); };
     document.getElementById('create').onclick = doRegister;
     document.getElementById('reg-username').focus();
@@ -471,15 +487,20 @@ function renderRegisterStep2({ email, username }) {
       const err = document.getElementById('err');
       if (!/^[a-zA-Z0-9_]{2,24}$/.test(username)) { err.textContent = 'Pick a username (2–24 letters / digits / _).'; return; }
       if (password.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+      const btn = document.getElementById('create');
+      btn.disabled = true; btn.textContent = 'Creating…';
       const { status, data } = await api.post('/api/auth/register', { email, username, password });
       if (status === 200) {
         S.token = data.token; S.user = data.user;
         localStorage.setItem('hh_token', S.token);
         localStorage.setItem('hh_user', JSON.stringify(S.user));
-        refreshWho(); closeModal();
-        toast(`Welcome, ${S.user.username}! 💞`);
+        refreshWho();
         ensurePresenceConnection();
-      } else err.textContent = data.error || 'Registration failed.';
+        showWelcomeBurst(S.user.username);
+      } else {
+        err.textContent = data.error || 'Registration failed.';
+        btn.disabled = false; btn.textContent = 'Create account ✨';
+      }
     }
   });
 }
@@ -493,8 +514,60 @@ function setupPasswordEye(inputId, btnId) {
     const show = inp.type === 'password';
     inp.type = show ? 'text' : 'password';
     btn.textContent = show ? '🙈' : '👁';
+    btn.classList.toggle('eye-shown', show);
     btn.setAttribute('aria-label', show ? 'hide password' : 'show password');
   };
+}
+
+// Pick a per-user emoji based on the username — purely cosmetic, stable across renders.
+function heartFor(name) {
+  const palette = ['🌹','🪷','🌙','🔥','🦚','🌼','⭐','💞','✨','🌷'];
+  let h = 0; for (const c of String(name || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return palette[h % palette.length];
+}
+
+// Show a celebratory "welcome" burst inside the active modal, then dissolve to
+// the freshly-personalised home screen.
+function showWelcomeBurst(username) {
+  const host = document.getElementById('modal-host');
+  if (!host) return;
+  const modalEl = host.querySelector('.modal');
+  // Replace modal body with the burst
+  host.innerHTML = `<div class="overlay"><div class="modal" style="position:relative; overflow:visible;">
+    <div class="welcome-burst">
+      <div class="heart">💞</div>
+      <h2>Welcome to PYAAR</h2>
+      <div class="who">${esc(username)} <span class="muted small">· you're signed in</span></div>
+      <div class="sub">Loading your table…</div>
+    </div>
+    <div id="confetti-host" style="position:absolute; inset:0; pointer-events:none; overflow:hidden;"></div>
+  </div></div>`;
+  // Sprinkle a handful of confetti hearts
+  const cf = document.getElementById('confetti-host');
+  if (cf) {
+    const emojis = ['💗','💖','💞','✨','🌹','💕'];
+    for (let i = 0; i < 16; i++) {
+      const span = document.createElement('span');
+      span.className = 'confetti';
+      span.textContent = emojis[i % emojis.length];
+      const x = (Math.random() * 280 - 140) | 0;
+      const y = (Math.random() * 220 + 80) | 0;
+      const r = ((Math.random() * 720) - 360) | 0;
+      span.style.left = '50%';
+      span.style.top = '30%';
+      span.style.setProperty('--cx', x + 'px');
+      span.style.setProperty('--cy', y + 'px');
+      span.style.setProperty('--cr', r + 'deg');
+      span.style.animationDelay = (Math.random() * 0.25).toFixed(2) + 's';
+      cf.appendChild(span);
+    }
+  }
+  // After the moment, fade out and re-render home
+  setTimeout(() => {
+    closeModal();
+    renderHome();
+    toast(`You're in — let's play, ${username}!`);
+  }, 1700);
 }
 
 // Generate a friendly, memorable-ish password: word + digits + symbol.
@@ -512,7 +585,7 @@ function accountMenu() {
     <button class="btn ghost" id="out">Sign out</button>
     <button class="btn ghost" id="x">Close</button>`, () => {
     $('#lb').onclick = () => { closeModal(); showLeaderboard(); };
-    $('#out').onclick = () => { S.token = null; S.user = null; localStorage.removeItem('hh_token'); localStorage.removeItem('hh_user'); refreshWho(); closeModal(); };
+    $('#out').onclick = () => { S.token = null; S.user = null; localStorage.removeItem('hh_token'); localStorage.removeItem('hh_user'); refreshWho(); closeModal(); if (S.screen === 'home') renderHome(); };
     $('#x').onclick = closeModal;
   });
 }
