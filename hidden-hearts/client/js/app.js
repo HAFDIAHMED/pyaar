@@ -405,23 +405,81 @@ async function inviteFriendFromHome() {
 }
 
 
+// Build a shareable join link for a table code.
+// Using ?join=CODE so the URL is human-readable and one-click on phones.
+function tableShareUrl(code) {
+  const u = new URL(window.location.href);
+  u.search = '?join=' + encodeURIComponent(code);
+  u.hash = '';
+  return u.toString();
+}
+
 function renderLobby() {
   clearFloaters();
   const r = S.room; if (!r) return;
   const isHost = r.youSeat === r.hostSeat;
   const isPrivate = r.visibility === 'private';
   const pending = isHost ? (r.pending || []) : [];
+  const TOTAL_SEATS = 7;
+  const free = TOTAL_SEATS - r.seats.length;
+  const canBegin = r.seats.length >= 3;
+  const shareUrl = tableShareUrl(r.code);
+
+  // Build the seat ring HTML — actual taken seats with avatars + names,
+  // free seats as dashed "+ open seat" chairs.
+  const seatRing = [];
+  for (let i = 0; i < TOTAL_SEATS; i++) {
+    const s = r.seats[i];
+    if (!s) {
+      seatRing.push(`<div class="ring-seat empty" style="--n:${i}; --of:${TOTAL_SEATS}"><div class="ring-blank">+</div><div class="ring-name muted">open</div></div>`);
+      continue;
+    }
+    const tag = i === r.hostSeat ? '<span class="ring-host">★</span>' : '';
+    const me = i === r.youSeat;
+    const ai = s.isAI;
+    if (ai) {
+      seatRing.push(`<div class="ring-seat bot" style="--n:${i}; --of:${TOTAL_SEATS}">${avatarFor(s.name, { size: 40 })}${tag}<div class="ring-name muted">${esc(s.name)} <span class="ai-badge">AI</span></div></div>`);
+    } else {
+      seatRing.push(`<div class="ring-seat ${me ? 'you' : ''}" style="--n:${i}; --of:${TOTAL_SEATS}">${avatarFor(s.name, { size: 44, withRing: me })}${tag}<div class="ring-name ${me ? '' : 'muted'}">${esc(s.name)}${me ? ' (you)' : ''}</div></div>`);
+    }
+  }
+
   app.innerHTML = `
-    <section class="panel center">
-      <div class="muted small">Room code — share it</div>
-      <div class="roomcode" id="code">${esc(r.code)}</div>
-      <div class="grid2" style="margin-top:8px">
-        <button class="btn sm" id="copy">📋 Copy code</button>
-        <button class="btn sm ${isPrivate ? 'ghost' : ''}" id="vis-toggle" ${isHost ? '' : 'disabled'}>
-          ${isPrivate ? '🔒 Private — only invited' : '🟢 Public — on the floor'}
+    <!-- BIG ROOM CODE HEADER — front and center so the host can share it instantly -->
+    <section class="code-banner">
+      <div class="cb-label">YOUR TABLE</div>
+      <div class="cb-code">
+        <span class="cb-letters" id="cb-letters">${esc(r.code)}</span>
+        <button class="cb-iconbtn" id="copy" data-tip="Copy code to clipboard">📋</button>
+        <button class="cb-iconbtn" id="share" data-tip="Share invite link">🔗</button>
+      </div>
+      <div class="cb-meta">
+        <button class="cb-chip ${isPrivate ? 'private' : 'public'}" id="vis-toggle" ${isHost ? '' : 'disabled'} data-tip="${isHost ? 'Tap to toggle visibility' : 'Only the host can change this'}">
+          ${isPrivate ? '🔒 Private' : '🟢 Public on the floor'}
         </button>
+        <span class="cb-seat-count">${r.seats.length}/${TOTAL_SEATS} seated · ${free} open</span>
       </div>
     </section>
+
+    <!-- THE TABLE — real felt with seats arranged in a ring -->
+    <section class="lobby-table-wrap">
+      <div class="lobby-table lobby-live">
+        <div class="lobby-felt">
+          <div class="felt-rail"></div>
+          <div class="seat-ring">${seatRing.join('')}</div>
+          <div class="table-center">
+            <div class="card-stack" aria-hidden="true">
+              <span class="csc c1"></span><span class="csc c2"></span><span class="csc c3"></span>
+            </div>
+            <div class="lobby-table-msg">
+              ${canBegin ? '<b>Ready when you are</b>' : `<b>Need ${3 - r.seats.length} more</b>`}
+              <span>${r.seats.length}/${TOTAL_SEATS} seated</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     ${pending.length ? `
     <section class="panel pending-panel">
       <h4 class="center">🚪 Waiting at the door</h4>
@@ -434,38 +492,110 @@ function renderLobby() {
         </div>`).join('')}
       </div>
     </section>` : ''}
-    <section class="panel">
-      <h3 class="center">At the table (${r.seats.length}/7)</h3>
-      <div class="seatlist">
-        ${r.seats.map((s, i) => `<div class="seatline ${i === r.youSeat ? 'you' : ''}">
-          ${s.isAI ? `<span class="si">${SEATS[i].icon}</span>` : avatarFor(s.name, { size: 32 })}
-          <span class="sn">${esc(s.name)}${i === r.hostSeat ? ' <span class="hosttag">host</span>' : ''}${s.isAI ? ' <span class="ai-badge">AI</span>' : ''}${i === r.youSeat ? ' <span class="muted">(you)</span>' : ''}</span>
-          <span class="si right">${SEATS[i].icon}</span>
-        </div>`).join('')}
+
+    ${isHost && free > 0 ? `
+    <!-- INVITE PLAYERS — embedded friends strip + name search + add bot -->
+    <section class="invite-stage">
+      <div class="invite-head">
+        <span class="ih-label">👥 INVITE PLAYERS ONLINE</span>
+        <span class="muted small" id="lobby-online-count"></span>
       </div>
-      ${isHost ? `
-        <div class="grid2" style="margin-top:12px">
-          <button class="btn" id="addai" ${r.seats.length >= 7 ? 'disabled' : ''}>＋ Add computer</button>
-          <button class="btn primary" id="begin" ${r.seats.length < 3 ? 'disabled' : ''}>Begin (${r.seats.length}/3+)</button>
-        </div>
-        <button class="btn" id="inviteUser" style="margin-top:8px" ${r.seats.length >= 7 ? 'disabled' : ''}>👋 Invite a player by username</button>
-        ` : `<p class="center muted">Waiting for the host to begin…</p>`}
-    </section>
-    <button class="btn ghost" id="leave">← Leave room</button>`;
-  $('#copy').onclick = () => { navigator.clipboard?.writeText(r.code); toast('Code copied'); };
+      <div class="friends-row lobby-friends" id="lobby-friends">
+        <div class="muted small" style="padding:14px">looking around the room…</div>
+      </div>
+      <div class="invite-actions">
+        <button class="btn" id="inviteUser">👋 Invite by username</button>
+        <button class="btn" id="addai" ${free <= 0 ? 'disabled' : ''}>🤖 Add computer</button>
+      </div>
+    </section>` : ''}
+
+    ${isHost ? `
+      <button class="btn primary big begin-btn" id="begin" ${canBegin ? '' : 'disabled'}>
+        ${canBegin ? '▶ BEGIN GAME' : `Need ${3 - r.seats.length} more to start`}
+      </button>` : '<p class="center muted">Waiting for the host to begin…</p>'}
+
+    <button class="btn ghost" id="leave">← Leave table</button>`;
+
+  $('#copy').onclick = () => copyTableCode(r.code);
+  $('#share').onclick = () => shareTableLink(r.code, shareUrl);
   $('#leave').onclick = leaveToHome;
   if (isHost) {
-    $('#addai').onclick = () => { SFX.click(); S.net.send({ type: 'addAI' }); };
-    $('#begin').onclick = () => { SFX.resume(); SFX.shuffle(); S.net.send({ type: 'begin' }); };
-    $('#inviteUser').onclick = openInviteUserModal;
-    $('#vis-toggle').onclick = () => {
+    $('#begin')?.addEventListener('click', () => { if (!canBegin) return; SFX.resume(); SFX.shuffle(); S.net.send({ type: 'begin' }); });
+    $('#addai')?.addEventListener('click', () => { SFX.click(); S.net.send({ type: 'addAI' }); });
+    $('#inviteUser')?.addEventListener('click', openInviteUserModal);
+    $('#vis-toggle')?.addEventListener('click', () => {
       SFX.click?.();
       S.net.send({ type: 'setVisibility', visibility: isPrivate ? 'public' : 'private' });
-    };
-    // Accept / decline buttons on each pending-row
+    });
     document.querySelectorAll('.p-ok').forEach(b => b.onclick = () => { SFX.click?.(); S.net.send({ type: 'joinResponse', clientId: b.dataset.cid, accept: true  }); });
     document.querySelectorAll('.p-no').forEach(b => b.onclick = () => { SFX.click?.(); S.net.send({ type: 'joinResponse', clientId: b.dataset.cid, accept: false }); });
+    if (free > 0) refreshLobbyFriends();
   }
+}
+
+// Copy with a satisfying flash on the code letters.
+function copyTableCode(code) {
+  SFX.click?.();
+  navigator.clipboard?.writeText(code);
+  toast('Table code copied');
+  const el = $('#cb-letters'); if (el) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+}
+
+// Use the OS share sheet if available (mobile), otherwise copy the link.
+async function shareTableLink(code, url) {
+  SFX.click?.();
+  const text = `Come play PYAAR with me — table ${code}.`;
+  if (navigator.share) {
+    try { await navigator.share({ title: 'PYAAR table ' + code, text, url }); return; }
+    catch { /* user dismissed */ }
+  }
+  try { await navigator.clipboard.writeText(url); toast('Invite link copied'); }
+  catch { toast('Could not share. Copy the code instead.'); }
+}
+
+// Friends strip inside the lobby — tap a face → send them an invite to THIS table.
+async function refreshLobbyFriends() {
+  let users = [];
+  try { const { data } = await api.get('/api/online'); users = data?.users || []; }
+  catch { return; }
+  // Hide anyone already seated at this table, plus the user themselves.
+  const seated = new Set((S.room?.seats || []).map(s => (s.name || '').toLowerCase()));
+  const others = users.filter(u => {
+    if (S.user && u.username === S.user.username) return false;
+    return !seated.has(u.username.toLowerCase());
+  });
+  const el = $('#lobby-friends'); if (!el) return;
+  const countEl = $('#lobby-online-count'); if (countEl) countEl.textContent = others.length ? `${others.length} online` : 'no one else online';
+  if (!others.length) {
+    el.innerHTML = `<div class="friends-empty">
+      <div class="big">🌙</div>
+      <div>No one else online right now.</div>
+      <div class="muted small">Use <b>📋 Copy</b> or <b>🔗 Share</b> above to send your friend the table code.</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = others.slice(0, 12).map(u => `
+    <button class="friend-bubble" data-name="${esc(u.username)}" data-tip="Invite ${esc(u.username)}">
+      ${avatarFor(u.username, { size: 52, withRing: true })}
+      <span class="fb-dot" aria-label="online"></span>
+      <span class="fb-name">${esc(u.username)}</span>
+    </button>`).join('');
+  el.querySelectorAll('.friend-bubble').forEach(b => {
+    b.onclick = () => {
+      SFX.click?.();
+      const target = b.dataset.name;
+      // Use the existing WS invite — we're already in our own room.
+      S.net.send({ type: 'inviteUser', username: target });
+      // Optimistic UI: dim the bubble + show "invited"
+      b.classList.add('invited');
+      const orig = b.querySelector('.fb-name'); if (orig) orig.textContent = '✓ invited';
+    };
+  });
+  // Light auto-refresh while in the lobby
+  if (!S.lobbyOnlineTimer) S.lobbyOnlineTimer = setInterval(() => {
+    if (S.room && S.screen !== 'home') refreshLobbyFriends();
+    else { clearInterval(S.lobbyOnlineTimer); S.lobbyOnlineTimer = null; }
+  }, 8000);
 }
 
 // Host clicks "Invite a player by username" — prompt for the name, send via WS.
@@ -996,7 +1126,19 @@ function showWelcomeBurst(username) {
       cf.appendChild(span);
     }
   }
-  setTimeout(() => { closeModal(); toast(`Welcome, ${username}! Dealing your first hand…`); try { playVsComputer(); } catch (e) { renderHome(); } }, 1500);
+  setTimeout(() => {
+    closeModal();
+    // If they signed in to follow a shared invite link, jump straight to
+    // that table instead of dealing a solo game.
+    if (S.pendingDeepJoin) {
+      const code = S.pendingDeepJoin; S.pendingDeepJoin = null;
+      toast(`Welcome, ${username}! Joining table ${code}…`);
+      try { joinTableByCode(code); } catch { renderHome(); }
+      return;
+    }
+    toast(`Welcome, ${username}! Dealing your first hand…`);
+    try { playVsComputer(); } catch (e) { renderHome(); }
+  }, 1500);
 }
 function accountMenu() {
   modal(`<div class="account-head">
@@ -1489,10 +1631,41 @@ function mountFiligree() {
   }
 }
 
+// Pick up a ?join=CODE deep link in the URL and try to join automatically.
+// Designed for share-sheet flows: "Come play PYAAR — table ABCDE".
+async function tryDeepLinkJoin() {
+  const params = new URLSearchParams(window.location.search);
+  const code = (params.get('join') || '').trim().toUpperCase();
+  if (!code) return false;
+  // Strip the query param so a refresh doesn't keep re-joining.
+  const cleanUrl = window.location.pathname + window.location.hash;
+  history.replaceState(null, '', cleanUrl);
+  if (!S.user) {
+    // Need a name first — open the one-screen auth, then queue the join.
+    S.pendingDeepJoin = code;
+    authModal();
+    return true;
+  }
+  joinTableByCode(code);
+  return true;
+}
+
+async function joinTableByCode(code) {
+  S.mode = null;
+  S.secretSent = false;
+  resetGameState();
+  try {
+    await connect();
+    S.net.send({ type: 'join', code, name: name(), token: S.token });
+  } catch { toast('Could not reach the server.'); }
+}
+
 // ---------- boot ----------
 window.addEventListener('resize', () => { if (document.querySelector('.hand.fan')) layoutFan(); });
 mountFiligree();
 refreshWho();
 $('#mute').textContent = SFX.isMuted() ? '🔇' : '🔊';
-renderHome();
+// Deep-link join takes priority over the home screen — if we have a ?join=CODE,
+// land the user directly on the lobby (or sign-in if they're anonymous).
+if (!tryDeepLinkJoin()) renderHome();
 ensurePresenceConnection();   // if a token is already in localStorage, register us as online

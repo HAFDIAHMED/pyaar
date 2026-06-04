@@ -1465,6 +1465,149 @@ body.tour-active{ overflow: hidden; }
 }
 
 /* ============================================================
+   LOBBY v2 — your table with a shareable code banner up top,
+   the felt with seats arranged in a ring, and an inline invite
+   strip so the host can fill seats without leaving the page.
+   ============================================================ */
+
+/* Big shareable code banner at the top of the lobby */
+.code-banner{
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(217,179,92,.22), transparent 70%),
+    linear-gradient(180deg, rgba(40,18,42,.7), rgba(20,8,22,.7));
+  border: 2px solid rgba(217,179,92,.65);
+  border-radius: 18px;
+  padding: 12px 14px 14px;
+  text-align: center;
+  position: relative;
+  box-shadow: inset 0 1px 0 rgba(255,235,168,.18), 0 8px 22px rgba(0,0,0,.4);
+  animation: fadeUp .45s ease-out both;
+}
+.code-banner .cb-label{
+  font-size: 10px; letter-spacing: 3px; color: #d9b35c; font-weight: 700;
+}
+.code-banner .cb-code{
+  display:flex; align-items: center; justify-content: center; gap: 10px;
+  margin: 6px 0 8px;
+}
+.cb-letters{
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 38px; letter-spacing: 8px; font-weight: 800;
+  color: #ffe9a8;
+  text-shadow: 0 2px 0 rgba(0,0,0,.5), 0 0 24px rgba(217,179,92,.6);
+  user-select: all;
+  padding: 2px 6px;
+  border-radius: 8px;
+  transition: background .2s;
+}
+.cb-letters.flash{ animation: codeFlash .55s ease-out; }
+@keyframes codeFlash{ 0%{ background: rgba(255,235,168,.4); transform: scale(1.06);} 100%{ background: transparent; transform: scale(1);} }
+.cb-iconbtn{
+  appearance:none; cursor:pointer;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: linear-gradient(180deg, rgba(217,179,92,.18), rgba(120,80,30,.25));
+  border: 1px solid rgba(217,179,92,.65);
+  color: #ffe9a8; font-size: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 1px 0 rgba(255,235,168,.18), 0 3px 8px rgba(0,0,0,.35);
+  transition: transform .12s, background .2s;
+}
+.cb-iconbtn:hover{ transform: translateY(-2px); background: linear-gradient(180deg, rgba(217,179,92,.32), rgba(120,80,30,.35)); }
+.cb-iconbtn:active{ transform: scale(.94); }
+
+.code-banner .cb-meta{
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.cb-chip{
+  appearance:none; cursor:pointer;
+  padding: 5px 10px; border-radius: 999px;
+  font-size: 11px; letter-spacing: .3px; font-weight: 700;
+  border: 1px solid; background: rgba(0,0,0,.25);
+  transition: transform .12s;
+}
+.cb-chip:hover:not(:disabled){ transform: translateY(-1px); }
+.cb-chip.public { color: #a8f0c4; border-color: rgba(58,154,106,.7);  background: rgba(58,154,106,.18); }
+.cb-chip.private{ color: #ffd87a; border-color: rgba(217,179,92,.7);  background: rgba(217,179,92,.18); }
+.cb-chip:disabled{ cursor: default; opacity: .8; }
+.cb-seat-count{ color: #b6a3b0; }
+
+/* Live lobby table — slightly less tall than the home table */
+.lobby-table.lobby-live{
+  width: min(460px, 96%); margin-top: 4px;
+}
+.lobby-table .lobby-table-msg{
+  text-align: center;
+  font-family: Georgia, serif;
+  margin-top: -22px;
+}
+.lobby-table .lobby-table-msg b{
+  display: block;
+  color: #ffe9a8; font-size: 16px;
+  text-shadow: 0 1px 4px rgba(0,0,0,.6);
+}
+.lobby-table .lobby-table-msg span{
+  color: #b6a3b0; font-size: 11px; letter-spacing: 1px;
+}
+.ring-host{
+  position: absolute; top: -4px; right: -2px;
+  font-size: 14px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6));
+}
+
+/* Inline invite stage in the lobby */
+.invite-stage{
+  margin-top: 14px;
+  background: linear-gradient(180deg, rgba(8,30,20,.55), rgba(8,30,20,.25));
+  border: 1px solid rgba(217,179,92,.3);
+  border-radius: 16px;
+  padding: 10px;
+}
+.invite-head{
+  display:flex; justify-content: space-between; align-items: baseline;
+  padding: 2px 6px 6px;
+}
+.invite-head .ih-label{ font-size: 10px; letter-spacing: 2px; color: #d9b35c; font-weight: 700; }
+.invite-actions{
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-top: 8px;
+}
+.friend-bubble.invited{
+  opacity: .65;
+  pointer-events: none;
+}
+.friend-bubble.invited .fb-dot{ display: none; }
+.friend-bubble.invited::after{
+  content: "✓"; position: absolute; top: -2px; right: -2px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #3ee08a; color: #062818; font-weight: 900; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 8px rgba(62,224,138,.6);
+}
+
+/* Begin button — make it big and unmissable when ready */
+.begin-btn{
+  margin-top: 14px;
+  font-size: 17px !important;
+  letter-spacing: 1px;
+}
+.begin-btn:not(:disabled){
+  animation: beginPulse 2.2s ease-in-out infinite;
+}
+@keyframes beginPulse{
+  0%,100%{ box-shadow: inset 0 1px 0 rgba(255,255,255,.5), inset 0 -2px 0 rgba(0,0,0,.25), 0 0 0 0 rgba(217,179,92,0), 0 8px 22px rgba(217,179,92,.35); }
+  50%    { box-shadow: inset 0 1px 0 rgba(255,255,255,.5), inset 0 -2px 0 rgba(0,0,0,.25), 0 0 0 10px rgba(217,179,92,0), 0 12px 30px rgba(217,179,92,.55); }
+}
+
+/* Responsive bits for the new lobby on phones */
+@media (max-width: 480px){
+  .cb-letters{ font-size: 30px; letter-spacing: 5px; }
+  .cb-iconbtn{ width: 34px; height: 34px; font-size: 16px; }
+  .lobby-table.lobby-live .ring-seat{ width: 50px; }
+  .lobby-table.lobby-live .ring-seat .ring-name{ font-size: 9px; max-width: 50px; }
+}
+
+/* ============================================================
    RESPONSIVE PASS — phone-first audit
    ============================================================ */
 
