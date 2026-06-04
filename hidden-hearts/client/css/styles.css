@@ -314,3 +314,111 @@ table.lb th{color:var(--muted);font-weight:600;font-size:12px;text-transform:upp
 .home-greeting .gtxt .hi{ font-size:13px; color:#b6a3b0; letter-spacing:1px; text-transform:uppercase; }
 .home-greeting .gtxt .nm{ font-family:Georgia,serif; font-size:22px; color:#e0a458; }
 .home-greeting .badge{ font-size:11px; color:#3a9a6a; background:rgba(58,154,106,.12); padding:3px 8px; border-radius:999px; border:1px solid rgba(58,154,106,.35); }
+
+/* ============================================================
+   HOME PAGE ANIMATIONS — make the table feel alive
+   ============================================================ */
+
+/* Floating hearts that drift up behind the menu — pure decoration. */
+.floaters{ position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:0; }
+.floaters .h{
+  position:absolute; bottom:-40px; font-size:18px; opacity:0;
+  animation: floatUp linear infinite;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.35));
+  will-change: transform, opacity;
+}
+@keyframes floatUp{
+  0%   { transform: translate(0, 0) rotate(0deg) scale(.7); opacity: 0; }
+  10%  { opacity: .55; }
+  50%  { transform: translate(var(--sway, 30px), -50vh) rotate(180deg) scale(1); }
+  90%  { opacity: .55; }
+  100% { transform: translate(calc(var(--sway, 30px) * -1), -100vh) rotate(360deg) scale(.8); opacity: 0; }
+}
+
+/* Make sure the actual content sits above the floaters. */
+#app, .hero, .menu, .home-greeting, .foot{ position:relative; z-index:1; }
+
+/* Greeting card — slide down + breathing emoji */
+.home-greeting{ animation: greetingIn .55s cubic-bezier(.2,.9,.25,1.15) both; }
+.home-greeting .gi{ display:inline-block; animation: emojiPulse 2.8s ease-in-out infinite; transform-origin: 50% 60%; }
+.home-greeting .badge{ animation: onlinePulse 2.2s ease-in-out infinite; }
+@keyframes greetingIn{ from{opacity:0; transform:translateY(-14px) scale(.96);} to{opacity:1; transform:translateY(0) scale(1);} }
+@keyframes emojiPulse{ 0%,100%{transform:scale(1) rotate(0);} 35%{transform:scale(1.18) rotate(-6deg);} 60%{transform:scale(.95) rotate(4deg);} }
+@keyframes onlinePulse{ 0%,100%{box-shadow:0 0 0 0 rgba(58,154,106,0);} 50%{box-shadow:0 0 0 6px rgba(58,154,106,.10);} }
+
+/* Hero — staggered entry, beating heart, shimmering title */
+.hero .logo{ animation: heartThump 1.6s ease-in-out infinite, logoIn .6s cubic-bezier(.2,.9,.25,1.15) both; }
+.hero .title{
+  background: linear-gradient(90deg, #d9b35c 0%, #ffe9a8 25%, #d9b35c 50%, #ffe9a8 75%, #d9b35c 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: titleShimmer 6s linear infinite, titleIn .55s .1s cubic-bezier(.2,.9,.25,1.15) both;
+}
+.hero .subtitle{ animation: fadeUp .55s .2s both ease-out; }
+.hero .tagline { animation: fadeUp .55s .32s both ease-out; }
+@keyframes heartThump{
+  0%,100% { transform: scale(1); filter:drop-shadow(0 5px 12px rgba(0,0,0,.45)); }
+  18%     { transform: scale(1.18); filter:drop-shadow(0 5px 18px rgba(232,92,134,.55)); }
+  32%     { transform: scale(.96); }
+  46%     { transform: scale(1.10); filter:drop-shadow(0 5px 16px rgba(232,92,134,.4)); }
+  60%     { transform: scale(1); }
+}
+@keyframes logoIn { from{opacity:0; transform:scale(.4) rotate(-12deg);} to{opacity:1; transform:scale(1) rotate(0);} }
+@keyframes titleIn { from{opacity:0; transform:translateY(10px) letter-spacing:8px;} to{opacity:1; transform:translateY(0);} }
+@keyframes titleShimmer{ to { background-position: -200% 0; } }
+
+/* Menu — every item slides up one after the other */
+.menu > *{ animation: fadeUp .5s both cubic-bezier(.2,.9,.25,1.15); }
+.menu > *:nth-child(1){ animation-delay:.30s; }
+.menu > *:nth-child(2){ animation-delay:.40s; }
+.menu > *:nth-child(3){ animation-delay:.50s; }
+.menu > *:nth-child(4){ animation-delay:.60s; }
+.menu > *:nth-child(5){ animation-delay:.70s; }
+.menu > *:nth-child(6){ animation-delay:.80s; }
+
+/* Every button: gentle lift + glow on hover, press-down on active. */
+.btn{ transition: transform .15s ease, box-shadow .18s ease, filter .15s ease; }
+.btn:hover{ transform: translateY(-2px); filter: brightness(1.06); box-shadow: 0 10px 22px rgba(0,0,0,.35), 0 0 22px rgba(217,179,92,.22); }
+.btn:active{ transform: translateY(0) scale(.98); }
+.btn.primary:hover{ box-shadow: 0 12px 28px rgba(0,0,0,.4), 0 0 28px rgba(217,179,92,.45); }
+
+/* The invite-a-friend button gets its own attention loop — heartbeat pulse
+   so the user sees there's a way to bring someone in. */
+#invite-friend{
+  animation: invitePulse 2.4s ease-in-out infinite, fadeUp .5s .4s both cubic-bezier(.2,.9,.25,1.15);
+  position:relative; overflow:hidden;
+}
+#invite-friend::after{
+  content:""; position:absolute; inset:0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255,224,232,.35) 50%, transparent 70%);
+  transform: translateX(-100%);
+  animation: inviteSheen 3.2s ease-in-out infinite;
+}
+@keyframes invitePulse{
+  0%,100% { box-shadow: 0 0 0 0 rgba(232,92,134,.55), 0 6px 18px rgba(0,0,0,.35); }
+  50%     { box-shadow: 0 0 0 10px rgba(232,92,134,0), 0 8px 24px rgba(232,92,134,.45); }
+}
+@keyframes inviteSheen{
+  0%   { transform: translateX(-100%); }
+  55%  { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Stepper number bounce when the count changes (toggled by JS). */
+#cval{ display:inline-block; transition: color .2s; }
+#cval.bumped{ animation: countBump .35s cubic-bezier(.2,.9,.25,1.6); }
+@keyframes countBump{ 0%{transform:scale(1);} 40%{transform:scale(1.4); color:#ffe9a8;} 100%{transform:scale(1);} }
+
+/* Top-bar logo: a quiet pulse */
+.topbar .brand .logo{ display:inline-block; animation: heartThump 1.8s ease-in-out infinite; }
+
+/* Accessibility — kill expensive motion if the user opted out. */
+@media (prefers-reduced-motion: reduce){
+  .floaters{ display:none; }
+  .hero .logo, .home-greeting .gi, #invite-friend, .topbar .brand .logo,
+  .hero .title, .home-greeting .badge, #invite-friend::after{
+    animation: none !important;
+  }
+  .menu > *{ animation: fadeUp .25s both; animation-delay:0s !important; }
+}

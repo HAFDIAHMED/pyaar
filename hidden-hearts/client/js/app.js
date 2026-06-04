@@ -34,6 +34,38 @@ function heartFor(name) {
   return palette[h % palette.length];
 }
 
+// Drifting hearts behind the home menu — pure decoration, scoped to home so
+// they vanish when you enter a game. ~18 emojis, varied size/sway/speed.
+function spawnFloaters() {
+  // Remove any previous instance so re-renders don't pile up.
+  document.querySelectorAll('.floaters').forEach(n => n.remove());
+  const wrap = document.createElement('div');
+  wrap.className = 'floaters';
+  const glyphs = ['❤','💗','💖','💓','♥','🌹','🌸','✨','🪷','💫'];
+  const N = 18;
+  for (let i = 0; i < N; i++) {
+    const h = document.createElement('span');
+    h.className = 'h';
+    h.textContent = glyphs[Math.floor(((i * 73) % glyphs.length))];
+    const left = ((i * 53) % 100);                      // pseudo-random column
+    const dur  = 11 + ((i * 17) % 10);                  // 11–20s
+    const delay = -((i * 9) % 18);                       // negative so they're mid-flight on load
+    const size = 14 + ((i * 11) % 22);                   // 14–35px
+    const sway = (i % 2 === 0 ? 1 : -1) * (20 + ((i * 13) % 60));
+    h.style.left = left + 'vw';
+    h.style.fontSize = size + 'px';
+    h.style.animationDuration = dur + 's';
+    h.style.animationDelay = delay + 's';
+    h.style.setProperty('--sway', sway + 'px');
+    h.style.opacity = (0.35 + ((i % 5) * 0.07)).toFixed(2);
+    wrap.appendChild(h);
+  }
+  document.body.appendChild(wrap);
+}
+// Tear down the floaters whenever we leave home (covers playVsComputer,
+// joining a room, opening leaderboard etc — they all call into render*).
+function clearFloaters() { document.querySelectorAll('.floaters').forEach(n => n.remove()); }
+
 // ============================================================ SCREENS
 function renderHome() {
   S.screen = 'home';
@@ -72,8 +104,10 @@ function renderHome() {
       </div>
     </section>
     <div class="foot">PYAAR · the love card game — play solo, or invite friends to your table.</div>`;
-  $('#cminus').onclick = () => { if (S.soloCount > 3) { S.soloCount--; $('#cval').textContent = S.soloCount; } };
-  $('#cplus').onclick = () => { if (S.soloCount < 7) { S.soloCount++; $('#cval').textContent = S.soloCount; } };
+  spawnFloaters();                       // drifting hearts behind the menu
+  const bump = () => { const el = $('#cval'); el.classList.remove('bumped'); void el.offsetWidth; el.classList.add('bumped'); };
+  $('#cminus').onclick = () => { if (S.soloCount > 3) { S.soloCount--; $('#cval').textContent = S.soloCount; bump(); SFX.click?.(); } };
+  $('#cplus').onclick  = () => { if (S.soloCount < 7) { S.soloCount++; $('#cval').textContent = S.soloCount; bump(); SFX.click?.(); } };
   $('#play-ai').onclick = playVsComputer;
   $('#create').onclick = createRoom;
   $('#join').onclick = joinPrompt;
@@ -106,6 +140,7 @@ async function inviteFriendFromHome() {
 }
 
 function renderLobby() {
+  clearFloaters();
   const r = S.room; if (!r) return;
   const isHost = r.youSeat === r.hostSeat;
   app.innerHTML = `
@@ -187,9 +222,10 @@ function showIncomingInvite(payload) {
     });
 }
 
-function renderWaiting(msg) { app.innerHTML = `<section class="panel center waiting"><div class="spinner">⚜</div><p>${esc(msg)}</p></section>`; }
+function renderWaiting(msg) { clearFloaters(); app.innerHTML = `<section class="panel center waiting"><div class="spinner">⚜</div><p>${esc(msg)}</p></section>`; }
 
 function renderSetup() {
+  clearFloaters();
   const v = S.view;
   const others = v.players.filter(p => p.id !== v.youAre);
   app.innerHTML = `<section class="panel">
@@ -206,6 +242,7 @@ function renderSetup() {
 
 // ---------- the felt table ----------
 function renderTable() {
+  clearFloaters();
   const v = S.view; const n = v.players.length; const me = v.players[v.youAre];
   const myTurn = v.turn === v.youAre;
   let chips = '';
@@ -354,6 +391,7 @@ function sheet(inner, wire) { $('#modal-host').innerHTML = `<div class="overlay 
 
 // ---------- reveal ----------
 function renderReveal() {
+  clearFloaters();
   const v = S.view;
   const winner = v.players[v.winnerId];
   const byDevotion = v.endReason === 'devotion';
