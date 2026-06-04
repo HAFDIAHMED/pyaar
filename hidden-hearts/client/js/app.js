@@ -52,7 +52,8 @@ function renderHome() {
         <span class="muted small">players</span>
       </div>
       <button class="btn primary big" id="play-ai">▶ Play vs Computer</button>
-      <div class="grid2">
+      <button class="btn big" id="invite-friend" style="margin-top:8px; background:linear-gradient(180deg, rgba(232,92,134,0.32), rgba(166,30,68,0.30)); border:1px solid #e85c86; color:#ffe0e8; font-weight:700;">👋 Invite a friend to play</button>
+      <div class="grid2" style="margin-top:8px;">
         <button class="btn" id="create">＋ Create room</button>
         <button class="btn" id="join">⌨ Join with code</button>
       </div>
@@ -61,7 +62,7 @@ function renderHome() {
         <button class="btn ghost" id="rules">📖 How to play</button>
       </div>
     </section>
-    <div class="foot">PYAAR · the love card game — play solo, or invite friends with a room code.</div>`;
+    <div class="foot">PYAAR · the love card game — play solo, or invite friends to your table.</div>`;
   $('#cminus').onclick = () => { if (S.soloCount > 3) { S.soloCount--; $('#cval').textContent = S.soloCount; } };
   $('#cplus').onclick = () => { if (S.soloCount < 7) { S.soloCount++; $('#cval').textContent = S.soloCount; } };
   $('#play-ai').onclick = playVsComputer;
@@ -69,6 +70,30 @@ function renderHome() {
   $('#join').onclick = joinPrompt;
   $('#lb').onclick = showLeaderboard;
   $('#rules').onclick = showRules;
+  $('#invite-friend').onclick = inviteFriendFromHome;
+}
+
+// Home → "Invite a friend to play": must be signed in (so the invite has a
+// sender name), then open a private room and immediately show the invite
+// dialog so the user lands on "type your friend's name" in one tap.
+async function inviteFriendFromHome() {
+  SFX.click?.();
+  if (!S.user) {
+    toast('Pick your name first so your friend knows who is inviting them.');
+    authModal();
+    return;
+  }
+  S.mode = 'private';
+  S.secretSent = false;
+  S.openInviteOnLobby = true;   // consumed by onMsg when the 'room' message lands
+  resetGameState();
+  try {
+    await connect();
+    S.net.send({ type: 'create', name: name(), token: S.token });
+  } catch (e) {
+    toast('Could not reach the server.');
+    S.openInviteOnLobby = false;
+  }
 }
 
 function renderLobby() {
@@ -526,7 +551,15 @@ function onMsg(m) {
         else S.net.send({ type: 'begin' });
         return;
       }
-      if (!m.started) renderLobby();
+      if (!m.started) {
+        renderLobby();
+        // If the user came from "Invite a friend to play" on home, open
+        // the invite dialog as soon as the lobby is on screen.
+        if (S.openInviteOnLobby) {
+          S.openInviteOnLobby = false;
+          setTimeout(() => { try { openInviteUserModal(); } catch {} }, 100);
+        }
+      }
       return;
     }
     case 'state': {
