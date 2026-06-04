@@ -212,6 +212,7 @@ function renderHome() {
   spawnFloaters();
   refreshHomeStatsCompact();
   refreshOnlineStrip();
+  maybeRunHomeTour();
   const bump = () => { const el = $('#cval'); el.classList.remove('bumped'); void el.offsetWidth; el.classList.add('bumped'); $('#pc-count').textContent = S.soloCount; if (S.screen === 'home') renderHome(); };
   $('#cminus').onclick = () => { if (S.soloCount > 3) { S.soloCount--; bump(); SFX.click?.(); } };
   $('#cplus').onclick  = () => { if (S.soloCount < 7) { S.soloCount++; bump(); SFX.click?.(); } };
@@ -519,6 +520,7 @@ function renderWaiting(msg) { clearFloaters(); app.innerHTML = `<section class="
 
 function renderSetup() {
   clearFloaters();
+  maybeRunSetupTutorial();
   const v = S.view;
   const others = v.players.filter(p => p.id !== v.youAre);
   app.innerHTML = `<section class="panel">
@@ -537,6 +539,9 @@ function renderSetup() {
 function renderTable() {
   clearFloaters();
   const v = S.view; const n = v.players.length; const me = v.players[v.youAre];
+  // Fire the play-phase tutorial once, on the first turn that's actually
+  // ours so the user can see their hand before being asked to "tap a card".
+  if (v.turn === v.youAre && !S.playTourFired) { S.playTourFired = true; setTimeout(() => maybeRunPlayTutorial(), 300); }
   const myTurn = v.turn === v.youAre;
   let chips = '';
   const aiming = !!S.sel && myTurn;
@@ -553,24 +558,28 @@ function renderTable() {
   const aimCard = aiming ? S.sel.key : null;
   const aimHint = { GLANCE: 'to peek their heart', SWAY: 'to aim your heart at', HEARTBREAK: 'to break their heart', JEALOUSY: 'to expose & rattle (Dating+)', FRIENDZONE: 'to friendzone' };
   app.innerHTML = `
-    <div class="table-status"><span>💌 ${v.deckCount} cards left${v.deckCount <= n ? ' · final round!' : ''}</span>
-      <span class="${myTurn ? 'turnnow' : 'muted'}">${myTurn ? 'Your turn' : 'Turn: ' + v.players[v.turn].name}</span></div>
+    <div class="table-status">
+      <span data-tip="Cards remaining in the draw deck. When it empties, the round ends.">💌 ${v.deckCount} cards left${v.deckCount <= n ? ' · final round!' : ''}</span>
+      <span class="${myTurn ? 'turnnow' : 'muted'}">${myTurn ? 'Your turn' : 'Turn: ' + v.players[v.turn].name}</span>
+      <button class="help-btn" id="game-help" data-tip="Replay the gameplay tour" aria-label="Help">🎓</button>
+    </div>
     ${aiming ? `<div class="aim-banner">${CARD[aimCard].icon} <b>${title(aimCard)}</b> — tap a player ${aimHint[aimCard] || ''}<button id="aim-cancel">Cancel</button></div>` : ''}
     <div class="table-wrap${aiming ? ' aiming' : ''}"><div class="felt">
       <div class="table-center">
         <div class="piles">
-          <div class="pile deck"><span class="pc">${v.deckCount}</span><span class="pl">draw</span></div>
-          <div class="pile disc">${v.discardTop ? `<span class="corner">${CARD[v.discardTop].icon}</span>${CARD[v.discardTop].icon}` : '—'}<span class="pl">played</span></div>
+          <div class="pile deck" data-tip="Draw pile — you'll draw 1 card from here at the start of your turn."><span class="pc">${v.deckCount}</span><span class="pl">draw</span></div>
+          <div class="pile disc" data-tip="Discard — the last card played sits face-up here.">${v.discardTop ? `<span class="corner">${CARD[v.discardTop].icon}</span>${CARD[v.discardTop].icon}` : '—'}<span class="pl">played</span></div>
         </div>
         <div class="talk">${v.log[0] || 'The table is set…'}</div>
       </div>${chips}
     </div></div>
     <div class="hand-area ${myTurn ? '' : 'idle'}">
-      <div class="secret-strip">secret 💘 <b>${v.players[me.crush].seat.icon} ${esc(v.players[me.crush].name)}</b> · you're at <b>${STAGE_NAMES[me.stage]} ${STAGES[me.stage] || ''}</b>${me.ready ? ' — 💍 tap ❤️ to Commit!' : ''}</div>
+      <div class="secret-strip" data-tip="Your secret crush + current love stage. Only YOU see this strip.">secret 💘 <b>${v.players[me.crush].seat.icon} ${esc(v.players[me.crush].name)}</b> · you're at <b>${STAGE_NAMES[me.stage]} ${STAGES[me.stage] || ''}</b>${me.ready ? ' — 💍 tap ❤️ to Commit!' : ''}</div>
       <div class="hand fan">${(me.hand || []).map((k, i) => cardHTML(k, i)).join('')}</div>
       <div class="hint-line">${myTurn ? 'Tap a card to play it.' : 'Waiting for your turn…'}</div>
     </div>
     <div class="log">${v.log.slice(0, 4).map(e => `<div class="e">${e}</div>`).join('')}</div>`;
+  const helpBtn = $('#game-help'); if (helpBtn) helpBtn.onclick = () => replayTour('play');
   if (myTurn) {
     app.querySelectorAll('.pcard[data-play]').forEach(el => el.onclick = () => playCard(+el.dataset.play));
     if (S.sel) {
@@ -583,12 +592,14 @@ function renderTable() {
 }
 
 function chipHTML(p, activeId, meId) {
-  const line = STAGES.slice(1).map((ic, idx) => `<span class="st ${p.stage >= idx + 1 ? 'lit' : ''}">${ic}</span>`).join('')
-    + `<span class="st commit ${p.won ? 'lit' : (p.ready ? 'ready' : '')}">💍</span>`;
+  const stageTips = ['Spark — first flutter of attraction.', 'Dating — things are warming up.', 'Crazy for them — ready to commit!'];
+  const line = STAGES.slice(1).map((ic, idx) =>
+    `<span class="st ${p.stage >= idx + 1 ? 'lit' : ''}" data-tip="${stageTips[idx]}">${ic}</span>`).join('')
+    + `<span class="st commit ${p.won ? 'lit' : (p.ready ? 'ready' : '')}" data-tip="${p.won ? 'They committed and it was mutual!' : 'Devotion — play ❤️ Moment at 💋 to confess.'}">💍</span>`;
   const b = [];
-  if (p.shield) b.push('🛡️');
-  if (p.frozen) b.push('🤝');
-  if (p.soulmate) b.push('💞');
+  if (p.shield) b.push({ ic: '🛡️', tip: 'Guarded — the next attack on them fizzles.' });
+  if (p.frozen) b.push({ ic: '🤝', tip: 'Friendzoned — they lose their next turn.' });
+  if (p.soulmate) b.push({ ic: '💞', tip: 'Soulmates! Their love is mutual.' });
   const fan = (p.id !== meId)
     ? `<div class="minihand">${'<span class="mb"></span>'.repeat(Math.min(2, p.handCount || 0))}<span class="mhc">${p.handCount || 0}</span></div>`
     : '';
@@ -610,7 +621,7 @@ function chipHTML(p, activeId, meId) {
     <div class="cnm">${esc(p.name)}${p.isAI ? ' <span class="ai-badge">AI</span>' : ''}</div>
     <div class="loveline">${line}</div>
     ${exposed}
-    <div class="badges">${b.length ? b.map(x => `<span class="bdg">${x}</span>`).join('') : '<span class="bdg dim">·</span>'}</div>
+    <div class="badges">${b.length ? b.map(x => `<span class="bdg" data-tip="${x.tip}">${x.ic}</span>`).join('') : '<span class="bdg dim">·</span>'}</div>
   </div>`;
 }
 // a Solitaire-style playing card: white face, corner indices, big centre motif
@@ -979,6 +990,10 @@ function accountMenu() {
 }
 function showRules() {
   modal(`<h3>How to play</h3>
+    <div class="rules-tour-row">
+      <button class="btn primary sm" id="rt-home">🎓 Tour the home screen</button>
+      <button class="btn sm" id="rt-play">🃏 Tour gameplay</button>
+    </div>
     <p class="small">You secretly <b>fancy one player</b>. On your turn: <b>draw 1, play 1.</b> Build your romance ✨ <b>Spark</b> → 🌹 <b>Dating</b> → 💋 <b>Crazy for them</b>, then <b>Commit</b> — but you only win if <b>they love you back</b> (Soulmates 💞).</p>
     <ul class="small">
       <li>❤️ <b>Moment</b> — grow your romance one stage. At 💋, play it again to <b>Commit / confess</b>.</li>
@@ -990,7 +1005,11 @@ function showRules() {
       <li>🤝 <b>Friendzone</b> — a rival loses their next turn.</li>
     </ul>
     <p class="small">Confess at 💋 and it's mutual → <b>you win, Soulmates 💞</b>. Confess unrequited → you're <b>rejected</b> (cool off, miss a turn, your crush is revealed). Deck runs out → whoever got closest to love wins.</p>
-    <button class="btn primary" id="x">Got it</button>`, () => $('#x').onclick = closeModal);
+    <button class="btn primary" id="x">Got it</button>`, () => {
+    $('#x').onclick = closeModal;
+    $('#rt-home').onclick = () => replayTour('home');
+    $('#rt-play').onclick = () => replayTour('play');
+  });
 }
 
 // ============================================================ NET FLOW
@@ -1181,6 +1200,178 @@ function cues(prev, v) {
   const myTurn = v.turn === v.youAre;
   if (myTurn && !S.wasMyTurn) SFX.turn();
   S.wasMyTurn = myTurn;
+}
+
+// ============================================================
+// TUTORIAL — spotlight tour engine + onboarding flows
+// A self-contained tour: dark overlay with a transparent "spotlight"
+// box around the target element, plus a bubble nearby explaining what
+// it is. Steps are { targetSel?, title, body, prefer?, onEnter? }.
+// If targetSel is omitted, the bubble is a centred modal-style card.
+// Saved-once flags live in localStorage so each tour auto-fires the
+// first time only, but can be re-run from the Rules / Help button.
+// ============================================================
+const Tour = (() => {
+  let steps = [], idx = 0, onClose = null;
+  function start(stepList, opts = {}) {
+    if (!stepList?.length) return;
+    steps = stepList; idx = 0; onClose = opts.onClose || null;
+    document.body.classList.add('tour-active');
+    render();
+    // Re-position on scroll/resize without re-rendering text.
+    window.addEventListener('resize', reposition);
+    window.addEventListener('scroll', reposition, true);
+  }
+  function end() {
+    document.body.classList.remove('tour-active');
+    const host = document.getElementById('tour-host'); if (host) host.remove();
+    window.removeEventListener('resize', reposition);
+    window.removeEventListener('scroll', reposition, true);
+    const cb = onClose; onClose = null;
+    if (cb) try { cb(); } catch {}
+  }
+  function next() {
+    if (idx >= steps.length - 1) return end();
+    idx++; render();
+  }
+  function prev() { if (idx > 0) { idx--; render(); } }
+  function reposition() {
+    const step = steps[idx]; if (!step) return;
+    const spot = document.querySelector('#tour-host .tour-spot');
+    const bubble = document.querySelector('#tour-host .tour-bubble');
+    if (!step.targetSel) { if (spot) spot.style.display = 'none'; if (bubble) { bubble.style.top = '50%'; bubble.style.left = '50%'; bubble.style.transform = 'translate(-50%, -50%)'; bubble.classList.add('center'); } return; }
+    const t = document.querySelector(step.targetSel);
+    if (!t || !spot || !bubble) return;
+    const r = t.getBoundingClientRect();
+    spot.style.display = '';
+    spot.style.top = (r.top - 8) + 'px';
+    spot.style.left = (r.left - 8) + 'px';
+    spot.style.width = (r.width + 16) + 'px';
+    spot.style.height = (r.height + 16) + 'px';
+    // Place the bubble on the side with the most space.
+    bubble.classList.remove('center', 'above', 'below', 'left', 'right');
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const spaceAbove = r.top, spaceBelow = vh - r.bottom;
+    const place = (step.prefer === 'above' && spaceAbove > 180) ? 'above'
+                : (step.prefer === 'below' && spaceBelow > 180) ? 'below'
+                : (spaceBelow > 180 ? 'below' : (spaceAbove > 180 ? 'above' : 'below'));
+    bubble.classList.add(place);
+    bubble.style.transform = '';
+    const bw = Math.min(320, vw - 24);
+    bubble.style.width = bw + 'px';
+    let bl = r.left + r.width / 2 - bw / 2;
+    bl = Math.max(12, Math.min(bl, vw - bw - 12));
+    bubble.style.left = bl + 'px';
+    if (place === 'below') bubble.style.top = (r.bottom + 16) + 'px';
+    else bubble.style.top = (r.top - 16 - bubble.offsetHeight) + 'px';
+  }
+  function render() {
+    let host = document.getElementById('tour-host');
+    if (!host) { host = document.createElement('div'); host.id = 'tour-host'; document.body.appendChild(host); }
+    const s = steps[idx];
+    const last = idx === steps.length - 1;
+    host.innerHTML = `
+      <div class="tour-overlay"></div>
+      <div class="tour-spot" aria-hidden="true"></div>
+      <div class="tour-bubble" role="dialog" aria-live="polite">
+        <div class="tb-step">${idx + 1} / ${steps.length}</div>
+        <div class="tb-title">${s.title}</div>
+        <div class="tb-body">${s.body}</div>
+        <div class="tb-actions">
+          <button class="btn ghost sm" id="tb-skip">Skip</button>
+          <button class="btn ghost sm" id="tb-prev" ${idx === 0 ? 'disabled' : ''}>← Back</button>
+          <button class="btn primary sm" id="tb-next">${last ? 'Got it! 🎉' : 'Next →'}</button>
+        </div>
+      </div>`;
+    document.getElementById('tb-skip').onclick = end;
+    document.getElementById('tb-prev').onclick = prev;
+    document.getElementById('tb-next').onclick = next;
+    if (s.onEnter) try { s.onEnter(); } catch {}
+    // Defer reposition to next frame so the bubble has measured size.
+    requestAnimationFrame(() => requestAnimationFrame(reposition));
+  }
+  return { start, end, isActive: () => !!steps.length && document.body.classList.contains('tour-active') };
+})();
+
+function homeTourSteps() {
+  return [
+    { title: 'Welcome to PYAAR ❤️',
+      body: 'PYAAR (Hindi for "love") is a card game about a <b>secret crush</b>. We\'ll show you around — should take 30 seconds.' },
+    { targetSel: '.lobby-table', prefer: 'below',
+      title: 'This is your table',
+      body: 'Up to <b>7 chairs</b> around the felt. You sit at the gold chair; the others can be bots or real players.' },
+    { targetSel: '.play-chip', prefer: 'above',
+      title: 'The Play Chip',
+      body: 'Tap this gold chip to start a <b>solo game</b> against bots. The number on its face is how many bots join you.' },
+    { targetSel: '.seat-counter', prefer: 'above',
+      title: 'Pick your bot count',
+      body: 'Add or remove bots with these chips. <b>Minimum 3, maximum 7</b> players at the table.' },
+    { targetSel: '.friends-strip', prefer: 'above',
+      title: 'Players online',
+      body: 'These are people connected right now. <b>Tap a face</b> → we open a private table for you and auto-send them an invite.' },
+    { targetSel: '.tab.tab-plus', prefer: 'above',
+      title: 'Open a new table',
+      body: 'Three options: <b>invite a friend</b> (private), <b>open a public table</b>, or <b>join with a code</b>.' },
+    { targetSel: '[data-tab="floor"]', prefer: 'above',
+      title: 'Browse the floor',
+      body: 'See every live table at a glance. <b>🟢 Open</b> tables let anyone sit; <b>🔒 Private</b> ones need the host to approve you.' },
+    { targetSel: '[data-tab="rules"]', prefer: 'above',
+      title: "That's the room!",
+      body: 'Open the <b>📖 Rules</b> tab anytime to read how to play — or replay this tour. Now tap the gold chip and try a quick game!' },
+  ];
+}
+
+function setupTutorialSteps() {
+  return [
+    { title: '💘 Pick your secret crush',
+      body: 'Each round, you secretly fancy <b>one</b> of the other players. Only you know who. Tap a face below and then <b>Lock my secret</b>.' },
+    { targetSel: '.picker', prefer: 'above',
+      title: 'Tap a face',
+      body: 'Choose carefully — your romance is built around <b>this</b> player. They might not fancy you back…' },
+  ];
+}
+
+function playTutorialSteps() {
+  return [
+    { title: '🃏 How a turn works',
+      body: 'Each turn: <b>draw 1</b> card, then <b>play 1</b>. Some cards grow your romance, some target a rival.' },
+    { targetSel: '.hand.fan', prefer: 'above',
+      title: 'Your hand',
+      body: 'Tap any card to play it. If it needs a target, the chips around the table light up — tap one to confirm.' },
+    { targetSel: '.secret-strip', prefer: 'below',
+      title: 'Your love-line',
+      body: 'Build up: <b>✨ Spark → 🌹 Dating → 💋 Crazy for them → 💍 Commit</b>. Play ❤️ Moment on yourself to climb a stage.' },
+    { targetSel: '.table-wrap', prefer: 'below',
+      title: 'Watch the table',
+      body: 'Opponents can <b>💔 break your heart</b>, <b>🤝 friendzone you</b>, or <b>💚 expose your crush</b>. Bring a 🛡️ Guardian when you can.' },
+    { title: 'Win condition 💞',
+      body: 'When you reach <b>💋 Crazy for them</b>, play <b>❤️ Moment</b> again to <b>Commit</b>. If they secretly fancy you back, you win as <b>Soulmates 💞</b>!' },
+  ];
+}
+
+// Auto-fire helpers — each tour is gated by a localStorage flag.
+function maybeRunHomeTour() {
+  if (localStorage.getItem('pyaar_tour_home_v1') === 'done') return;
+  // Wait a beat so the table animation can settle before the spotlight lands.
+  setTimeout(() => {
+    if (S.screen !== 'home') return;
+    Tour.start(homeTourSteps(), { onClose: () => localStorage.setItem('pyaar_tour_home_v1', 'done') });
+  }, 600);
+}
+function maybeRunSetupTutorial() {
+  if (localStorage.getItem('pyaar_tour_setup_v1') === 'done') return;
+  setTimeout(() => Tour.start(setupTutorialSteps(), { onClose: () => localStorage.setItem('pyaar_tour_setup_v1', 'done') }), 300);
+}
+function maybeRunPlayTutorial() {
+  if (localStorage.getItem('pyaar_tour_play_v1') === 'done') return;
+  setTimeout(() => Tour.start(playTutorialSteps(), { onClose: () => localStorage.setItem('pyaar_tour_play_v1', 'done') }), 400);
+}
+// Manual replay — wipes the flag for that tour and re-runs it.
+function replayTour(which) {
+  closeModal();
+  if (which === 'home')  { localStorage.removeItem('pyaar_tour_home_v1');  Tour.start(homeTourSteps(),  { onClose: () => localStorage.setItem('pyaar_tour_home_v1','done') }); }
+  if (which === 'setup') { localStorage.removeItem('pyaar_tour_setup_v1'); Tour.start(setupTutorialSteps(), { onClose: () => localStorage.setItem('pyaar_tour_setup_v1','done') }); }
+  if (which === 'play')  { localStorage.removeItem('pyaar_tour_play_v1');  Tour.start(playTutorialSteps(),  { onClose: () => localStorage.setItem('pyaar_tour_play_v1','done') }); }
 }
 
 // Mount the four gold filigree corner ornaments once. They're purely

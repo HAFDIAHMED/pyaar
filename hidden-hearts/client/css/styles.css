@@ -1168,6 +1168,162 @@ body::after{
   .hero.compact .title{ font-size:38px; letter-spacing:4px; }
 }
 
+/* ============================================================
+   TUTORIAL — spotlight tour overlay + bubble + persistent tooltips
+   ============================================================ */
+
+/* The dark overlay covers the screen; the spot uses an oversized
+   box-shadow to paint the dim area, with its own rectangle clear.
+   Result: a soft "spotlight" on the target. */
+#tour-host{ position:fixed; inset:0; z-index:9000; pointer-events:none; }
+.tour-overlay{
+  position:absolute; inset:0;
+  background: rgba(0,0,0,.45);
+  backdrop-filter: blur(2px);
+  animation: tourFade .25s ease-out both;
+  pointer-events:auto;
+}
+@keyframes tourFade{ from{opacity:0;} to{opacity:1;} }
+.tour-spot{
+  position:fixed;
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 9999px rgba(0,0,0,.55),
+    0 0 0 3px rgba(217,179,92,.85),
+    0 0 0 7px rgba(217,179,92,.25),
+    0 0 30px rgba(255,235,168,.5);
+  transition: top .35s cubic-bezier(.2,.9,.25,1.15), left .35s cubic-bezier(.2,.9,.25,1.15), width .35s cubic-bezier(.2,.9,.25,1.15), height .35s cubic-bezier(.2,.9,.25,1.15);
+  pointer-events:none;
+}
+.tour-bubble{
+  position:fixed;
+  max-width: 320px;
+  padding: 14px 16px;
+  background:
+    linear-gradient(180deg, rgba(40,80,60,.96), rgba(8,30,20,.96));
+  border: 2px solid rgba(217,179,92,.7);
+  border-radius: 16px;
+  color: #f3e9df;
+  box-shadow: 0 20px 50px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,235,168,.18);
+  pointer-events:auto;
+  z-index: 9002;
+  animation: bubbleIn .28s cubic-bezier(.2,.9,.25,1.4) both;
+}
+@keyframes bubbleIn{ from{ opacity:0; transform: translateY(8px) scale(.96);} to{ opacity:1; transform: translateY(0) scale(1);} }
+.tour-bubble.center{
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(380px, 92vw) !important;
+  max-width: 92vw;
+}
+/* Arrow pointing at the spot */
+.tour-bubble::before{
+  content:""; position:absolute; width:14px; height:14px;
+  background: inherit;
+  border-left: 2px solid rgba(217,179,92,.7);
+  border-top: 2px solid rgba(217,179,92,.7);
+  transform: rotate(45deg);
+}
+.tour-bubble.above::before{ bottom: -8px; left: 50%; margin-left: -8px; transform: rotate(225deg); border-left: 2px solid rgba(217,179,92,.7); border-top: 2px solid rgba(217,179,92,.7); }
+.tour-bubble.below::before{ top: -8px; left: 50%; margin-left: -8px; }
+.tour-bubble.center::before{ display:none; }
+
+.tour-bubble .tb-step{
+  font-size:10px; letter-spacing:2px; color:#d9b35c;
+  text-transform: uppercase; font-weight:700;
+}
+.tour-bubble .tb-title{
+  font-family:'Cinzel', Georgia, serif;
+  font-size:18px; color:#ffe9a8; margin: 4px 0 6px;
+  letter-spacing: 1px;
+}
+.tour-bubble .tb-body{
+  font-size:13.5px; line-height:1.45; color:#f3e9df;
+}
+.tour-bubble .tb-body b{ color:#ffe9a8; }
+.tour-bubble .tb-actions{
+  display:flex; align-items:center; gap:8px;
+  margin-top: 12px; flex-wrap:wrap;
+}
+.tour-bubble .tb-actions .btn{ width:auto; flex:0 0 auto; padding: 6px 12px; font-size:12px; }
+.tour-bubble .tb-actions .btn.primary{ margin-left:auto; }
+.tour-bubble .tb-actions #tb-prev{ }
+
+/* While the tour is active, prevent the body from scrolling away from the
+   target. Spotlight uses fixed positioning so it stays aligned. */
+body.tour-active{ overflow: hidden; }
+
+/* ============================================================
+   PERSISTENT TOOLTIPS — [data-tip="..."]:hover (and tap)
+   ============================================================ */
+[data-tip]{ position: relative; }
+[data-tip]::after{
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 6px 10px;
+  background: rgba(10,30,20,.97);
+  color: #ffe9a8;
+  border: 1px solid rgba(217,179,92,.55);
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: normal;
+  max-width: 200px;
+  width: max-content;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s, transform .18s;
+  z-index: 200;
+  box-shadow: 0 8px 20px rgba(0,0,0,.45);
+}
+[data-tip]::before{
+  /* little arrow under the tooltip */
+  content:""; position: absolute;
+  bottom: calc(100% + 2px); left: 50%; margin-left:-5px;
+  width: 0; height: 0;
+  border: 5px solid transparent;
+  border-top-color: rgba(217,179,92,.55);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s;
+  z-index: 201;
+}
+[data-tip]:hover::after, [data-tip]:focus-visible::after,
+[data-tip].tipped::after{
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+[data-tip]:hover::before, [data-tip]:focus-visible::before,
+[data-tip].tipped::before{
+  opacity: 1;
+}
+
+/* In-game header — Help (🎓) button */
+.table-status .help-btn{
+  appearance:none; background: rgba(217,179,92,.15);
+  border: 1px solid rgba(217,179,92,.55);
+  color: #ffe9a8; cursor: pointer;
+  width: 28px; height: 28px; border-radius: 50%;
+  font-size: 14px; display: inline-flex; align-items:center; justify-content:center;
+  margin-left: 8px;
+  transition: transform .12s, background .15s;
+}
+.table-status .help-btn:hover{ transform: scale(1.1); background: rgba(217,179,92,.3); }
+
+/* The "tour the home / play" button row at the top of the Rules modal */
+.rules-tour-row{ display:flex; gap:8px; margin: 8px 0 12px; flex-wrap: wrap; }
+.rules-tour-row .btn{ width:auto; flex: 1 1 140px; }
+
+/* Mobile — tooltips on the bottom edge could clip off-screen; let them
+   span the chip width instead of dropping above. */
+@media (max-width: 480px){
+  .tour-bubble{ max-width: 92vw; }
+}
+
 /* Accessibility — kill expensive motion if the user opted out. */
 @media (prefers-reduced-motion: reduce){
   .floaters{ display:none; }
@@ -1178,4 +1334,5 @@ body::after{
     animation: none !important;
   }
   .menu > *{ animation: fadeUp .25s both; animation-delay:0s !important; }
+  .tour-spot{ transition: none !important; }
 }
