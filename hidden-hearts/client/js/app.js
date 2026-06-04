@@ -81,12 +81,66 @@ function renderLobby() {
         <div class="grid2" style="margin-top:12px">
           <button class="btn" id="addai" ${r.seats.length >= 7 ? 'disabled' : ''}>＋ Add computer</button>
           <button class="btn primary" id="begin" ${r.seats.length < 3 ? 'disabled' : ''}>Begin (${r.seats.length}/3+)</button>
-        </div>` : `<p class="center muted">Waiting for the host to begin…</p>`}
+        </div>
+        <button class="btn" id="inviteUser" style="margin-top:8px" ${r.seats.length >= 7 ? 'disabled' : ''}>👋 Invite a player by username</button>
+        ` : `<p class="center muted">Waiting for the host to begin…</p>`}
     </section>
     <button class="btn ghost" id="leave">← Leave room</button>`;
   $('#copy').onclick = () => { navigator.clipboard?.writeText(r.code); toast('Code copied'); };
   $('#leave').onclick = leaveToHome;
-  if (isHost) { $('#addai').onclick = () => { SFX.click(); S.net.send({ type: 'addAI' }); }; $('#begin').onclick = () => { SFX.resume(); SFX.shuffle(); S.net.send({ type: 'begin' }); }; }
+  if (isHost) {
+    $('#addai').onclick = () => { SFX.click(); S.net.send({ type: 'addAI' }); };
+    $('#begin').onclick = () => { SFX.resume(); SFX.shuffle(); S.net.send({ type: 'begin' }); };
+    $('#inviteUser').onclick = openInviteUserModal;
+  }
+}
+
+// Host clicks "Invite a player by username" — prompt for the name, send via WS.
+function openInviteUserModal() {
+  if (!S.user) { toast('Sign in first to invite players.'); return; }
+  modal(`<h3>Invite a player</h3>
+    <p class="muted small">Type their PYAAR username. They must be signed in and online to receive the invite.</p>
+    <input id="inv-name" class="input" placeholder="@username" autocomplete="off" autofocus style="margin:8px 0; padding:10px; width:100%; box-sizing:border-box; background:#160d1a; border:1px solid #3c2a42; color:#f3e9df; border-radius:8px; font-size:15px;" />
+    <div class="grid2" style="margin-top:10px">
+      <button class="btn ghost" id="inv-cancel">Cancel</button>
+      <button class="btn primary" id="inv-send">Send invite</button>
+    </div>`, () => {
+      const input = document.getElementById('inv-name');
+      input?.focus();
+      const submit = () => {
+        const username = (input?.value || '').trim().replace(/^@/, '');
+        if (!username) { toast('Type a username first.'); return; }
+        S.net.send({ type: 'inviteUser', username });
+        closeModal();
+      };
+      input?.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+      document.getElementById('inv-send').onclick = submit;
+      document.getElementById('inv-cancel').onclick = closeModal;
+    });
+}
+
+// Show the invitee's "X invites you to play" prompt and let them Join or Decline.
+function showIncomingInvite(payload) {
+  SFX.crush?.();
+  modal(`<h3>💌 ${esc(payload.from)} invites you to play</h3>
+    <p>Room <b>${esc(payload.code)}</b>${payload.seats ? ` · ${payload.seats} seated so far` : ''}.</p>
+    <div class="grid2" style="margin-top:10px">
+      <button class="btn ghost" id="inv-no">Not now</button>
+      <button class="btn primary" id="inv-yes">Join now</button>
+    </div>`, () => {
+      document.getElementById('inv-no').onclick = closeModal;
+      document.getElementById('inv-yes').onclick = async () => {
+        closeModal();
+        S.mode = 'join'; S.secretSent = false;
+        try { resetGameState(); } catch {}
+        try {
+          if (!S.net) await connect();
+          // leave any prior room first
+          try { S.net.send({ type: 'leave' }); } catch {}
+          S.net.send({ type: 'join', code: payload.code, name: name(), token: S.token });
+        } catch { toast('Could not join the room'); }
+      };
+    });
 }
 
 function renderWaiting(msg) { app.innerHTML = `<section class="panel center waiting"><div class="spinner">⚜</div><p>${esc(msg)}</p></section>`; }
@@ -312,7 +366,7 @@ function authModal(tab = 'login') {
       const username = $('#u').value.trim(), password = $('#p').value;
       const path = tab === 'login' ? '/api/auth/login' : '/api/auth/register';
       const { status, data } = await api.post(path, { username, password });
-      if (status === 200) { S.token = data.token; S.user = data.user; localStorage.setItem('hh_token', S.token); localStorage.setItem('hh_user', JSON.stringify(S.user)); refreshWho(); closeModal(); toast(`Welcome, ${S.user.username}!`); }
+      if (status === 200) { S.token = data.token; S.user = data.user; localStorage.setItem('hh_token', S.token); localStorage.setItem('hh_user', JSON.stringify(S.user)); refreshWho(); closeModal(); toast(`Welcome, ${S.user.username}!`); ensurePresenceConnection(); }
       else { $('#err').textContent = data.error || 'failed'; if (status === 503) $('#err').textContent = 'Accounts need a database — connect Oracle to enable sign-in. You can still play as a guest.'; }
     };
   });
@@ -348,6 +402,18 @@ async function connect() {
   if (S.net) return;
   S.net = new Net(onMsg);
   try { await S.net.connect(); } catch { toast('Could not reach the server'); S.net = null; throw new Error('no server'); }
+  // Register presence right away so other players can invite us by username.
+  if (S.token) S.net.send({ type: 'identify', token: S.token });
+}
+
+// Keep a long-lived WS open whenever a user is signed in, so they can receive
+// game invites from friends while sitting on the home screen.
+async function ensurePresenceConnection() {
+  if (!S.token) return;
+  try {
+    if (!S.net) await connect();
+    else S.net.send({ type: 'identify', token: S.token });
+  } catch {}
 }
 function name() { return S.user?.username || 'You'; }
 
@@ -392,6 +458,8 @@ function onMsg(m) {
       return renderTable();
     }
     case 'private': return modal(`<h3>✦ You alone see…</h3><p>${esc(m.text)}</p><button class="btn primary" id="x">Keep the secret</button>`, () => $('#x').onclick = closeModal);
+    case 'invite': return showIncomingInvite(m);
+    case 'inviteResult': return toast(m.message || m.reason || (m.ok ? 'Invite sent' : 'Invite failed'));
     case 'error': return toast(m.error || 'error');
     case 'closed': { S.net = null; if (S.view && !S.view.over) { toast('Disconnected from the room'); leaveToHome(); } return; }
   }
@@ -421,3 +489,4 @@ window.addEventListener('resize', () => { if (document.querySelector('.hand.fan'
 refreshWho();
 $('#mute').textContent = SFX.isMuted() ? '🔇' : '🔊';
 renderHome();
+ensurePresenceConnection();   // if a token is already in localStorage, register us as online

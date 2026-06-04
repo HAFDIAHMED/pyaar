@@ -2,11 +2,24 @@ import { WebSocketServer } from 'ws';
 import { customAlphabet } from 'nanoid';
 import * as engine from '../../../shared/engine.js';
 import { verifyToken } from '../auth.js';
-import { gamesRepo } from '../db/store.js';
+import { gamesRepo, usersRepo } from '../db/store.js';
 
 const makeCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 5);
 const rooms = new Map();          // code -> room
+const presence = new Map();       // userId -> ws  (signed-in users with an open socket)
 let nextClient = 1;
+
+// Register / refresh a user's presence map entry. Returns the user record or null.
+function bindPresence(ws, token) {
+  const u = userFrom(token);
+  if (!u) return null;
+  // Drop any stale entry for this socket
+  if (ws.userId && presence.get(ws.userId) === ws) presence.delete(ws.userId);
+  ws.userId = u.id;
+  ws.username = u.username;
+  presence.set(u.id, ws);
+  return u;
+}
 
 // room = { code, hostClient, seats:[{clientId,name,userId,isAI}], started, state, sockets:Map, aiTimer, recorded }
 function newRoom(code) {
@@ -37,14 +50,40 @@ function handle(ws, m) {
     case 'begin': return onBegin(ws);            // host: lobby -> setup (deal secrets)
     case 'setSecret': return onSetSecret(ws, m);
     case 'action': return onAction(ws, m);
+    case 'inviteUser': return onInviteUser(ws, m);
+    case 'identify': return bindPresence(ws, m.token);   // a signed-in user opens the app
     default: send(ws, { type: 'error', error: 'unknown message' });
   }
+}
+
+// Invite an online registered user to your current room. They get a push toast.
+async function onInviteUser(ws, m) {
+  const room = rooms.get(ws.roomCode);
+  if (!room) return send(ws, { type: 'inviteResult', ok: false, reason: 'You are not in a room.' });
+  if (room.started) return send(ws, { type: 'inviteResult', ok: false, reason: 'Game already started.' });
+  if (!ws.username) return send(ws, { type: 'inviteResult', ok: false, reason: 'Sign in to invite players.' });
+  const target = String(m.username || '').trim();
+  if (!target) return send(ws, { type: 'inviteResult', ok: false, reason: 'Type a username.' });
+  if (target.toLowerCase() === ws.username.toLowerCase())
+    return send(ws, { type: 'inviteResult', ok: false, reason: "You can't invite yourself." });
+  let user;
+  try { user = await usersRepo.findByUsername(target); }
+  catch { return send(ws, { type: 'inviteResult', ok: false, reason: 'Lookup failed.' }); }
+  if (!user) return send(ws, { type: 'inviteResult', ok: false, reason: `No player named "${target}".` });
+  const targetWs = presence.get(user.id);
+  if (!targetWs || targetWs.readyState !== 1)
+    return send(ws, { type: 'inviteResult', ok: false, reason: `${user.username} is not online right now.` });
+  if (targetWs.roomCode === room.code)
+    return send(ws, { type: 'inviteResult', ok: false, reason: `${user.username} is already at your table.` });
+  // Push the invite to them and confirm to the sender
+  send(targetWs, { type: 'invite', code: room.code, from: ws.username, seats: room.seats.length });
+  send(ws, { type: 'inviteResult', ok: true, message: `Invite sent to ${user.username}.` });
 }
 
 function onCreate(ws, m) {
   let code; do { code = makeCode(); } while (rooms.has(code));
   const room = newRoom(code);
-  const u = userFrom(m.token);
+  const u = bindPresence(ws, m.token);
   room.seats.push({ clientId: ws.id, name: (m.name || u?.username || 'Host').slice(0, 14), userId: u?.id ?? null, isAI: false });
   room.hostClient = ws.id;
   room.sockets.set(ws.id, ws);
@@ -58,7 +97,7 @@ function onJoin(ws, m) {
   if (!room) return send(ws, { type: 'error', error: 'room not found' });
   if (room.started) return send(ws, { type: 'error', error: 'game already started' });
   if (room.seats.length >= 7) return send(ws, { type: 'error', error: 'table is full (7 max)' });
-  const u = userFrom(m.token);
+  const u = bindPresence(ws, m.token);
   room.seats.push({ clientId: ws.id, name: (m.name || u?.username || 'Player').slice(0, 14), userId: u?.id ?? null, isAI: false });
   room.sockets.set(ws.id, ws);
   ws.roomCode = room.code;
@@ -186,6 +225,8 @@ function broadcastState(room) {
 }
 
 function onClose(ws) {
+  // Drop presence first so invites don't try to land on a dead socket.
+  if (ws.userId && presence.get(ws.userId) === ws) presence.delete(ws.userId);
   const room = rooms.get(ws.roomCode); if (!room) return;
   room.sockets.delete(ws.id);
   // if no human sockets remain, tear the room down
