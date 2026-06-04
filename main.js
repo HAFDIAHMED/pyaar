@@ -1478,6 +1478,14 @@ function boot() {
   $('rules-panel')?.addEventListener('click', e => {
     if (e.target.id === 'rules-panel') e.currentTarget.classList.add('hidden');
   });
+
+  // Mobile side-panel collapse toggle
+  $('btn-panel-toggle')?.addEventListener('click', () => {
+    const collapsed = document.body.classList.toggle('panel-collapsed');
+    const btn = $('btn-panel-toggle');
+    if (btn) btn.textContent = collapsed ? '☰' : '×';
+  });
+
 }
 
 boot();

@@ -84,6 +84,33 @@
     }
     body { counter-reset: page; }
 
+    /* ------ Mobile ------ */
+    @media (max-width: 900px) {
+      body { padding: 12px 0 40px; }
+      .page {
+        width: 100%;
+        min-height: 0;
+        padding: 18mm 12mm 24mm;
+        margin: 0 auto 14px;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+      }
+      h1 { font-size: 32pt; margin: 18mm 0 4mm; }
+      h2 { font-size: 16pt; }
+      h3 { font-size: 12pt; }
+      .cols { column-count: 1; }
+      .pieces-grid { grid-template-columns: 1fr; }
+      figure svg { max-width: 100%; height: auto; }
+      .cover h1 { margin: 30mm 0 4mm; }
+      .cover .subtitle { font-size: 14pt; }
+    }
+    @media (max-width: 500px) {
+      body { font-size: 11pt; }
+      .page { padding: 14mm 8mm 20mm; }
+      h1 { font-size: 26pt; letter-spacing: 0.18em; }
+      h2 { font-size: 14pt; }
+      .piece-card .pattern { grid-template-columns: 1fr; gap: 2mm; }
+    }
+
     .cover {
       background: linear-gradient(150deg, #2a1a10 0%, #4a2818 60%, #6a3826 100%);
       color: var(--paper);

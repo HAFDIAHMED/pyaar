@@ -113,6 +113,66 @@
 
   .hidden{display:none !important;}
 
+  /* ---------- Mobile reading mode ----------
+     The sheet is designed for paper printing (63×88mm cards on a 189mm sheet).
+     On phones we instead show cards stacked, full-width, and scale relative
+     units up so the text is comfortably readable. */
+  @media (max-width: 720px){
+    .toolbar{padding:10px 14px; gap:8px 14px;}
+    .toolbar h1{font-size:15px;}
+    .toolbar h1 small{font-size:9px; letter-spacing:1.5px;}
+    .toggles{font-size:12px;}
+    .toggles label{gap:5px;}
+    .hint{font-size:11px; line-height:1.4; flex-basis:100%;}
+    .btn{padding:7px 14px; font-size:13px;}
+    .count{font-size:11px;}
+
+    .deck{padding:8px 0;}
+    .deck > .deck-title{font-size:13px; letter-spacing:2px; margin:6px 0 10px;}
+    .sheet{
+      width:100%; max-width:none; padding:0 10px;
+      gap:14px; justify-content:center;
+    }
+
+    /* Each card: 1.5 per row at most, scale by viewport width so they're readable */
+    .card{
+      width:min(78vw, 320px);
+      height:auto; aspect-ratio:63/88;
+      padding:18px 16px;
+      border-radius:10px;
+      border:1px solid #b9a276; outline:none;
+      box-shadow:0 6px 20px rgba(0,0,0,0.45);
+    }
+    .card .band{height:22px;}
+    .card .corner{font-size:13px; line-height:1;}
+    .card .corner.tl{top:5px; left:8px;}
+    .card .corner.br{bottom:5px; right:8px;}
+    .card .fam{font-size:9px; top:6px; right:9px; letter-spacing:2px;}
+    .card .icon{margin-top:34px; font-size:60px;}
+    .card .title{font-size:21px; margin-top:6px;}
+    .card .tag{font-size:11px; margin-top:2px;}
+    .card .body{
+      margin-top:auto; margin-bottom:22px;
+      padding:8px 10px; border-radius:6px;
+      font-size:11px; line-height:1.4;
+    }
+    .card .brand{bottom:6px; font-size:8px; letter-spacing:4px;}
+
+    .card.heart .icon{font-size:108px; margin-top:42px;}
+    .card.heart .states{font-size:10px; margin-top:4px;}
+
+    .card.back .bk-mark .m{font-size:90px;}
+    .card.back .bk-mark .n{font-size:25px; letter-spacing:10px; margin-top:6px;}
+    .card.back .bk-mark .s{font-size:9px; letter-spacing:10px; margin-top:6px;}
+  }
+
+  @media (max-width: 420px){
+    .card{width:min(86vw, 300px);}
+    .card .icon{font-size:54px; margin-top:30px;}
+    .card .title{font-size:19px;}
+    .card .body{font-size:10.5px; padding:7px 9px;}
+  }
+
   @media print{
     body{background:#fff;}
     .toolbar, .deck-title, .no-print{display:none !important;}
