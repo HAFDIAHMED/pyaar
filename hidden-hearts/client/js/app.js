@@ -653,15 +653,41 @@ function renderSetup() {
   maybeRunSetupTutorial();
   const v = S.view;
   const others = v.players.filter(p => p.id !== v.youAre);
-  app.innerHTML = `<section class="panel">
-    <h3 class="center">Aim your Heart 💘</h3>
-    <p class="center muted small">Secretly choose the one you fancy. No one knows — until someone confesses.</p>
-    <div class="picker">
-      ${others.map(p => `<button class="btn pick ${S._crush === p.id ? 'on' : ''}" data-c="${p.id}"><span class="bi">${p.seat.icon}</span> ${esc(p.name)}</button>`).join('')}
-    </div>
-    <button class="btn primary" id="lock" ${S._crush != null ? '' : 'disabled'}>Lock my secret 💘</button>
-  </section>`;
-  app.querySelectorAll('[data-c]').forEach(el => el.onclick = () => { S._crush = +el.dataset.c; renderSetup(); });
+  const sel = (S._crush != null) ? v.players[S._crush] : null;
+
+  app.innerHTML = `
+    <section class="aim-stage">
+      <div class="aim-hero">
+        <div class="aim-emoji">💘</div>
+        <h2 class="aim-title">Pick your secret crush</h2>
+        <p class="aim-sub">Tap the one you secretly fancy.<br><b>You win the game if they fancy YOU back.</b></p>
+      </div>
+
+      <div class="aim-grid">
+        ${others.map(p => `
+          <button class="aim-card ${S._crush === p.id ? 'on' : ''}" data-c="${p.id}">
+            <div class="aim-av">${avatarFor(p.name, { size: 64, withRing: S._crush === p.id })}</div>
+            <div class="aim-seat">${p.seat.icon}</div>
+            <div class="aim-name">${esc(p.name)}${p.isAI ? ' <span class="ai-badge">AI</span>' : ''}</div>
+            ${S._crush === p.id ? '<div class="aim-mark">💘</div>' : ''}
+          </button>`).join('')}
+      </div>
+
+      <div class="aim-preview ${sel ? 'shown' : ''}">
+        ${sel ? `
+          <div class="aim-prev-row">
+            ${avatarFor(S.user?.username || 'me', { size: 38, withRing: true })}
+            <span class="aim-prev-arrow">💞</span>
+            ${avatarFor(sel.name, { size: 38, withRing: true })}
+          </div>
+          <div class="aim-prev-text">You secretly fancy <b>${sel.seat.icon} ${esc(sel.name)}</b>.<br>
+          <span class="muted">Win if ${esc(sel.name)} also fancies you. Hide it until you're ready!</span></div>
+        ` : `<div class="aim-prev-text muted">Tap a face above to choose your crush.</div>`}
+      </div>
+
+      <button class="btn primary big aim-lock" id="lock" ${sel ? '' : 'disabled'}>${sel ? `🔒 Lock secret — fancy ${esc(sel.name)} 💘` : 'Pick someone first'}</button>
+    </section>`;
+  app.querySelectorAll('[data-c]').forEach(el => el.onclick = () => { SFX.click?.(); S._crush = +el.dataset.c; renderSetup(); });
   $('#lock').onclick = () => { SFX.crush(); S.net.send({ type: 'setSecret', crush: S._crush }); S.secretSent = true; renderWaiting('Secret locked. Waiting for the others…'); };
 }
 
@@ -772,24 +798,30 @@ function chipHTML(p, activeId, meId) {
   </div>`;
 }
 // a Solitaire-style playing card: white face, corner indices, big centre motif
-// A redesigned playing card. Cleaner hierarchy:
-//   • Top: name + a tiny tone chip (🧘 self | 🎯 rival | 👁 info)
-//   • Middle: big icon framed in a soft glow
-//   • Bottom: ONE clear effect line — "Grow love +1", "Knock back + expose"
-//   • Long description hidden behind a small ? tap-tooltip
-// The colour family stays in .f-{fam} so border + accent colour are unchanged.
+// A playing card built for instant recognition:
+//   ┌────────────────────┐
+//   │  GROW          ME │   ← big action verb + a target badge
+//   │  ╔════════════╗   │
+//   │  ║    ❤️    ║   │   ← framed art panel
+//   │  ╚════════════╝   │
+//   │  +1 stage on me   │   ← precise effect
+//   │  Hearts race.     │   ← italic flavour
+//   └────────────────────┘
+// The action verb is the VERY FIRST thing a new player reads. The target
+// badge (ME / RIVAL / SEE) tells them WHO the card affects in one glance.
+// Long description still lives in the data-tip tooltip.
 function cardHTML(key, i) {
   const d = CARD[key];
-  const toneIcon  = d.tone === 'attack' ? '🎯' : d.tone === 'info' ? '👁' : '🧘';
-  const toneLabel = d.tone === 'attack' ? 'rival' : d.tone === 'info' ? 'peek' : 'self';
+  const toneLabel = d.tone === 'attack' ? 'RIVAL' : d.tone === 'info' ? 'SEE' : 'ME';
   return `<div class="pcard f-${d.fam}" data-play="${i}" data-tip="${esc(d.desc)}">
     <div class="pc-top">
-      <span class="pc-name">${title(key)}</span>
-      <span class="pc-tone ${d.tone}"><span class="tic">${toneIcon}</span><span class="tlb">${toneLabel}</span></span>
+      <span class="pc-action">${esc(d.action)}</span>
+      <span class="pc-tone ${d.tone}">${toneLabel}</span>
     </div>
     <div class="pc-art">
       <div class="pc-glow"></div>
       <div class="pc-icon">${d.icon}</div>
+      <div class="pc-name">${title(key)}</div>
     </div>
     <div class="pc-effect">${esc(d.short)}</div>
     <div class="pc-tag">${esc(d.tag)}</div>
@@ -1162,20 +1194,29 @@ function accountMenu() {
 function showRules() {
   modal(`<h3>How to play</h3>
     <div class="rules-tour-row">
-      <button class="btn primary sm" id="rt-home">🎓 Tour the home screen</button>
+      <button class="btn primary sm" id="rt-home">🎓 Tour the home</button>
       <button class="btn sm" id="rt-play">🃏 Tour gameplay</button>
     </div>
-    <p class="small">You secretly <b>fancy one player</b>. On your turn: <b>draw 1, play 1.</b> Build your romance ✨ <b>Spark</b> → 🌹 <b>Dating</b> → 💋 <b>Crazy for them</b>, then <b>Commit</b> — but you only win if <b>they love you back</b> (Soulmates 💞).</p>
-    <ul class="small">
-      <li>❤️ <b>Moment</b> — grow your romance one stage. At 💋, play it again to <b>Commit / confess</b>.</li>
-      <li>👀 <b>Glance</b> — secretly see who a player fancies (scout before you commit!).</li>
-      <li>💘 <b>Sway</b> — re-aim your own secret crush (your romance cools one stage).</li>
-      <li>💔 <b>Heartbreak</b> — knock any rival <b>back</b> one stage.</li>
-      <li>💚 <b>Jealousy</b> — hit a rival who's Dating or closer: knock them back <b>and expose their secret crush to everyone</b>.</li>
-      <li>🛡️ <b>Guardian</b> — shield yourself from the next Heartbreak, Jealousy or Friendzone.</li>
-      <li>🤝 <b>Friendzone</b> — a rival loses their next turn.</li>
-    </ul>
-    <p class="small">Confess at 💋 and it's mutual → <b>you win, Soulmates 💞</b>. Confess unrequited → you're <b>rejected</b> (cool off, miss a turn, your crush is revealed). Deck runs out → whoever got closest to love wins.</p>
+
+    <div class="rules-section">
+      <div class="rules-step"><span class="rs-num">1</span><div><b>You secretly fancy someone.</b> At the start of each match you pick one rival as your secret crush. Only YOU know.</div></div>
+      <div class="rules-step"><span class="rs-num">2</span><div><b>Each turn: draw 1, play 1.</b> Cards either help you, attack a rival, or peek info.</div></div>
+      <div class="rules-step"><span class="rs-num">3</span><div><b>Grow your love.</b> ✨ Spark → 🌹 Dating → 💋 Crazy. At 💋 play <b>GROW (❤️ Moment)</b> again to <b>confess</b>.</div></div>
+      <div class="rules-step"><span class="rs-num">4</span><div><b>You win as 💞 Soulmates</b> if your crush fancies you back. If they don't → you're <b>rejected</b> (cool off, skip a turn, your secret is exposed).</div></div>
+    </div>
+
+    <div class="rules-heading">The 7 cards</div>
+    <div class="rules-cards">
+      <div class="rc"><span class="rc-ic">❤️</span><b>GROW</b> — +1 stage on me. At 💋 play again to <b>confess</b>.</div>
+      <div class="rc"><span class="rc-ic">👀</span><b>PEEK</b> — see who a rival secretly fancies (only you see it).</div>
+      <div class="rc"><span class="rc-ic">💘</span><b>SWITCH</b> — pick a new crush. Your love drops −1 stage.</div>
+      <div class="rc"><span class="rc-ic">💔</span><b>BREAK</b> — −1 stage on any rival.</div>
+      <div class="rc"><span class="rc-ic">💚</span><b>EXPOSE</b> — −1 stage AND reveal who they fancy. Only hits rivals at Dating+.</div>
+      <div class="rc"><span class="rc-ic">🛡️</span><b>SHIELD</b> — block the next BREAK / EXPOSE / FREEZE on you.</div>
+      <div class="rc"><span class="rc-ic">🤝</span><b>FREEZE</b> — a rival skips their next turn.</div>
+    </div>
+
+    <p class="small muted" style="margin-top:8px;">If the deck runs out before anyone confesses, whoever got closest to love wins.</p>
     <button class="btn primary" id="x">Got it</button>`, () => {
     $('#x').onclick = closeModal;
     $('#rt-home').onclick = () => replayTour('home');

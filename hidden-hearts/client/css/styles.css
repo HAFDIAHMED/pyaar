@@ -236,44 +236,46 @@ h1,h2,h3{font-family:Georgia,"Times New Roman",serif;margin:0;}
 .hand-area.idle .pcard{ cursor: default; }
 .hand-area.idle .pcard:hover{ transform: rotate(var(--rot, 0deg)) translateY(var(--ty, 0px)); z-index: var(--z, 1); box-shadow: 0 6px 14px rgba(0,0,0,.4); }
 
-/* New: top row — card name + tone chip */
+/* TOP — big action verb on the left, target chip on the right */
 .pcard .pc-top{
   display:flex; justify-content:space-between; align-items:center;
-  font-size: 11px; padding: 1px 2px 4px;
-  border-bottom: 1px dashed rgba(0,0,0,.12);
-  margin-bottom: 4px;
+  padding: 0 2px 5px;
+  border-bottom: 1px dashed rgba(0,0,0,.14);
+  margin-bottom: 5px;
+  gap: 4px;
 }
-.pcard .pc-name{
-  font-family: 'Cinzel', Georgia, serif; font-weight: 800;
-  font-size: 12.5px; letter-spacing: .5px;
+.pcard .pc-action{
+  font-family: 'Cinzel', Georgia, serif; font-weight: 900;
+  font-size: 15px; letter-spacing: 1px;
   color: #2b211a;
+  line-height: 1;
   text-transform: uppercase;
 }
 .pcard .pc-tone{
-  display:inline-flex; align-items:center; gap: 2px;
-  padding: 1px 5px; border-radius: 999px;
-  font-size: 9px; font-weight: 700; letter-spacing: .5px;
+  display:inline-flex; align-items:center;
+  padding: 2px 7px; border-radius: 999px;
+  font-size: 9px; font-weight: 800; letter-spacing: 1px;
   text-transform: uppercase;
-  background: rgba(0,0,0,.06); border:1px solid rgba(0,0,0,.12);
-  color: #45382a;
+  background: rgba(0,0,0,.06); border:1px solid rgba(0,0,0,.15);
+  color: #45382a; flex-shrink: 0;
 }
-.pcard .pc-tone .tic{ font-size: 11px; }
-.pcard .pc-tone.self  { background: rgba(217,179,92,.18); border-color: rgba(176,122,32,.5); color: #6b4d18; }
-.pcard .pc-tone.attack{ background: rgba(216,69,92,.16);  border-color: rgba(176,40,60,.55); color: #8a1a32; }
-.pcard .pc-tone.info  { background: rgba(76,174,122,.18); border-color: rgba(40,130,80,.55); color: #1e5a3e; }
+.pcard .pc-tone.self  { background: linear-gradient(180deg, #ffe1ea, #ffb5ca); border-color: #d8455c; color: #8a1a32; }
+.pcard .pc-tone.attack{ background: linear-gradient(180deg, #ffd5d5, #f48989); border-color: #aa1a32; color: #6b0014; }
+.pcard .pc-tone.info  { background: linear-gradient(180deg, #d8f4e2, #91d8b0); border-color: #1f6a44; color: #0a3220; }
 
-/* Middle: art panel with a coloured glow behind the icon */
+/* MIDDLE — framed art panel with the icon + card name beneath the icon */
 .pcard .pc-art{
   position: relative;
   height: 78px;
   border-radius: 8px;
   background:
-    radial-gradient(ellipse at 50% 50%, var(--cardglow, rgba(217,179,92,.35)) 0%, transparent 70%),
+    radial-gradient(ellipse at 50% 40%, var(--cardglow, rgba(217,179,92,.35)) 0%, transparent 70%),
     linear-gradient(180deg, #fff9ec 0%, #f0e3c2 100%);
-  border: 1px solid rgba(0,0,0,.08);
-  display:flex; align-items:center; justify-content:center;
+  border: 1px solid rgba(0,0,0,.10);
+  display:flex; flex-direction: column; align-items:center; justify-content:center;
   overflow: hidden;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.45);
+  gap: 2px;
 }
 .pcard .pc-glow{
   position: absolute; inset: 0;
@@ -282,18 +284,27 @@ h1,h2,h3{font-family:Georgia,"Times New Roman",serif;margin:0;}
   pointer-events: none;
 }
 .pcard .pc-icon{
-  font-size: 40px; line-height: 1;
+  font-size: 38px; line-height: 1;
   filter: drop-shadow(0 3px 6px rgba(0,0,0,.25));
   transform: rotate(-3deg);
   z-index: 1;
 }
+.pcard .pc-name{
+  font-family: Georgia, serif;
+  font-size: 9.5px; font-style: italic;
+  color: rgba(50,30,15,.6);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  z-index: 1;
+  margin-top: -2px;
+}
 
-/* Bottom: effect headline + small italic flavour */
+/* BOTTOM — precise effect (one line) + flavour */
 .pcard .pc-effect{
   text-align: center;
-  font-family: 'Cinzel', Georgia, serif; font-weight: 700;
+  font-weight: 700;
   font-size: 11px; color: #2b211a;
-  margin-top: 6px; line-height: 1.2;
+  margin-top: 6px; line-height: 1.25;
   padding: 0 2px;
 }
 .pcard .pc-tag{
@@ -1464,10 +1475,157 @@ body.tour-active{ overflow: hidden; }
 .rules-tour-row{ display:flex; gap:8px; margin: 8px 0 12px; flex-wrap: wrap; }
 .rules-tour-row .btn{ width:auto; flex: 1 1 140px; }
 
+/* Step-by-step rules — numbered chips for a teaching feel */
+.rules-section{ display:flex; flex-direction:column; gap:10px; margin-bottom: 14px; }
+.rules-step{ display:flex; gap:10px; align-items:flex-start; font-size: 13.5px; line-height: 1.45; }
+.rules-step .rs-num{
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 32%, #fff5d0, #d9b35c 60%, #8a6a1c);
+  color: #2a2008; font-weight: 900; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 3px 8px rgba(0,0,0,.35);
+  margin-top: 1px;
+}
+.rules-step b{ color: #ffe9a8; }
+
+.rules-heading{
+  font-family: 'Cinzel', Georgia, serif; font-size: 12px; letter-spacing: 2px;
+  color: #d9b35c; text-transform: uppercase;
+  margin: 10px 0 6px;
+  border-bottom: 1px solid rgba(217,179,92,.3);
+  padding-bottom: 4px;
+}
+.rules-cards{ display:flex; flex-direction:column; gap:6px; }
+.rules-cards .rc{
+  display:flex; align-items:center; gap: 8px;
+  font-size: 12.5px; line-height: 1.4;
+  padding: 6px 10px;
+  background: rgba(255,255,255,.04);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.06);
+}
+.rules-cards .rc-ic{ font-size: 18px; line-height: 1; width: 24px; text-align: center; }
+.rules-cards .rc b{ color: #ffe9a8; min-width: 64px; display: inline-block; }
+
 /* Mobile — tooltips on the bottom edge could clip off-screen; let them
    span the chip width instead of dropping above. */
 @media (max-width: 480px){
   .tour-bubble{ max-width: 92vw; }
+}
+
+/* ============================================================
+   SETUP SCREEN — pick-your-crush as a visual choice
+   ============================================================ */
+.aim-stage{
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  padding: 14px 8px;
+  animation: fadeUp .45s ease-out both;
+}
+.aim-hero{ text-align: center; }
+.aim-hero .aim-emoji{
+  font-size: 48px; line-height: 1;
+  filter: drop-shadow(0 6px 18px rgba(232,92,134,.55));
+  animation: heartThump 1.5s ease-in-out infinite;
+}
+.aim-hero .aim-title{
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 26px; letter-spacing: 2px;
+  color: #ffe9a8; margin-top: 4px;
+  text-shadow: 0 2px 0 rgba(0,0,0,.5), 0 0 22px rgba(217,179,92,.4);
+}
+.aim-hero .aim-sub{
+  color: #b6a3b0; font-size: 14px; line-height: 1.5;
+  margin: 6px 0 0; max-width: 360px;
+}
+.aim-hero .aim-sub b{ color: #ffe9a8; }
+
+.aim-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px; width: 100%; max-width: 480px;
+}
+.aim-card{
+  appearance: none; cursor: pointer;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(232,92,134,.16), transparent 60%),
+    linear-gradient(180deg, rgba(40,18,42,.65), rgba(20,8,22,.65));
+  border: 2px solid rgba(217,179,92,.35);
+  border-radius: 16px;
+  padding: 14px 8px 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  color: #f3e9df;
+  position: relative;
+  transition: transform .15s ease, border-color .2s, box-shadow .2s;
+}
+.aim-card:hover{ transform: translateY(-3px); border-color: rgba(217,179,92,.65); }
+.aim-card:active{ transform: scale(.97); }
+.aim-card.on{
+  border-color: #e85c86;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(232,92,134,.35), transparent 70%),
+    linear-gradient(180deg, rgba(80,20,50,.7), rgba(40,10,30,.7));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.18),
+    0 0 0 4px rgba(232,92,134,.25),
+    0 14px 30px rgba(232,92,134,.3);
+  transform: translateY(-3px);
+}
+.aim-card .aim-av{ display:flex; align-items:center; justify-content:center; }
+.aim-card .aim-seat{ font-size: 18px; line-height: 1; }
+.aim-card .aim-name{
+  font-family: Georgia, serif; font-size: 14px; font-weight: 700;
+  color: #ffe9a8; text-align: center;
+  word-break: break-word; max-width: 100%; white-space: normal;
+  line-height: 1.2;
+}
+.aim-card.on .aim-name{ color: #ffb0c2; }
+.aim-card .aim-mark{
+  position: absolute; top: -10px; right: -10px;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: radial-gradient(circle, #ff8aae 0%, #c2225a 70%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(232,92,134,.6), 0 0 0 3px rgba(255,224,232,.3);
+  animation: aimMark .5s cubic-bezier(.2,.9,.25,1.4) both;
+}
+@keyframes aimMark{ from{ opacity:0; transform: scale(.4) rotate(-20deg);} to{ opacity:1; transform: scale(1) rotate(0);} }
+
+.aim-preview{
+  width: 100%; max-width: 480px;
+  min-height: 90px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(232,92,134,.12), rgba(0,0,0,.2));
+  border: 1px dashed rgba(232,92,134,.4);
+  border-radius: 14px;
+  opacity: .65;
+  transition: opacity .25s, border-color .25s, background .25s;
+}
+.aim-preview.shown{
+  opacity: 1;
+  border-style: solid;
+  border-color: rgba(232,92,134,.7);
+  background: linear-gradient(180deg, rgba(232,92,134,.25), rgba(166,30,68,.18));
+}
+.aim-preview .aim-prev-row{ display:flex; align-items:center; gap:14px; }
+.aim-preview .aim-prev-arrow{ font-size: 24px; animation: heartThump 1.4s ease-in-out infinite; }
+.aim-preview .aim-prev-text{ text-align: center; font-size: 14px; line-height: 1.45; color: #ffe0e8; }
+.aim-preview .aim-prev-text b{ color: #ffe9a8; }
+.aim-preview .aim-prev-text .muted{ font-size: 12px; }
+
+.aim-lock{
+  width: 100%; max-width: 480px;
+  font-size: 16px !important; letter-spacing: 1px;
+}
+.aim-lock:not(:disabled){ animation: beginPulse 2.2s ease-in-out infinite; }
+.aim-lock:disabled{ opacity: .5; }
+
+@media (max-width: 480px){
+  .aim-grid{ grid-template-columns: repeat(2, 1fr); }
+  .aim-hero .aim-title{ font-size: 22px; }
+  .aim-hero .aim-sub{ font-size: 13px; }
+  .aim-card{ padding: 12px 6px 8px; }
+  .aim-card .aim-name{ font-size: 12.5px; }
 }
 
 /* ============================================================
