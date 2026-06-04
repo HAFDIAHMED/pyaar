@@ -20,7 +20,11 @@ function modal(inner, wire) { $('#modal-host').innerHTML = `<div class="overlay"
 function closeModal() { $('#modal-host').innerHTML = ''; }
 
 // ---------- top bar ----------
-function refreshWho() { $('#who').textContent = S.user ? `👤 ${S.user.username}` : 'Sign in'; }
+function refreshWho() {
+  const el = $('#who');
+  if (S.user) el.innerHTML = `${avatarFor(S.user.username, { size: 24 })}<span class="who-name">${esc(S.user.username)}</span>`;
+  else el.textContent = 'Sign in';
+}
 $('#mute').onclick = () => { const m = SFX.toggle(); $('#mute').textContent = m ? '🔇' : '🔊'; };
 $('#who').onclick = () => S.user ? accountMenu() : authModal();
 $('#home-link').onclick = () => leaveToHome();
@@ -32,6 +36,53 @@ function heartFor(name) {
   let h = 0;
   for (const c of String(name || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return palette[h % palette.length];
+}
+
+// ---------- avatars ----------
+// Each user gets a circular gradient avatar with a face emoji on top. Derived
+// from the username so it's stable across devices, but the user can click
+// their own avatar on the home screen to cycle through variations (the
+// "reroll" offset lives in localStorage and is purely client-side).
+const AVATAR_FACES = [
+  '🦊','🐼','🐯','🦁','🐻','🐮','🐸','🐧','🦄','🐺',
+  '🦉','🐵','🐱','🐶','🐹','🦒','🦔','🐨','🐰','🐲',
+  '🦖','🦕','🐙','🦋','🐝','🐢','🐳','🦩','🦦','🦜',
+];
+const AVATAR_PALETTES = [
+  ['#ff6b9d','#c2407f'], ['#f7b801','#f18701'], ['#3e92cc','#2a628f'],
+  ['#7b2cbf','#5a189a'], ['#06d6a0','#118ab2'], ['#ef476f','#ffd166'],
+  ['#43aa8b','#577590'], ['#f15bb5','#9b5de5'], ['#00bbf9','#00f5d4'],
+  ['#fb5607','#ffbe0b'], ['#8338ec','#3a86ff'], ['#ff006e','#fb5607'],
+  ['#22c55e','#0ea5e9'], ['#a855f7','#ec4899'], ['#facc15','#22d3ee'],
+];
+function avatarSeed(name, applyReroll = true) {
+  let h = 0;
+  for (const c of String(name || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  if (applyReroll && S.user && name === S.user.username) {
+    h = (h + (+(localStorage.getItem('hh_avatarSeed') || 0))) >>> 0;
+  }
+  return h;
+}
+// Returns a self-contained HTML string for an avatar — drop it anywhere.
+//   opts: { size, clickable, id, withRing }
+function avatarFor(name, opts = {}) {
+  const size = opts.size || 36;
+  const seed = avatarSeed(name);
+  const face = AVATAR_FACES[seed % AVATAR_FACES.length];
+  const palette = AVATAR_PALETTES[(seed >>> 4) % AVATAR_PALETTES.length];
+  const [c1, c2] = palette;
+  const fontSize = Math.round(size * 0.58);
+  const cls = ['user-avatar', opts.clickable ? 'clickable' : '', opts.withRing ? 'ring' : ''].filter(Boolean).join(' ');
+  const id = opts.id ? ` id="${opts.id}"` : '';
+  const t = opts.clickable ? ' title="Click to change look"' : '';
+  return `<span class="${cls}"${id}${t} style="width:${size}px;height:${size}px;background:linear-gradient(135deg,${c1},${c2});font-size:${fontSize}px;">${face}</span>`;
+}
+function rerollAvatar() {
+  const cur = +(localStorage.getItem('hh_avatarSeed') || 0);
+  localStorage.setItem('hh_avatarSeed', String((cur + 1) % 240));
+  SFX.click?.();
+  refreshWho();
+  if (S.screen === 'home') renderHome();
 }
 
 // Drifting hearts behind the home menu — pure decoration, scoped to home so
@@ -71,10 +122,11 @@ function renderHome() {
   S.screen = 'home';
   const greeting = S.user ? `
     <section class="home-greeting">
-      <div class="gi">${heartFor(S.user.username)}</div>
+      <div class="gi">${avatarFor(S.user.username, { size: 56, clickable: true, withRing: true, id: 'home-avatar' })}</div>
       <div class="gtxt">
         <div class="hi">Signed in</div>
         <div class="nm">${esc(S.user.username)}</div>
+        <div class="reroll-hint">🎲 tap your avatar to change look</div>
       </div>
       <div class="badge">● online</div>
     </section>` : '';
@@ -114,6 +166,7 @@ function renderHome() {
   $('#lb').onclick = showLeaderboard;
   $('#rules').onclick = showRules;
   $('#invite-friend').onclick = inviteFriendFromHome;
+  const ha = $('#home-avatar'); if (ha) ha.onclick = rerollAvatar;
 }
 
 // Home → "Invite a friend to play": must be signed in (so the invite has a
@@ -153,7 +206,9 @@ function renderLobby() {
       <h3 class="center">At the table (${r.seats.length}/7)</h3>
       <div class="seatlist">
         ${r.seats.map((s, i) => `<div class="seatline ${i === r.youSeat ? 'you' : ''}">
-          <span class="si">${SEATS[i].icon}</span><span class="sn">${esc(s.name)}${i === r.hostSeat ? ' <span class="hosttag">host</span>' : ''}${s.isAI ? ' <span class="ai-badge">AI</span>' : ''}${i === r.youSeat ? ' <span class="muted">(you)</span>' : ''}</span>
+          ${s.isAI ? `<span class="si">${SEATS[i].icon}</span>` : avatarFor(s.name, { size: 32 })}
+          <span class="sn">${esc(s.name)}${i === r.hostSeat ? ' <span class="hosttag">host</span>' : ''}${s.isAI ? ' <span class="ai-badge">AI</span>' : ''}${i === r.youSeat ? ' <span class="muted">(you)</span>' : ''}</span>
+          <span class="si right">${SEATS[i].icon}</span>
         </div>`).join('')}
       </div>
       ${isHost ? `
@@ -426,7 +481,7 @@ async function showLeaderboard() {
   const rows = data.rows || [];
   app.innerHTML = `<section class="panel"><h3 class="center">🏆 Leaderboard</h3>
     ${rows.length ? `<table class="lb"><thead><tr><th>#</th><th>Player</th><th>Wins</th><th>💞</th><th>Score</th></tr></thead>
-      <tbody>${rows.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.username)}</td><td>${r.wins || 0}</td><td>${r.soulmates || 0}</td><td>${r.totalScore || 0}</td></tr>`).join('')}</tbody></table>`
+      <tbody>${rows.map((r, i) => `<tr><td>${i + 1}</td><td><span class="lb-player">${avatarFor(r.username, { size: 28 })}<span>${esc(r.username)}</span></span></td><td>${r.wins || 0}</td><td>${r.soulmates || 0}</td><td>${r.totalScore || 0}</td></tr>`).join('')}</tbody></table>`
       : `<p class="center muted">${esc(data.note || 'No games recorded yet.')}<br/>Sign in and play to climb the board.</p>`}
     </section><button class="btn ghost" id="back">← Back</button>`;
   $('#back').onclick = renderHome;
@@ -526,10 +581,15 @@ function showWelcomeBurst(username) {
   setTimeout(() => { closeModal(); toast(`Welcome, ${username}! Dealing your first hand…`); try { playVsComputer(); } catch (e) { renderHome(); } }, 1500);
 }
 function accountMenu() {
-  modal(`<h3 class="center">👤 ${esc(S.user.username)}</h3>
+  modal(`<div class="account-head">
+      ${avatarFor(S.user.username, { size: 80, clickable: true, withRing: true, id: 'acct-avatar' })}
+      <div class="account-name">${esc(S.user.username)}</div>
+      <div class="muted small">🎲 tap avatar to change look</div>
+    </div>
     <button class="btn" id="lb">🏆 Leaderboard</button>
     <button class="btn ghost" id="out">Sign out</button>
     <button class="btn ghost" id="x">Close</button>`, () => {
+    $('#acct-avatar').onclick = () => { rerollAvatar(); closeModal(); accountMenu(); };
     $('#lb').onclick = () => { closeModal(); showLeaderboard(); };
     $('#out').onclick = () => { S.token = null; S.user = null; localStorage.removeItem('hh_token'); localStorage.removeItem('hh_user'); refreshWho(); closeModal(); if (S.screen === 'home') renderHome(); };
     $('#x').onclick = closeModal;

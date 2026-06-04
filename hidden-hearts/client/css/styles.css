@@ -413,6 +413,51 @@ table.lb th{color:var(--muted);font-weight:600;font-size:12px;text-transform:upp
 /* Top-bar logo: a quiet pulse */
 .topbar .brand .logo{ display:inline-block; animation: heartThump 1.8s ease-in-out infinite; }
 
+/* ============================================================
+   USER AVATARS — gradient circle + face emoji, used everywhere
+   a player is identified (top bar, greeting card, leaderboard,
+   lobby seats, account menu).
+   ============================================================ */
+.user-avatar{
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,.16);
+  box-shadow: 0 4px 10px rgba(0,0,0,.35), inset 0 0 0 1px rgba(0,0,0,.18);
+  line-height:1;
+  flex-shrink:0;
+  vertical-align: middle;
+  user-select: none;
+  text-align:center;
+  overflow:hidden;
+  font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif;
+}
+.user-avatar.ring{
+  box-shadow: 0 4px 14px rgba(0,0,0,.45), 0 0 0 3px rgba(217,179,92,.65), inset 0 0 0 1px rgba(0,0,0,.2);
+}
+.user-avatar.clickable{ cursor:pointer; transition: transform .2s ease, box-shadow .2s ease; }
+.user-avatar.clickable:hover{ transform: scale(1.08) rotate(-6deg); box-shadow: 0 6px 18px rgba(0,0,0,.5), 0 0 0 3px rgba(255,224,232,.7), inset 0 0 0 1px rgba(0,0,0,.2); }
+.user-avatar.clickable:active{ transform: scale(.94); }
+
+/* Top bar — small avatar replacing the 👤 prefix. */
+#who{ display:inline-flex; align-items:center; gap:8px; padding:4px 10px 4px 5px; }
+#who .who-name{ font-weight:600; }
+
+/* Home greeting now has an 'reroll hint' line under the username. */
+.home-greeting .reroll-hint{ font-size:11px; color:#b6a3b0; margin-top:3px; letter-spacing:.5px; }
+
+/* Account modal head */
+.account-head{ display:flex; flex-direction:column; align-items:center; gap:6px; padding:8px 0 14px; }
+.account-head .account-name{ font-family:Georgia,serif; font-size:24px; color:#e0a458; }
+
+/* Leaderboard rows — avatar + name pair */
+.lb-player{ display:inline-flex; align-items:center; gap:8px; }
+.lb td:nth-child(2){ text-align:left; }
+
+/* Lobby seat lines — avatar on the left, seat icon on the right. */
+.seatline{ display:flex; align-items:center; gap:10px; }
+.seatline .sn{ flex:1; }
+.seatline .si.right{ font-size:20px; opacity:.65; }
+
 /* Accessibility — kill expensive motion if the user opted out. */
 @media (prefers-reduced-motion: reduce){
   .floaters{ display:none; }
