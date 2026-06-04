@@ -361,223 +361,97 @@ async function showLeaderboard() {
 }
 
 // ---------- auth ----------
-// ===================================================================
-// AUTH MODALS
-// Register is a two-step flow:
-//   step 1 — just type an email
-//   step 2 — pick / edit a suggested username, set / generate a password
-//            (with show/hide + regenerate buttons)
-// Sign-in is a single screen that accepts username OR email.
-// ===================================================================
+// Password-less: one field, one button. If the name exists, sign the user in;
+// otherwise create the account. Either way they get a token and a game.
 
-function authModal(mode = 'login') {
-  mode === 'register' ? renderRegisterStep1() : renderSignIn();
-}
+function authModal() { renderAuthOne(); }
 
-function renderSignIn(prefill = {}) {
-  modal(`<h3 class="center">Sign in</h3>
-    <input id="auth-id" placeholder="username or email" autocomplete="username" value="${esc(prefill.id || '')}" class="auth-input" />
-    <div style="position:relative;">
-      <input id="auth-pw" type="password" placeholder="password" autocomplete="current-password" class="auth-input" style="padding-right:42px;" />
-      <button type="button" id="auth-eye" class="pw-iconbtn" aria-label="show password" style="position:absolute; right:8px; top:50%; transform:translateY(-50%);">👁</button>
-    </div>
-    <div class="err" id="err" style="color:#e85c86; font-size:13px; min-height:18px; margin:4px 0;"></div>
-    <button class="btn primary" id="go">Sign in →</button>
-    <div style="text-align:center; color:#b6a3b0; margin:10px 0 6px; font-size:13px;">No account?</div>
-    <button class="btn ghost" id="toreg">Create one with your email</button>
-    <button class="btn ghost" id="x">Cancel</button>`, () => {
-    setupPasswordEye('auth-pw', 'auth-eye');
-    document.getElementById('toreg').onclick = () => { closeModal(); renderRegisterStep1(); };
-    document.getElementById('x').onclick = closeModal;
-    document.getElementById('auth-id').focus();
-    document.getElementById('go').onclick = doSignIn;
-    document.getElementById('auth-pw').addEventListener('keydown', e => { if (e.key === 'Enter') doSignIn(); });
-    document.getElementById('auth-id').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('auth-pw').focus(); });
-  });
-}
-
-async function doSignIn() {
-  const id = document.getElementById('auth-id').value.trim();
-  const pw = document.getElementById('auth-pw').value;
-  const err = document.getElementById('err');
-  if (!id || !pw) { err.textContent = 'Type your username/email and password.'; return; }
-  const { status, data } = await api.post('/api/auth/login', { username: id, password: pw });
-  if (status === 200) {
-    S.token = data.token; S.user = data.user;
-    localStorage.setItem('hh_token', S.token);
-    localStorage.setItem('hh_user', JSON.stringify(S.user));
-    refreshWho(); closeModal();
-    if (S.screen === 'home') renderHome();   // refresh so the greeting card shows
-    toast(`Welcome back, ${S.user.username}!`);
-    ensurePresenceConnection();
-  } else err.textContent = data.error || 'Sign-in failed.';
-}
-
-function renderRegisterStep1(prefill = '') {
-  modal(`<h3 class="center">Create your account</h3>
-    <p class="muted small center" style="margin:6px 0 14px;">Start with just your email — we'll handle the rest.</p>
-    <input id="reg-email" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" value="${esc(prefill)}" class="auth-input" />
-    <div class="err" id="err" style="color:#e85c86; font-size:13px; min-height:18px; margin:4px 0;"></div>
-    <button class="btn primary" id="next">Continue →</button>
-    <div style="text-align:center; color:#b6a3b0; margin:10px 0 6px; font-size:13px;">Already have one?</div>
-    <button class="btn ghost" id="tologin">Sign in instead</button>
-    <button class="btn ghost" id="x">Cancel</button>`, () => {
-    const inp = document.getElementById('reg-email');
-    inp.focus();
-    document.getElementById('x').onclick = closeModal;
-    document.getElementById('tologin').onclick = () => { closeModal(); renderSignIn(); };
-    const submit = async () => {
-      const email = inp.value.trim().toLowerCase();
-      const err = document.getElementById('err');
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = 'That doesn\'t look like a valid email.'; return; }
-      const { status, data } = await api.post('/api/auth/check-email', { email });
-      if (status === 200) renderRegisterStep2({ email, username: data.suggestedUsername });
-      else if (status === 409) { err.innerHTML = `${esc(data.error)} <a href="#" id="goin" style="color:#e0a458;">Sign in →</a>`; document.getElementById('goin').onclick = e => { e.preventDefault(); closeModal(); renderSignIn({ id: email }); }; }
-      else err.textContent = data.error || 'Could not check that email.';
+function renderAuthOne() {
+  modal(`<h3 class="center">Pick your name</h3>
+    <p class="muted small center" style="margin:6px 0 12px;">No email, no password. Just claim a name and play.</p>
+    <input id="auth-name" class="auth-input" placeholder="your username" maxlength="24" autocomplete="off" autocapitalize="off" spellcheck="false" />
+    <div id="auth-hint" class="hint" style="font-size:12px; margin:-2px 0 6px;">2–24 letters, digits, or underscore.</div>
+    <div class="err" id="auth-err" style="color:#e85c86; font-size:13px; min-height:18px; margin:4px 0;"></div>
+    <button class="btn primary" id="auth-go">Continue →</button>
+    <button class="btn ghost" id="auth-x">Cancel</button>`, () => {
+    const input = document.getElementById("auth-name");
+    const hint  = document.getElementById("auth-hint");
+    const err   = document.getElementById("auth-err");
+    const go    = document.getElementById("auth-go");
+    input.focus();
+    let lastChecked = null;
+    let checkTimer = null;
+    const validate = v => /^[a-zA-Z0-9_]{2,24}$/.test(v);
+    const onType = () => {
+      const v = input.value.trim();
+      err.textContent = "";
+      if (!v) { hint.textContent = "2–24 letters, digits, or underscore."; hint.classList.remove("ok"); return; }
+      if (!validate(v)) { hint.textContent = "Only letters, digits, and underscore."; hint.classList.remove("ok"); return; }
+      hint.textContent = "Looking up…"; hint.classList.remove("ok");
+      clearTimeout(checkTimer);
+      checkTimer = setTimeout(async () => {
+        if (input.value.trim() !== v) return;
+        const r = await fetch("/api/auth/check-username?u=" + encodeURIComponent(v)).then(x => x.json()).catch(() => ({}));
+        if (input.value.trim() !== v) return;
+        if (r.available)      { hint.textContent = "✓ name is free — you can claim it"; hint.classList.add("ok"); }
+        else if (r.valid === false) { hint.textContent = r.reason || "Invalid name."; hint.classList.remove("ok"); }
+        else                  { hint.textContent = "This name exists — you’ll sign in as them."; hint.classList.remove("ok"); }
+        lastChecked = v;
+      }, 220);
     };
-    document.getElementById('next').onclick = submit;
-    inp.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
-  });
-}
-
-function renderRegisterStep2({ email, username }) {
-  const startingPassword = generatePassword();
-  modal(`<h3 class="center">One more step</h3>
-    <p class="muted small center" style="margin:4px 0 12px;">${esc(email)}</p>
-
-    <label class="muted small" style="display:block; margin-top:4px;">Your username (people will see this)</label>
-    <input id="reg-username" autocomplete="username" maxlength="24" value="${esc(username)}" class="auth-input" />
-    <div id="uname-hint" class="muted small" style="font-size:12px; margin-top:-2px;">2–24 letters, digits, or underscore.</div>
-
-    <label class="muted small" style="display:block; margin-top:12px;">Password</label>
-    <div style="position:relative;">
-      <input id="reg-pw" type="password" autocomplete="new-password" value="${esc(startingPassword)}" class="auth-input" style="padding-right:78px;" />
-      <button type="button" id="reg-eye"  class="pw-iconbtn" aria-label="show password"        style="position:absolute; right:40px; top:50%; transform:translateY(-50%);">👁</button>
-      <button type="button" id="reg-roll" class="pw-iconbtn" aria-label="suggest a new password" title="Suggest a new password" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); color:#e0a458;">🔄</button>
-    </div>
-    <div class="muted small" style="font-size:12px; margin-top:2px;">We picked one for you — feel free to type your own. Min 6 characters.</div>
-
-    <div class="err" id="err" style="color:#e85c86; font-size:13px; min-height:18px; margin:8px 0 4px;"></div>
-    <button class="btn primary" id="create">Create account ✨</button>
-    <button class="btn ghost" id="back">← Back</button>`, () => {
-    setupPasswordEye('reg-pw', 'reg-eye');
-    document.getElementById('reg-roll').onclick = () => {
-      const btn = document.getElementById('reg-roll');
-      btn.classList.remove('spin'); void btn.offsetWidth; btn.classList.add('spin');
-      const pw = document.getElementById('reg-pw');
-      pw.value = generatePassword(); pw.type = 'text';
-      const eye = document.getElementById('reg-eye');
-      eye.textContent = '🙈'; eye.classList.add('eye-shown');
-    };
-    document.getElementById('back').onclick = () => { closeModal(); renderRegisterStep1(email); };
-    document.getElementById('create').onclick = doRegister;
-    document.getElementById('reg-username').focus();
-    document.getElementById('reg-username').select();
-    // Hide-on-blur for the username hint
-    const uname = document.getElementById('reg-username');
-    uname.addEventListener('input', () => {
-      const v = uname.value;
-      const ok = /^[a-zA-Z0-9_]{2,24}$/.test(v);
-      document.getElementById('uname-hint').style.color = ok ? '#3a9a6a' : '#b6a3b0';
-      document.getElementById('uname-hint').textContent = ok ? '✓ looks good' : '2–24 letters, digits, or underscore.';
-    });
-    async function doRegister() {
-      const username = document.getElementById('reg-username').value.trim();
-      const password = document.getElementById('reg-pw').value;
-      const err = document.getElementById('err');
-      if (!/^[a-zA-Z0-9_]{2,24}$/.test(username)) { err.textContent = 'Pick a username (2–24 letters / digits / _).'; return; }
-      if (password.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
-      const btn = document.getElementById('create');
-      btn.disabled = true; btn.textContent = 'Creating…';
-      const { status, data } = await api.post('/api/auth/register', { email, username, password });
+    input.addEventListener("input", onType);
+    input.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
+    document.getElementById("auth-x").onclick = closeModal;
+    go.onclick = submit;
+    async function submit() {
+      const username = input.value.trim();
+      if (!validate(username)) { err.textContent = "Pick 2–24 letters, digits, or underscore."; return; }
+      go.disabled = true; go.textContent = "…";
+      const { status, data } = await api.post("/api/auth/continue", { username });
       if (status === 200) {
         S.token = data.token; S.user = data.user;
-        localStorage.setItem('hh_token', S.token);
-        localStorage.setItem('hh_user', JSON.stringify(S.user));
+        localStorage.setItem("hh_token", S.token);
+        localStorage.setItem("hh_user", JSON.stringify(S.user));
         refreshWho();
         ensurePresenceConnection();
         showWelcomeBurst(S.user.username);
       } else {
-        err.textContent = data.error || 'Registration failed.';
-        btn.disabled = false; btn.textContent = 'Create account ✨';
+        err.textContent = data.error || "Could not sign you in.";
+        go.disabled = false; go.textContent = "Continue →";
       }
     }
   });
 }
 
-// Small helper: toggle a password input between password/text and swap the eye icon.
-function setupPasswordEye(inputId, btnId) {
-  const inp = document.getElementById(inputId);
-  const btn = document.getElementById(btnId);
-  if (!inp || !btn) return;
-  btn.onclick = () => {
-    const show = inp.type === 'password';
-    inp.type = show ? 'text' : 'password';
-    btn.textContent = show ? '🙈' : '👁';
-    btn.classList.toggle('eye-shown', show);
-    btn.setAttribute('aria-label', show ? 'hide password' : 'show password');
-  };
-}
-
-// Pick a per-user emoji based on the username — purely cosmetic, stable across renders.
-function heartFor(name) {
-  const palette = ['🌹','🪷','🌙','🔥','🦚','🌼','⭐','💞','✨','🌷'];
-  let h = 0; for (const c of String(name || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return palette[h % palette.length];
-}
-
-// Show a celebratory "welcome" burst inside the active modal, then drop the
-// player straight into a vs-Computer game (they came here to play, not to
-// shop the home menu). The home screen is one Leave-room tap away if they
-// want to invite friends or change settings.
+// Show a celebratory "welcome" burst then drop the user into a solo game.
 function showWelcomeBurst(username) {
-  const host = document.getElementById('modal-host');
+  const host = document.getElementById("modal-host");
   if (!host) return;
   host.innerHTML = `<div class="overlay"><div class="modal" style="position:relative; overflow:visible;">
     <div class="welcome-burst">
       <div class="heart">💞</div>
       <h2>Welcome to PYAAR</h2>
-      <div class="who">${esc(username)} <span class="muted small">· you're signed in</span></div>
+      <div class="who">${esc(username)} <span class="muted small">· you are in</span></div>
       <div class="sub">Dealing your first table…</div>
     </div>
     <div id="confetti-host" style="position:absolute; inset:0; pointer-events:none; overflow:hidden;"></div>
   </div></div>`;
-  // Sprinkle a handful of confetti hearts
-  const cf = document.getElementById('confetti-host');
+  const cf = document.getElementById("confetti-host");
   if (cf) {
-    const emojis = ['💗','💖','💞','✨','🌹','💕'];
+    const emojis = ["💗","💖","💞","✨","🌹","💕"];
     for (let i = 0; i < 16; i++) {
-      const span = document.createElement('span');
-      span.className = 'confetti';
+      const span = document.createElement("span");
+      span.className = "confetti";
       span.textContent = emojis[i % emojis.length];
-      const x = (Math.random() * 280 - 140) | 0;
-      const y = (Math.random() * 220 + 80) | 0;
-      const r = ((Math.random() * 720) - 360) | 0;
-      span.style.left = '50%'; span.style.top = '30%';
-      span.style.setProperty('--cx', x + 'px');
-      span.style.setProperty('--cy', y + 'px');
-      span.style.setProperty('--cr', r + 'deg');
-      span.style.animationDelay = (Math.random() * 0.25).toFixed(2) + 's';
+      span.style.left = "50%"; span.style.top = "30%";
+      span.style.setProperty("--cx", ((Math.random() * 280 - 140) | 0) + "px");
+      span.style.setProperty("--cy", ((Math.random() * 220 + 80) | 0) + "px");
+      span.style.setProperty("--cr", (((Math.random() * 720) - 360) | 0) + "deg");
+      span.style.animationDelay = (Math.random() * 0.25).toFixed(2) + "s";
       cf.appendChild(span);
     }
   }
-  // After the moment, dissolve the modal and auto-start a solo game so the
-  // player lands inside a table, not on the home menu.
-  setTimeout(() => {
-    closeModal();
-    toast(`Welcome, ${username}! Dealing your first hand…`);
-    try { playVsComputer(); } catch (e) { renderHome(); }
-  }, 1500);
-}
-
-// Generate a friendly, memorable-ish password: word + digits + symbol.
-function generatePassword() {
-  const adjectives = ['Velvet','Crimson','Moonlit','Silver','Golden','Ember','Coral','Lyric','Lotus','Jasmine','Sable','Bright','Quiet','Wild','Tender','Bold'];
-  const nouns = ['Heart','Bloom','Tide','River','Spark','Petal','Dawn','Whisper','Ember','Note','Star','Vow','Dream','Flame','Halo','Garden'];
-  const pick = a => a[Math.floor(Math.random() * a.length)];
-  const n = Math.floor(Math.random() * 90 + 10);
-  const sym = '!?$#&'.charAt(Math.floor(Math.random() * 5));
-  return `${pick(adjectives)}-${pick(nouns)}-${n}${sym}`;
+  setTimeout(() => { closeModal(); toast(`Welcome, ${username}! Dealing your first hand…`); try { playVsComputer(); } catch (e) { renderHome(); } }, 1500);
 }
 function accountMenu() {
   modal(`<h3 class="center">👤 ${esc(S.user.username)}</h3>
