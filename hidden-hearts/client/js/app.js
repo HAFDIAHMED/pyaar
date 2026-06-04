@@ -526,19 +526,19 @@ function heartFor(name) {
   return palette[h % palette.length];
 }
 
-// Show a celebratory "welcome" burst inside the active modal, then dissolve to
-// the freshly-personalised home screen.
+// Show a celebratory "welcome" burst inside the active modal, then drop the
+// player straight into a vs-Computer game (they came here to play, not to
+// shop the home menu). The home screen is one Leave-room tap away if they
+// want to invite friends or change settings.
 function showWelcomeBurst(username) {
   const host = document.getElementById('modal-host');
   if (!host) return;
-  const modalEl = host.querySelector('.modal');
-  // Replace modal body with the burst
   host.innerHTML = `<div class="overlay"><div class="modal" style="position:relative; overflow:visible;">
     <div class="welcome-burst">
       <div class="heart">💞</div>
       <h2>Welcome to PYAAR</h2>
       <div class="who">${esc(username)} <span class="muted small">· you're signed in</span></div>
-      <div class="sub">Loading your table…</div>
+      <div class="sub">Dealing your first table…</div>
     </div>
     <div id="confetti-host" style="position:absolute; inset:0; pointer-events:none; overflow:hidden;"></div>
   </div></div>`;
@@ -553,8 +553,7 @@ function showWelcomeBurst(username) {
       const x = (Math.random() * 280 - 140) | 0;
       const y = (Math.random() * 220 + 80) | 0;
       const r = ((Math.random() * 720) - 360) | 0;
-      span.style.left = '50%';
-      span.style.top = '30%';
+      span.style.left = '50%'; span.style.top = '30%';
       span.style.setProperty('--cx', x + 'px');
       span.style.setProperty('--cy', y + 'px');
       span.style.setProperty('--cr', r + 'deg');
@@ -562,12 +561,13 @@ function showWelcomeBurst(username) {
       cf.appendChild(span);
     }
   }
-  // After the moment, fade out and re-render home
+  // After the moment, dissolve the modal and auto-start a solo game so the
+  // player lands inside a table, not on the home menu.
   setTimeout(() => {
     closeModal();
-    renderHome();
-    toast(`You're in — let's play, ${username}!`);
-  }, 1700);
+    toast(`Welcome, ${username}! Dealing your first hand…`);
+    try { playVsComputer(); } catch (e) { renderHome(); }
+  }, 1500);
 }
 
 // Generate a friendly, memorable-ish password: word + digits + symbol.
