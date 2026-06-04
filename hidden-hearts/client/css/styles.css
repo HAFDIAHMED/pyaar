@@ -862,12 +862,319 @@ body::after{
 .expose-flash .ef-arrow{ font-size:32px; color:#5fe0a8; text-shadow: 0 0 12px rgba(95,224,176,.7); }
 .expose-flash .ef-sub{ font-family:Georgia,serif; font-style:italic; color:#dff8d8; font-size:14px; }
 
+/* ============================================================
+   HOME v2 — A REAL LOBBY: felt table + play chip + friends + tabs
+   ============================================================ */
+
+/* Tighter hero — title + marquee, no big logo block */
+.hero.compact{ padding:18px 10px 10px; }
+.hero.compact .title{ font-size:48px; letter-spacing:5px; margin-bottom:0; }
+.hero.compact .subtitle{ font-size:11px; letter-spacing:5px; margin-top:6px; }
+
+/* THE TABLE — central felt with 7 seats arranged in a ring */
+.lobby-table-wrap{
+  padding: 18px 10px 8px;
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+}
+.lobby-table{
+  position:relative;
+  width: min(440px, 92%);
+  aspect-ratio: 5 / 4;
+  border-radius: 50% / 42%;
+  border: 14px solid #3a2614;
+  background:
+    radial-gradient(ellipse at 50% 38%, #25a06a 0%, #128048 35%, #075a32 70%, #042818 100%);
+  box-shadow:
+    inset 0 12px 38px rgba(0,0,0,.55),
+    inset 0 -6px 24px rgba(0,0,0,.5),
+    inset 0 0 0 5px rgba(217,179,92,.55),       /* gold inner rail */
+    inset 0 0 0 8px rgba(0,0,0,.35),
+    0 22px 50px rgba(0,0,0,.55);
+  animation: tableIn .6s cubic-bezier(.2,.9,.25,1.15) both;
+}
+@keyframes tableIn{ from{ opacity:0; transform: scale(.92) translateY(20px);} to{ opacity:1; transform: scale(1) translateY(0);} }
+/* faint felt grain inside the oval */
+.lobby-felt{
+  position:absolute; inset:0; border-radius:inherit; overflow:visible;
+}
+.lobby-felt::before{
+  content:""; position:absolute; inset:0; border-radius:inherit;
+  background:
+    radial-gradient(circle at 50% 25%, rgba(255,255,255,.07), transparent 60%),
+    radial-gradient(rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: auto, 4px 4px;
+  pointer-events:none;
+}
+.felt-rail{
+  /* the gold-dot perimeter — a ring of bulbs around the table edge */
+  position:absolute; inset:-4px; border-radius:inherit;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,235,168,.9) 1.5px, transparent 2px) 50% 0/24px 8px repeat-x,
+    radial-gradient(circle at 50% 100%, rgba(255,235,168,.9) 1.5px, transparent 2px) 50% 100%/24px 8px repeat-x;
+}
+
+/* Seat ring — 7 chips placed at angles around the felt */
+.seat-ring{ position:absolute; inset:0; }
+.ring-seat{
+  position:absolute; top:50%; left:50%;
+  --r: 46%;
+  --angle: calc((360deg / var(--of, 7)) * var(--n, 0) - 90deg);
+  /* The chips sit just inside the rail, so we use a radial offset */
+  transform:
+    translate(-50%, -50%)
+    rotate(var(--angle))
+    translate(min(38vw, 168px))
+    rotate(calc(-1 * var(--angle)));
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  width:64px;
+}
+.ring-seat .ring-name{
+  font-size:10px; letter-spacing:.5px; color:#f3e9df;
+  max-width:64px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  text-shadow: 0 1px 2px rgba(0,0,0,.7);
+}
+.ring-seat.you .ring-name{ color:#ffe9a8; font-weight:700; }
+.ring-seat.empty .ring-blank{
+  width:38px; height:38px; border-radius:50%;
+  background: rgba(0,0,0,.35); border:2px dashed rgba(255,255,255,.18);
+  color: rgba(255,255,255,.35); font-size:18px;
+  display:flex; align-items:center; justify-content:center;
+}
+.ring-seat.bot{
+  animation: botBob 4s ease-in-out infinite;
+}
+.ring-seat.bot:nth-child(2){ animation-delay: .3s; }
+.ring-seat.bot:nth-child(3){ animation-delay: .9s; }
+.ring-seat.bot:nth-child(4){ animation-delay: 1.5s; }
+@keyframes botBob{ 0%,100%{ transform:
+    translate(-50%, -50%) rotate(var(--angle)) translate(min(38vw, 168px)) rotate(calc(-1 * var(--angle))) translateY(0);}
+  50%{ transform:
+    translate(-50%, -50%) rotate(var(--angle)) translate(min(38vw, 168px)) rotate(calc(-1 * var(--angle))) translateY(-3px);} }
+
+/* Centre of the table — a faint card-stack + the play chip */
+.table-center{
+  position:absolute; top:50%; left:50%; transform: translate(-50%, -50%);
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  z-index:2;
+}
+.card-stack{ position:relative; width:48px; height:64px; margin-bottom:-22px; }
+.card-stack .csc{
+  position:absolute; width:36px; height:50px; border-radius:5px;
+  background: linear-gradient(135deg, #6c0a23 0%, #3c0814 100%);
+  border:1.5px solid #f7e6c8;
+  box-shadow: 0 4px 10px rgba(0,0,0,.5), inset 0 0 0 2px rgba(217,179,92,.4);
+}
+.card-stack .c1{ top:6px; left:0;  transform: rotate(-8deg); }
+.card-stack .c2{ top:3px; left:6px; transform: rotate(0deg); }
+.card-stack .c3{ top:0;   left:12px; transform: rotate(8deg); }
+
+/* THE PLAY CHIP — the only primary CTA on the home */
+.play-chip{
+  appearance:none; cursor:pointer;
+  width:128px; height:128px; border-radius:50%;
+  background:
+    radial-gradient(circle at 50% 32%, #fff5d0 0%, #ffe19a 30%, #d9b35c 60%, #8a6a1c 100%);
+  border: 4px dashed #6b4d18;
+  box-shadow:
+    0 10px 26px rgba(0,0,0,.55),
+    inset 0 4px 0 rgba(255,255,255,.55),
+    inset 0 -6px 14px rgba(0,0,0,.35),
+    0 0 0 6px rgba(0,0,0,.18),
+    0 0 0 7px rgba(217,179,92,.6),
+    0 0 30px rgba(255,235,168,.35);
+  color:#2a2008; font-weight:900;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  position:relative;
+  animation: chipPulse 2.6s ease-in-out infinite;
+  transition: transform .12s ease;
+}
+.play-chip:hover{ transform: scale(1.05); }
+.play-chip:active{ transform: scale(.96); }
+@keyframes chipPulse{ 0%,100%{ box-shadow:
+    0 10px 26px rgba(0,0,0,.55), inset 0 4px 0 rgba(255,255,255,.55), inset 0 -6px 14px rgba(0,0,0,.35),
+    0 0 0 6px rgba(0,0,0,.18), 0 0 0 7px rgba(217,179,92,.6),
+    0 0 30px rgba(255,235,168,.3);}
+  50%{ box-shadow:
+    0 10px 26px rgba(0,0,0,.55), inset 0 4px 0 rgba(255,255,255,.55), inset 0 -6px 14px rgba(0,0,0,.35),
+    0 0 0 6px rgba(0,0,0,.18), 0 0 0 7px rgba(217,179,92,.85),
+    0 0 50px rgba(255,235,168,.65);} }
+.play-chip .pc-ic{ font-size:28px; line-height:1; }
+.play-chip .pc-lbl{ font-family:'Cinzel', Georgia, serif; font-size:18px; letter-spacing:3px; line-height:1.1; margin-top:2px; }
+.play-chip .pc-sub{ font-size:10px; letter-spacing:1px; color:#4a3408; margin-top:2px; }
+.play-chip::before{
+  /* tiny notches around the chip edge, like a real casino chip */
+  content:""; position:absolute; inset:-1px; border-radius:50%;
+  background:
+    repeating-conic-gradient(from 0deg,
+      rgba(0,0,0,.22) 0deg 6deg, transparent 6deg 12deg);
+  -webkit-mask: radial-gradient(circle, transparent 56%, #000 57%, #000 62%, transparent 63%);
+          mask: radial-gradient(circle, transparent 56%, #000 57%, #000 62%, transparent 63%);
+  pointer-events:none;
+}
+
+/* Seat counter sits below the table — small, ornate, not a button row */
+.seat-counter{
+  display:flex; align-items:center; gap:14px;
+  background: linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.15));
+  border:1px solid rgba(217,179,92,.35);
+  border-radius:999px;
+  padding:6px 8px;
+}
+.seat-pm{
+  width:32px; height:32px; border-radius:50%;
+  background: radial-gradient(circle, var(--primary-l), var(--primary-d));
+  border:1px solid #6b4d18; color:#2a2008; font-weight:900; font-size:18px; cursor:pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 2px 6px rgba(0,0,0,.4);
+}
+.seat-counter-mid b{ font-family:Georgia,serif; color:#ffe9a8; font-size:20px; }
+
+/* FRIENDS STRIP — horizontal scroll of round avatar bubbles */
+.friends-strip{
+  margin: 18px 4px 8px;
+  background: linear-gradient(180deg, rgba(8,30,20,.45), rgba(8,30,20,.20));
+  border:1px solid rgba(217,179,92,.22);
+  border-radius:16px;
+  padding:10px 4px;
+}
+.friends-head{
+  display:flex; justify-content:space-between; align-items:baseline;
+  padding: 2px 12px 8px;
+}
+.friends-head .fh-label{ font-size:10px; letter-spacing:2px; color:#d9b35c; font-weight:700; }
+.friends-row{
+  display:flex; gap:10px; overflow-x:auto; overflow-y:hidden;
+  padding: 4px 10px 8px; scrollbar-width: thin;
+  scroll-snap-type: x mandatory;
+}
+.friends-row::-webkit-scrollbar{ height:6px; }
+.friends-row::-webkit-scrollbar-thumb{ background: rgba(217,179,92,.35); border-radius:6px; }
+.friend-bubble{
+  appearance:none; background:none; border:none; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:4px; min-width:62px; max-width:72px;
+  position:relative; scroll-snap-align: start;
+  transition: transform .12s;
+}
+.friend-bubble:hover{ transform: translateY(-3px); }
+.friend-bubble:active{ transform: scale(.94); }
+.friend-bubble .fb-name{
+  font-size:11px; color:#f3e9df; max-width:68px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.friend-bubble .fb-dot{
+  position:absolute; top:0; right:6px; width:10px; height:10px; border-radius:50%;
+  background:#3ee08a; border:2px solid #062818;
+  box-shadow: 0 0 6px rgba(62,224,138,.7);
+  animation: onlineDot 2s ease-in-out infinite;
+}
+@keyframes onlineDot{ 0%,100%{ transform: scale(1);} 50%{ transform: scale(1.15);} }
+.friend-bubble.add{
+  border:2px dashed rgba(217,179,92,.55);
+  border-radius:14px;
+  background: rgba(0,0,0,.25);
+  padding: 4px 6px;
+}
+.friend-bubble.add .fb-plus{
+  width:52px; height:52px; border-radius:50%;
+  background: rgba(217,179,92,.18);
+  display:flex; align-items:center; justify-content:center;
+  color:#ffe9a8; font-size:26px; font-weight:700;
+}
+.friends-empty{ padding: 10px 12px; color:#b6a3b0; flex:1; min-width:0; }
+.friends-empty .big{ font-size:24px; margin-bottom:4px; }
+
+/* Mini stats pills above the tab bar */
+.mini-stats{
+  display:flex; gap:8px; justify-content:center; flex-wrap:wrap;
+  margin: 6px 4px 76px;            /* extra bottom margin to clear the fixed tab bar */
+}
+.ms-pill{
+  background: linear-gradient(180deg, rgba(217,179,92,.22), rgba(120,80,30,.20));
+  border:1px solid rgba(217,179,92,.45);
+  border-radius:999px;
+  padding:6px 12px;
+  font-size:12px; color:#ffe9a8;
+}
+.ms-pill.ghost{ background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.15); color:#f3e9df; }
+.ms-pill b{ color:#ffe9a8; }
+
+/* BOTTOM TAB BAR — fixed, 5 icons, the new navigation */
+.tab-bar{
+  position:fixed; left:0; right:0; bottom:0; z-index:50;
+  display:flex; justify-content:space-around;
+  background: linear-gradient(180deg, rgba(8,30,20,.92), rgba(4,18,12,.97));
+  border-top: 1px solid rgba(217,179,92,.45);
+  box-shadow: 0 -8px 24px rgba(0,0,0,.5), inset 0 1px 0 rgba(217,179,92,.18);
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  backdrop-filter: blur(10px);
+}
+.tab{
+  appearance:none; background:transparent; border:none; cursor:pointer;
+  flex:1; padding:6px 0; color:#b6a3b0;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  transition: color .15s, transform .12s;
+  font-size:11px; letter-spacing:.4px;
+  position:relative;
+}
+.tab .ic{ font-size:22px; line-height:1; }
+.tab:hover{ color:#ffe9a8; transform: translateY(-2px); }
+.tab.active{ color:#ffe9a8; }
+.tab.active::before{
+  content:""; position:absolute; top:0; left:30%; right:30%; height:2px;
+  background: linear-gradient(90deg, transparent, #d9b35c, transparent);
+}
+.tab.tab-plus .ic{
+  /* the centre + tab is a small gold chip */
+  width:38px; height:38px; border-radius:50%;
+  background: radial-gradient(circle at 50% 30%, #fff5d0, #d9b35c 60%, #8a6a1c);
+  color:#2a2008; font-weight:900;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 4px 12px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.5);
+  font-size:24px;
+}
+.tab.tab-plus{ margin-top:-12px; }
+
+/* Bottom sheet — "Open a table" rows */
+.nt-list{ display:flex; flex-direction:column; gap:10px; margin:14px 0; }
+.nt-row{
+  appearance:none; cursor:pointer;
+  display:flex; align-items:center; gap:12px;
+  padding:12px;
+  background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.15));
+  border:1px solid rgba(217,179,92,.35); border-radius:14px;
+  color:#f3e9df;
+  text-align:left;
+  transition: transform .12s, border-color .15s;
+}
+.nt-row:hover{ transform: translateY(-2px); border-color: rgba(217,179,92,.7); }
+.nt-row .nt-ic{
+  width:44px; height:44px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; flex-shrink:0;
+  box-shadow: 0 4px 10px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.25);
+}
+.nt-row .nt-txt{ display:flex; flex-direction:column; gap:2px; }
+.nt-row .nt-txt b{ color:#ffe9a8; font-size:15px; }
+.nt-row .nt-txt span{ font-size:12px; color:#b6a3b0; }
+
+/* Phone-size tweaks so the table never overflows */
+@media (max-width: 480px){
+  .lobby-table{ width: 96%; }
+  .ring-seat{ width:54px; }
+  .ring-seat .ring-name{ font-size:9px; max-width:54px; }
+  .ring-seat.empty .ring-blank{ width:32px; height:32px; font-size:16px; }
+  .play-chip{ width:108px; height:108px; }
+  .play-chip .pc-lbl{ font-size:16px; letter-spacing:2px; }
+  .hero.compact .title{ font-size:38px; letter-spacing:4px; }
+}
+
 /* Accessibility — kill expensive motion if the user opted out. */
 @media (prefers-reduced-motion: reduce){
   .floaters{ display:none; }
   .hero .logo, .home-greeting .gi, #invite-friend, .topbar .brand .logo,
   .hero .title, .home-greeting .badge, #invite-friend::after,
-  .hero .marquee .bulb, .expose-flash .expose-card, .chip .exposed{
+  .hero .marquee .bulb, .expose-flash .expose-card, .chip .exposed,
+  .ring-seat.bot, .play-chip, .friend-bubble .fb-dot, .lobby-table{
     animation: none !important;
   }
   .menu > *{ animation: fadeUp .25s both; animation-delay:0s !important; }

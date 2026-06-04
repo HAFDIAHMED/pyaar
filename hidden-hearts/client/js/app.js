@@ -130,64 +130,217 @@ function renderHome() {
       </div>
       <div class="badge">● online</div>
     </section>` : '';
+  // Pre-build the seat ring: user at seat 0, AI bots at seats 1..(soloCount-1),
+  // remaining seats empty. 7 total because the felt has 7 chip positions.
+  const seatHTML = [];
+  const TOTAL_SEATS = 7;
+  for (let i = 0; i < TOTAL_SEATS; i++) {
+    if (i === 0 && S.user) {
+      seatHTML.push(`<div class="ring-seat you" style="--n:${i}; --of:${TOTAL_SEATS}">${avatarFor(S.user.username, { size: 44, withRing: true })}<div class="ring-name">${esc(S.user.username)}</div></div>`);
+    } else if (i === 0) {
+      seatHTML.push(`<div class="ring-seat empty" style="--n:${i}; --of:${TOTAL_SEATS}"><div class="ring-blank">?</div><div class="ring-name muted">guest</div></div>`);
+    } else if (i < S.soloCount) {
+      const botName = ['Rumi','Layla','Kai','Sol','Vera','Ash'][i - 1] || ('bot' + i);
+      seatHTML.push(`<div class="ring-seat bot" style="--n:${i}; --of:${TOTAL_SEATS}">${avatarFor(botName, { size: 36 })}<div class="ring-name muted">${esc(botName)}</div></div>`);
+    } else {
+      seatHTML.push(`<div class="ring-seat empty" style="--n:${i}; --of:${TOTAL_SEATS}"><div class="ring-blank">+</div></div>`);
+    }
+  }
+
   app.innerHTML = `
     ${greeting}
-    <section class="hero">
-      <div class="logo">❤</div>
+    <section class="hero compact">
       <h1 class="title">PYAAR</h1>
-      <div class="subtitle">THE LOVE CARD GAME</div>
       <div class="marquee" aria-hidden="true">
         <span class="bulb"></span><span class="bulb"></span><span class="bulb"></span><span class="bulb"></span>
         <span class="bulb"></span><span class="bulb"></span><span class="bulb"></span><span class="bulb"></span>
       </div>
-      <p class="tagline">Build your love. Race to Devotion. Don't let them break your heart.</p>
+      <div class="subtitle">THE LOVE CARD GAME</div>
     </section>
-    <section class="stats-row" id="stats-row">
-      <div class="stats-card mine">
-        <div class="stats-title">YOUR RECORD</div>
-        <div class="stats-grid" id="my-stats">
-          <div class="stat"><div class="v">—</div><div class="k">games</div></div>
-          <div class="stat"><div class="v">—</div><div class="k">wins</div></div>
-          <div class="stat"><div class="v">—</div><div class="k">💞</div></div>
+
+    <!-- THE TABLE — a real felt with you + bots seated around it and the
+         play chip in the centre. This is the home; everything else is a tab. -->
+    <section class="lobby-table-wrap">
+      <div class="lobby-table">
+        <div class="lobby-felt">
+          <div class="felt-rail"></div>
+          <div class="seat-ring">${seatHTML.join('')}</div>
+          <div class="table-center">
+            <div class="card-stack" aria-hidden="true">
+              <span class="csc c1"></span><span class="csc c2"></span><span class="csc c3"></span>
+            </div>
+            <button class="play-chip" id="play-ai">
+              <span class="pc-ic">▶</span>
+              <span class="pc-lbl">PLAY</span>
+              <span class="pc-sub">vs <b id="pc-count">${S.soloCount}</b> bots</span>
+            </button>
+          </div>
         </div>
       </div>
-      <div class="stats-card top">
-        <div class="stats-title">🏆 TOP PLAYERS</div>
-        <div class="mini-lb" id="mini-lb"><div class="muted small">loading…</div></div>
+      <div class="seat-counter">
+        <button class="seat-pm" id="cminus" aria-label="fewer">−</button>
+        <div class="seat-counter-mid"><b id="cval">${S.soloCount}</b><span class="muted small"> seats at the table</span></div>
+        <button class="seat-pm" id="cplus" aria-label="more">+</button>
       </div>
     </section>
-    <section class="menu">
-      <div class="count-row">
-        <span>vs Computer</span>
-        <div class="stepper"><button id="cminus">−</button><b id="cval">${S.soloCount}</b><button id="cplus">+</button></div>
-        <span class="muted small">players</span>
+
+    <!-- Friends / online strip. Tap a face → invite them to your table. -->
+    <section class="friends-strip">
+      <div class="friends-head">
+        <span class="fh-label">👥 PLAYERS ONLINE</span>
+        <span class="muted small" id="online-count"></span>
       </div>
-      <button class="btn primary big" id="play-ai">▶ Play vs Computer</button>
-      <button class="btn big" id="invite-friend" style="margin-top:8px; background:linear-gradient(180deg, rgba(232,92,134,0.32), rgba(166,30,68,0.30)); border:1px solid #e85c86; color:#ffe0e8; font-weight:700;">👋 Invite a friend to play</button>
-      <button class="btn big" id="floor" style="background:linear-gradient(180deg, rgba(34,128,80,0.35), rgba(20,80,50,0.45)); border:1px solid #4cb878; color:#dff8e8; font-weight:700;">🎰 Browse tables — the floor</button>
-      <div class="grid2" style="margin-top:8px;">
-        <button class="btn" id="create">＋ Create public table</button>
-        <button class="btn" id="join">⌨ Join with code</button>
-      </div>
-      <div class="grid2">
-        <button class="btn ghost" id="lb">🏆 Full leaderboard</button>
-        <button class="btn ghost" id="rules">📖 How to play</button>
+      <div class="friends-row" id="friends-row">
+        <div class="muted small" style="padding:14px">looking around the room…</div>
       </div>
     </section>
-    <div class="foot">PYAAR · the love card game — walk the floor, sit at a table, invite friends.</div>`;
-  spawnFloaters();                       // drifting hearts behind the menu
-  refreshHomeStats();                    // pulls /api/me + /api/leaderboard async
-  const bump = () => { const el = $('#cval'); el.classList.remove('bumped'); void el.offsetWidth; el.classList.add('bumped'); };
-  $('#cminus').onclick = () => { if (S.soloCount > 3) { S.soloCount--; $('#cval').textContent = S.soloCount; bump(); SFX.click?.(); } };
-  $('#cplus').onclick  = () => { if (S.soloCount < 7) { S.soloCount++; $('#cval').textContent = S.soloCount; bump(); SFX.click?.(); } };
+
+    <!-- Tiny floating stats strip — much less obtrusive than the old plaques -->
+    <section class="mini-stats" id="mini-stats">
+      <div class="ms-pill" id="my-stats-pill">— games · — wins · — 💞</div>
+      <div class="ms-pill ghost"><span class="muted small">🏆 top:</span> <span id="mini-top">…</span></div>
+    </section>
+
+    <!-- Bottom tab bar — five icons, fixed -->
+    <nav class="tab-bar">
+      <button class="tab active" data-tab="home"><span class="ic">🏠</span><span class="lbl">Home</span></button>
+      <button class="tab" data-tab="floor"><span class="ic">🎰</span><span class="lbl">Floor</span></button>
+      <button class="tab tab-plus" data-tab="new"><span class="ic">＋</span><span class="lbl">Table</span></button>
+      <button class="tab" data-tab="lb"><span class="ic">🏆</span><span class="lbl">Top</span></button>
+      <button class="tab" data-tab="rules"><span class="ic">📖</span><span class="lbl">Rules</span></button>
+    </nav>`;
+  spawnFloaters();
+  refreshHomeStatsCompact();
+  refreshOnlineStrip();
+  const bump = () => { const el = $('#cval'); el.classList.remove('bumped'); void el.offsetWidth; el.classList.add('bumped'); $('#pc-count').textContent = S.soloCount; if (S.screen === 'home') renderHome(); };
+  $('#cminus').onclick = () => { if (S.soloCount > 3) { S.soloCount--; bump(); SFX.click?.(); } };
+  $('#cplus').onclick  = () => { if (S.soloCount < 7) { S.soloCount++; bump(); SFX.click?.(); } };
   $('#play-ai').onclick = playVsComputer;
-  $('#create').onclick = createRoom;
-  $('#join').onclick = joinPrompt;
-  $('#lb').onclick = showLeaderboard;
-  $('#rules').onclick = showRules;
-  $('#invite-friend').onclick = inviteFriendFromHome;
-  $('#floor').onclick = showFloor;
   const ha = $('#home-avatar'); if (ha) ha.onclick = rerollAvatar;
+  // Tab bar wiring
+  document.querySelectorAll('.tab').forEach(t => t.onclick = () => onTabClick(t.dataset.tab));
+}
+
+// ---- new compact home helpers --------------------------------------------
+
+function onTabClick(tab) {
+  SFX.click?.();
+  switch (tab) {
+    case 'home':  return;                                  // already here
+    case 'floor': return showFloor();
+    case 'new':   return showNewTableSheet();              // bottom-sheet with all the create/join/invite options
+    case 'lb':    return showLeaderboard();
+    case 'rules': return showRules();
+  }
+}
+
+// Bottom-sheet with the three "make-a-table" options, so the home doesn't
+// have to show a separate button for each.
+function showNewTableSheet() {
+  modal(`<h3 class="center">Open a table</h3>
+    <div class="nt-list">
+      <button class="nt-row" id="nt-invite">
+        <div class="nt-ic" style="background:linear-gradient(135deg,#e85c86,#a61e44)">👋</div>
+        <div class="nt-txt"><b>Invite a friend</b><span>Private table — only invited players can sit.</span></div>
+      </button>
+      <button class="nt-row" id="nt-public">
+        <div class="nt-ic" style="background:linear-gradient(135deg,#4cb878,#1f6a44)">🎰</div>
+        <div class="nt-txt"><b>Open a public table</b><span>Anyone on the floor can take a seat.</span></div>
+      </button>
+      <button class="nt-row" id="nt-code">
+        <div class="nt-ic" style="background:linear-gradient(135deg,#e0a458,#8a5a1a)">⌨</div>
+        <div class="nt-txt"><b>Join with a code</b><span>Got a 5-letter table code? Type it in.</span></div>
+      </button>
+    </div>
+    <button class="btn ghost" id="nt-x">Never mind</button>`, () => {
+    $('#nt-invite').onclick = () => { closeModal(); inviteFriendFromHome(); };
+    $('#nt-public').onclick = () => { closeModal(); createRoom(); };
+    $('#nt-code').onclick   = () => { closeModal(); joinPrompt(); };
+    $('#nt-x').onclick = closeModal;
+  });
+}
+
+// Compact stats — small pills above the tab bar, not big plaques.
+async function refreshHomeStatsCompact() {
+  try {
+    const { data } = await api.get('/api/leaderboard');
+    const rows = (data?.rows || []).slice(0, 1);
+    const el = $('#mini-top');
+    if (el) el.innerHTML = rows.length ? `${avatarFor(rows[0].username, { size: 18 })} <b style="color:#e0a458">${esc(rows[0].username)}</b> <span class="muted small">${rows[0].wins || 0}w</span>` : '<span class="muted small">no champ yet</span>';
+  } catch {}
+  if (S.user && S.token) {
+    try {
+      const { data } = await api.get('/api/me', S.token);
+      const h = data?.history || [];
+      const games = h.length;
+      const wins = h.filter(g => g.won).length;
+      const soulmates = h.filter(g => g.soulmate).length;
+      const el = $('#my-stats-pill');
+      if (el) el.innerHTML = `<b>${games}</b> games · <b>${wins}</b> wins · <b>${soulmates}</b> 💞`;
+    } catch {}
+  } else {
+    const el = $('#my-stats-pill');
+    if (el) el.innerHTML = '<span class="muted small">sign in to track your record</span>';
+  }
+}
+
+// Friends strip — show every online user (minus yourself) as a tappable avatar.
+// Tap = invite-to-table flow (creates a private table if you aren't in one,
+// then sends them an invite via the existing inviteUser WS message).
+async function refreshOnlineStrip() {
+  let users = [];
+  try { const { data } = await api.get('/api/online'); users = data?.users || []; }
+  catch { /* server hiccup — leave skeleton */ return; }
+  const others = users.filter(u => !(S.user && u.username === S.user.username));
+  const el = $('#friends-row'); if (!el) return;
+  const countEl = $('#online-count'); if (countEl) countEl.textContent = others.length ? `${others.length} online` : 'no one else here yet';
+  const bubbles = others.slice(0, 12).map(u => `
+    <button class="friend-bubble" data-name="${esc(u.username)}" title="Invite ${esc(u.username)} to play">
+      ${avatarFor(u.username, { size: 52, withRing: true })}
+      <span class="fb-dot" aria-label="online"></span>
+      <span class="fb-name">${esc(u.username)}</span>
+    </button>`).join('');
+  const inviteByName = `
+    <button class="friend-bubble add" id="fb-add" title="Invite by username">
+      <span class="fb-plus">＋</span>
+      <span class="fb-name">By name</span>
+    </button>`;
+  if (!others.length) {
+    el.innerHTML = `<div class="friends-empty">
+      <div class="big">🌙</div>
+      <div>You're the only one in the room right now.</div>
+      <div class="muted small">Tap <b>+ By name</b> to invite a friend anyway.</div>
+    </div>${inviteByName}`;
+  } else {
+    el.innerHTML = bubbles + inviteByName;
+  }
+  el.querySelectorAll('.friend-bubble').forEach(b => {
+    if (b.id === 'fb-add') { b.onclick = inviteByNameFromHome; return; }
+    b.onclick = () => inviteOnlineFriend(b.dataset.name);
+  });
+  // Light auto-refresh every 8s while on home
+  if (!S.onlineTimer) S.onlineTimer = setInterval(() => { if (S.screen === 'home') refreshOnlineStrip(); else { clearInterval(S.onlineTimer); S.onlineTimer = null; } }, 8000);
+}
+
+// Tap an online friend → spin up a private table and immediately send them
+// the invite. Same backend as the username-invite flow; just pre-filled.
+async function inviteOnlineFriend(targetName) {
+  if (!S.user) { toast('Sign in first so they know who is inviting them.'); authModal(); return; }
+  SFX.click?.();
+  S.mode = 'private';
+  S.secretSent = false;
+  S.openInviteOnLobby = false;
+  S.pendingInviteTarget = targetName;       // consumed by onMsg when the lobby lands
+  resetGameState();
+  try {
+    await connect();
+    S.net.send({ type: 'create', name: name(), token: S.token, visibility: 'private' });
+  } catch { toast('Could not reach the server.'); S.pendingInviteTarget = null; }
+}
+
+function inviteByNameFromHome() {
+  if (!S.user) { toast('Sign in first.'); authModal(); return; }
+  inviteFriendFromHome();
 }
 
 // Pull personal record + top-3 mini leaderboard for the home cards. Failures
@@ -894,6 +1047,14 @@ function onMsg(m) {
         if (S.openInviteOnLobby) {
           S.openInviteOnLobby = false;
           setTimeout(() => { try { openInviteUserModal(); } catch {} }, 100);
+        }
+        // If the user tapped a specific online friend's bubble, auto-send
+        // the invite for them (no prompt).
+        if (S.pendingInviteTarget) {
+          const tgt = S.pendingInviteTarget; S.pendingInviteTarget = null;
+          setTimeout(() => {
+            try { S.net.send({ type: 'inviteUser', username: tgt }); toast(`Invite sent to ${tgt}`); } catch {}
+          }, 150);
         }
       }
       return;

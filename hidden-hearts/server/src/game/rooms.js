@@ -352,3 +352,14 @@ function onClose(ws) {
 }
 
 export function roomCount() { return rooms.size; }
+
+// List currently-online signed-in users — used by the home-page friends strip.
+// We only know about users who hit `identify` with a valid token, so the list
+// is a real "who's at the casino right now". No userIds leak, just usernames.
+export function listOnlineUsers() {
+  const out = [];
+  for (const [, ws] of presence) {
+    if (ws && ws.readyState === 1 && ws.username) out.push({ username: ws.username });
+  }
+  return out;
+}

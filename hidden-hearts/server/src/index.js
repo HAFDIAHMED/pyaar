@@ -12,6 +12,7 @@ import authRoutes from './routes/auth.js';
 import leaderboardRoutes from './routes/leaderboard.js';
 import meRoutes from './routes/me.js';
 import tablesRoutes from './routes/tables.js';
+import onlineRoutes from './routes/online.js';
 import { attachRooms, roomCount } from './game/rooms.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -30,6 +31,7 @@ async function main() {
   app.use('/api/leaderboard', leaderboardRoutes);
   app.use('/api/me', meRoutes);
   app.use('/api/tables', tablesRoutes);
+  app.use('/api/online', onlineRoutes);
 
   // --- static client ---
   app.use(express.static(clientDir));
