@@ -136,6 +136,10 @@ function renderHome() {
       <div class="logo">❤</div>
       <h1 class="title">PYAAR</h1>
       <div class="subtitle">THE LOVE CARD GAME</div>
+      <div class="marquee" aria-hidden="true">
+        <span class="bulb"></span><span class="bulb"></span><span class="bulb"></span><span class="bulb"></span>
+        <span class="bulb"></span><span class="bulb"></span><span class="bulb"></span><span class="bulb"></span>
+      </div>
       <p class="tagline">Build your love. Race to Devotion. Don't let them break your heart.</p>
     </section>
     <section class="stats-row" id="stats-row">
@@ -435,11 +439,24 @@ function chipHTML(p, activeId, meId) {
   const fan = (p.id !== meId)
     ? `<div class="minihand">${'<span class="mb"></span>'.repeat(Math.min(2, p.handCount || 0))}<span class="mhc">${p.handCount || 0}</span></div>`
     : '';
-  return `<div class="chip ${p.id === activeId ? 'active' : ''} ${p.frozen ? 'frozen' : ''} ${p.won ? 'won' : ''}">
+  // Exposed crush pill — when Jealousy lands, p.revealed flips to true and
+  // publicView populates p.crush for everyone. Show it as a green-tinted tag
+  // under the love-line so the whole table can see who they pine for.
+  const exposed = (p.revealed && p.id !== meId && S.view && S.view.players[p.crush])
+    ? `<div class="exposed" title="Their secret crush was exposed">💚 fancies ${S.view.players[p.crush].seat.icon} ${esc(S.view.players[p.crush].name)}</div>`
+    : '';
+  const classes = ['chip',
+    p.id === activeId ? 'active' : '',
+    p.frozen ? 'frozen' : '',
+    p.won ? 'won' : '',
+    p.revealed && p.id !== meId ? 'exposed-chip' : '',
+  ].filter(Boolean).join(' ');
+  return `<div class="${classes}">
     ${fan}
     <div class="avatar">${p.seat.icon}</div>
     <div class="cnm">${esc(p.name)}${p.isAI ? ' <span class="ai-badge">AI</span>' : ''}</div>
     <div class="loveline">${line}</div>
+    ${exposed}
     <div class="badges">${b.length ? b.map(x => `<span class="bdg">${x}</span>`).join('') : '<span class="bdg dim">·</span>'}</div>
   </div>`;
 }
@@ -936,8 +953,58 @@ function handleRequestResult(m) {
   if (S.screen === 'waiting-host') showFloor();
 }
 
+// Detect which players got newly exposed between two states — used by cues()
+// to fire a flashy reveal banner the instant Jealousy lands.
+function newlyExposedIds(prev, v) {
+  if (!prev || !prev.players) return [];
+  const out = [];
+  for (const p of v.players) {
+    const before = prev.players[p.id];
+    if (before && !before.revealed && p.revealed) out.push(p.id);
+  }
+  return out;
+}
+
+// Big, theatrical reveal banner for a freshly-exposed crush. Auto-closes.
+function flashExposed(v, ids) {
+  if (!ids.length) return;
+  // If multiple got exposed in the same tick, show one banner per — staggered.
+  ids.forEach((id, i) => {
+    const p = v.players[id];
+    const o = v.players[p.crush];
+    if (!p || !o) return;
+    setTimeout(() => {
+      SFX.hit?.();
+      const host = $('#modal-host');
+      const node = document.createElement('div');
+      node.className = 'expose-flash';
+      node.innerHTML = `
+        <div class="expose-card">
+          <div class="ef-title">💚 EXPOSED</div>
+          <div class="ef-row">
+            <div class="ef-who">
+              ${avatarFor(p.name, { size: 56, withRing: true })}
+              <div class="ef-name">${esc(p.name)}</div>
+            </div>
+            <div class="ef-arrow">→</div>
+            <div class="ef-who">
+              ${avatarFor(o.name, { size: 56, withRing: true })}
+              <div class="ef-name">${esc(o.name)}</div>
+            </div>
+          </div>
+          <div class="ef-sub">…secretly fancies ${o.seat.icon} <b>${esc(o.name)}</b></div>
+        </div>`;
+      host.appendChild(node);
+      setTimeout(() => { node.classList.add('out'); setTimeout(() => node.remove(), 500); }, 2400);
+    }, i * 350);
+  });
+}
+
 // sound cues based on what changed between states
 function cues(prev, v) {
+  // Always check newly-exposed crushes — works even across phase changes.
+  const exposed = newlyExposedIds(prev, v);
+  if (exposed.length) flashExposed(v, exposed);
   if (!prev || prev.phase !== 'play' || v.phase !== 'play') { if (v.phase === 'play' && v.turn === v.youAre) SFX.turn(); S.wasMyTurn = v.turn === v.youAre; return; }
   const top = v.log[0];
   if (top && top !== S.lastLogTop) {
@@ -955,8 +1022,20 @@ function cues(prev, v) {
   S.wasMyTurn = myTurn;
 }
 
+// Mount the four gold filigree corner ornaments once. They're purely
+// decorative (pointer-events:none, fixed in the viewport corners).
+function mountFiligree() {
+  if (document.querySelector('.filigree')) return;
+  for (const c of ['tl','tr','bl','br']) {
+    const el = document.createElement('div');
+    el.className = 'filigree ' + c;
+    document.body.appendChild(el);
+  }
+}
+
 // ---------- boot ----------
 window.addEventListener('resize', () => { if (document.querySelector('.hand.fan')) layoutFan(); });
+mountFiligree();
 refreshWho();
 $('#mute').textContent = SFX.isMuted() ? '🔇' : '🔊';
 renderHome();

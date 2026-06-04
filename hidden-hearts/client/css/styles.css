@@ -612,11 +612,262 @@ table.lb th{color:var(--muted);font-weight:600;font-size:12px;text-transform:upp
 .big-emoji{ font-size:56px; }
 .spinner.inline{ display:inline-block; margin:14px 0; font-size:24px; animation: spin 2s linear infinite; }
 
+/* ============================================================
+   CASINO ROOM — atmosphere overhaul
+   Goal: less "page with buttons", more "you walked into a card
+   room". Felt grain, dim vignette, gold filigree corners,
+   marquee bulbs around the title, chip-like buttons, ornate
+   plaques for the stat cards.
+   ============================================================ */
+
+/* Felt grain — a layered repeating noise made out of tiny radial
+   dots, painted onto the body. Pure CSS so there's no extra image. */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    radial-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+    radial-gradient(rgba(0,0,0,.06) 1px, transparent 1px);
+  background-size: 3px 3px, 5px 5px;
+  background-position: 0 0, 1px 2px;
+  mix-blend-mode: overlay;
+}
+/* Soft vignette so the eye lands in the middle. */
+body::after{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background: radial-gradient(ellipse 90% 70% at 50% 45%, transparent 55%, rgba(0,0,0,.45) 100%);
+}
+/* Gold filigree corner ornaments — pure CSS scrollwork using
+   layered radial gradients. Decoration, fixed in viewport corners. */
+.filigree{
+  position:fixed; pointer-events:none; z-index:2;
+  width:120px; height:120px; opacity:.55;
+}
+.filigree.tl{ top:48px; left:8px; }
+.filigree.tr{ top:48px; right:8px; transform: scaleX(-1); }
+.filigree.bl{ bottom:8px; left:8px; transform: scaleY(-1); }
+.filigree.br{ bottom:8px; right:8px; transform: scale(-1, -1); }
+.filigree::before, .filigree::after{
+  content:""; position:absolute; left:0; top:0; right:0; bottom:0;
+}
+.filigree::before{
+  background:
+    radial-gradient(circle at 22px 22px, transparent 8px, rgba(217,179,92,.65) 9px, rgba(217,179,92,.65) 10px, transparent 11px),
+    radial-gradient(circle at 22px 22px, transparent 15px, rgba(217,179,92,.40) 16px, rgba(217,179,92,.40) 17px, transparent 18px),
+    linear-gradient(135deg, rgba(217,179,92,.7) 0 1px, transparent 1px) no-repeat,
+    linear-gradient(45deg,  rgba(217,179,92,.5) 0 1px, transparent 1px) no-repeat;
+  background-size: auto, auto, 60px 60px, 50px 50px;
+  background-position: 0 0, 0 0, 0 0, 0 0;
+}
+.filigree::after{
+  background:
+    radial-gradient(circle at 8px 8px, rgba(217,179,92,.85) 2.5px, transparent 3px),
+    radial-gradient(circle at 38px 8px, rgba(217,179,92,.75) 2px, transparent 2.5px),
+    radial-gradient(circle at 8px 38px, rgba(217,179,92,.75) 2px, transparent 2.5px),
+    radial-gradient(circle at 58px 22px, rgba(217,179,92,.6) 1.5px, transparent 2px),
+    radial-gradient(circle at 22px 58px, rgba(217,179,92,.6) 1.5px, transparent 2px);
+}
+
+/* Topbar — promote to a velvet bar with gold trim. */
+#topbar{
+  border-bottom: 1px solid rgba(217,179,92,.35);
+  background: linear-gradient(180deg, rgba(20,60,40,.92), rgba(8,30,20,.92));
+  box-shadow: 0 4px 16px rgba(0,0,0,.4), inset 0 -1px 0 rgba(217,179,92,.15);
+  z-index: 40;
+}
+#topbar .brand .bn{
+  text-shadow: 0 1px 0 rgba(0,0,0,.5), 0 0 18px rgba(217,179,92,.35);
+}
+
+/* HERO — marquee around the PYAAR title, with bulbs around the edge */
+.hero{ position:relative; padding:42px 10px 22px; }
+.hero::before, .hero::after{
+  /* dim gold rule above & below the title block */
+  content:""; position:absolute; left:18%; right:18%; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(217,179,92,.65), transparent);
+}
+.hero::before{ top:18px; }
+.hero::after { bottom:6px; }
+.hero .logo{
+  font-size:60px;
+  filter: drop-shadow(0 8px 18px rgba(0,0,0,.55)) drop-shadow(0 0 22px rgba(232,92,134,.35));
+}
+.hero .title{
+  font-family: 'Cinzel', 'Playfair Display', Georgia, serif;
+  font-size: 56px; letter-spacing: 6px; font-weight: 800;
+  text-shadow: 0 2px 0 rgba(0,0,0,.5), 0 6px 24px rgba(217,179,92,.45);
+}
+/* Marquee bulb halo: a thin ring of dots beneath the title.
+   8 dots, evenly spaced, dim-glow, pulsing in sequence. */
+.hero .marquee{
+  display:flex; justify-content:center; gap:14px; margin: 4px auto 0; width:fit-content;
+}
+.hero .marquee .bulb{
+  width:8px; height:8px; border-radius:50%;
+  background: radial-gradient(circle, #ffe9a8 0%, #d9b35c 60%, #6b4d18 100%);
+  box-shadow: 0 0 8px rgba(255,235,168,.65), inset 0 0 2px rgba(255,255,255,.5);
+  animation: bulb 1.4s ease-in-out infinite;
+}
+.hero .marquee .bulb:nth-child(1){ animation-delay: 0.0s; }
+.hero .marquee .bulb:nth-child(2){ animation-delay: 0.15s; }
+.hero .marquee .bulb:nth-child(3){ animation-delay: 0.30s; }
+.hero .marquee .bulb:nth-child(4){ animation-delay: 0.45s; }
+.hero .marquee .bulb:nth-child(5){ animation-delay: 0.60s; }
+.hero .marquee .bulb:nth-child(6){ animation-delay: 0.75s; }
+.hero .marquee .bulb:nth-child(7){ animation-delay: 0.90s; }
+.hero .marquee .bulb:nth-child(8){ animation-delay: 1.05s; }
+@keyframes bulb{ 0%,100%{ box-shadow:0 0 4px rgba(255,235,168,.3), inset 0 0 1px rgba(255,255,255,.3); transform: scale(.85);} 50%{ box-shadow:0 0 12px rgba(255,235,168,.95), 0 0 22px rgba(232,92,134,.4), inset 0 0 2px #fff; transform: scale(1.15);} }
+
+/* Stats cards → ornate gold-trim plaques */
+.stats-card{
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(217,179,92,.10), transparent 60%),
+    linear-gradient(180deg, rgba(40,18,42,.7), rgba(20,10,22,.7));
+  border:1px solid rgba(217,179,92,.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255,235,168,.12),
+    inset 0 0 0 1px rgba(0,0,0,.4),
+    0 6px 18px rgba(0,0,0,.45);
+  position:relative;
+}
+.stats-card::before, .stats-card::after{
+  /* small gold corner caps so the plaque feels framed */
+  content:""; position:absolute; width:10px; height:10px;
+  border:1.5px solid rgba(217,179,92,.7);
+}
+.stats-card::before{ top:4px; left:4px; border-right:none; border-bottom:none; }
+.stats-card::after{ bottom:4px; right:4px; border-left:none; border-top:none; }
+.stats-card .stats-title{ color:#d9b35c; font-weight:700; }
+
+/* Buttons → casino chips. Beveled face, soft inner highlight, gold rim. */
+.btn{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.02) 50%, rgba(0,0,0,.18) 100%),
+    linear-gradient(180deg, rgba(20,60,40,.6), rgba(10,30,20,.6));
+  border:1px solid rgba(217,179,92,.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255,235,168,.18),
+    inset 0 -1px 0 rgba(0,0,0,.4),
+    0 4px 10px rgba(0,0,0,.35);
+  text-shadow: 0 1px 0 rgba(0,0,0,.4);
+}
+.btn.primary{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0) 60%),
+    linear-gradient(180deg, var(--primary-l), var(--primary) 60%, var(--primary-d));
+  border:1px solid #8a6a1c;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.5),
+    inset 0 -2px 0 rgba(0,0,0,.25),
+    0 8px 22px rgba(217,179,92,.35), 0 4px 8px rgba(0,0,0,.4);
+  color:#2a2008;
+}
+.btn.ghost{
+  background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.08));
+  border:1px solid rgba(217,179,92,.25);
+  box-shadow: inset 0 1px 0 rgba(255,235,168,.07);
+}
+
+/* The home menu gets a velvet panel under it so the buttons feel grouped */
+.menu{
+  background: linear-gradient(180deg, rgba(8,30,20,.5), rgba(8,30,20,.25));
+  border:1px solid rgba(217,179,92,.2);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.3), 0 8px 20px rgba(0,0,0,.3);
+  position:relative;
+}
+.menu::before{
+  /* small label tag like a card-room shingle */
+  content: "TABLES & SEATS"; position:absolute; top:-9px; left:50%; transform: translateX(-50%);
+  background:#0a2e1c; color:#d9b35c; padding:2px 12px;
+  font-size:10px; letter-spacing:2px; border:1px solid rgba(217,179,92,.45); border-radius:999px;
+}
+.count-row{
+  background: rgba(0,0,0,.25);
+  border:1px solid rgba(217,179,92,.18);
+  border-radius:12px;
+  padding:10px 12px;
+  display:flex; align-items:center; gap:10px;
+}
+.count-row .stepper{ display:flex; align-items:center; gap:10px; }
+.count-row .stepper button{
+  width:34px; height:34px; border-radius:50%;
+  background: radial-gradient(circle, var(--primary-l), var(--primary-d));
+  border:1px solid #6b4d18; color:#2a2008; font-weight:800; font-size:18px; cursor:pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 3px 8px rgba(0,0,0,.4);
+}
+#cval{ font-family:Georgia,serif; font-size:24px; color:#ffe9a8; min-width:24px; text-align:center; }
+
+/* Home greeting card — give it a real velvet gold-trimmed plaque feel */
+.home-greeting{
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(232,92,134,.18), transparent 60%),
+    linear-gradient(135deg, rgba(60,30,55,.55), rgba(30,15,30,.55));
+  border:1px solid rgba(217,179,92,.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255,235,168,.18),
+    0 8px 22px rgba(0,0,0,.4);
+}
+
+/* ============================================================
+   IN-GAME — show the exposed crush as a pulsing green pill
+   under the chip, and a big center-stage banner the moment
+   Jealousy lands.
+   ============================================================ */
+.chip .exposed{
+  margin-top:4px; font-size:11px;
+  color:#dff8d8; background: linear-gradient(180deg, rgba(15,155,142,.35), rgba(10,90,75,.45));
+  border:1px solid rgba(95,224,176,.55);
+  border-radius:999px; padding:3px 8px;
+  letter-spacing:.3px;
+  animation: exposedPulse 2s ease-in-out infinite;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; margin-left:auto; margin-right:auto;
+}
+@keyframes exposedPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(95,224,176,.0);} 50%{ box-shadow:0 0 0 4px rgba(95,224,176,.18);} }
+.chip.exposed-chip .avatar{
+  border-color:#5fe0a8 !important;
+  box-shadow: 0 0 0 3px rgba(95,224,176,.4), 0 0 18px rgba(95,224,176,.5) !important;
+}
+
+/* Center-stage "EXPOSED" flash banner */
+.expose-flash{
+  position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+  z-index:1200; pointer-events:none;
+  animation: efIn .4s cubic-bezier(.2,.9,.25,1.4) both;
+}
+.expose-flash.out{ animation: efOut .45s ease-out both; }
+@keyframes efIn{ from{ opacity:0; transform: scale(.85);} to{ opacity:1; transform: scale(1);} }
+@keyframes efOut{ to{ opacity:0; transform: scale(.95) translateY(-12px);} }
+.expose-flash .expose-card{
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(15,155,142,.55), transparent 65%),
+    linear-gradient(180deg, rgba(10,40,30,.95), rgba(6,20,14,.95));
+  border:2px solid #5fe0a8;
+  border-radius:18px;
+  padding:18px 22px;
+  text-align:center;
+  box-shadow: 0 0 0 6px rgba(95,224,176,.18), 0 20px 60px rgba(0,0,0,.6);
+  min-width:280px;
+  animation: efShake .55s ease-in-out;
+}
+@keyframes efShake{ 0%,100%{ transform: translateX(0);} 20%{ transform: translateX(-6px);} 40%{ transform: translateX(6px);} 60%{ transform: translateX(-4px);} 80%{ transform: translateX(4px);} }
+.expose-flash .ef-title{
+  font-family: 'Cinzel', Georgia, serif; font-weight:900;
+  font-size:22px; letter-spacing:4px; color:#a8f0c4;
+  text-shadow: 0 0 18px rgba(95,224,176,.65);
+}
+.expose-flash .ef-row{ display:flex; align-items:center; justify-content:center; gap:18px; margin:14px 0 6px; }
+.expose-flash .ef-who{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+.expose-flash .ef-name{ font-family:Georgia,serif; color:#f3e9df; font-size:14px; }
+.expose-flash .ef-arrow{ font-size:32px; color:#5fe0a8; text-shadow: 0 0 12px rgba(95,224,176,.7); }
+.expose-flash .ef-sub{ font-family:Georgia,serif; font-style:italic; color:#dff8d8; font-size:14px; }
+
 /* Accessibility — kill expensive motion if the user opted out. */
 @media (prefers-reduced-motion: reduce){
   .floaters{ display:none; }
   .hero .logo, .home-greeting .gi, #invite-friend, .topbar .brand .logo,
-  .hero .title, .home-greeting .badge, #invite-friend::after{
+  .hero .title, .home-greeting .badge, #invite-friend::after,
+  .hero .marquee .bulb, .expose-flash .expose-card, .chip .exposed{
     animation: none !important;
   }
   .menu > *{ animation: fadeUp .25s both; animation-delay:0s !important; }
