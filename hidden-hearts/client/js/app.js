@@ -25,6 +25,15 @@ $('#mute').onclick = () => { const m = SFX.toggle(); $('#mute').textContent = m 
 $('#who').onclick = () => S.user ? accountMenu() : authModal();
 $('#home-link').onclick = () => leaveToHome();
 
+// Stable emoji per username — used by the home greeting card.
+// Deterministic so the same name always shows the same little icon.
+function heartFor(name) {
+  const palette = ['🌹','🪷','🌙','🔥','🦚','🌼','⭐','💞','✨','🌷','🍀','🌊'];
+  let h = 0;
+  for (const c of String(name || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return palette[h % palette.length];
+}
+
 // ============================================================ SCREENS
 function renderHome() {
   S.screen = 'home';
