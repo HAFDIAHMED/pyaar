@@ -574,7 +574,20 @@ function renderTable() {
       </div>${chips}
     </div></div>
     <div class="hand-area ${myTurn ? '' : 'idle'}">
-      <div class="secret-strip" data-tip="Your secret crush + current love stage. Only YOU see this strip.">secret 💘 <b>${v.players[me.crush].seat.icon} ${esc(v.players[me.crush].name)}</b> · you're at <b>${STAGE_NAMES[me.stage]} ${STAGES[me.stage] || ''}</b>${me.ready ? ' — 💍 tap ❤️ to Commit!' : ''}</div>
+      <div class="love-bar" data-tip="Your secret love progress. Only you see this. Reach 💋 to be ready to confess.">
+        <div class="lb-head">
+          <span class="lb-secret">SECRET 💘 ${avatarFor(v.players[me.crush].name, { size: 22 })}<b>${esc(v.players[me.crush].name)}</b></span>
+          <span class="lb-stage">${STAGE_NAMES[me.stage]}</span>
+        </div>
+        <div class="lb-track">
+          <div class="lb-fill" style="width:${(me.stage / 3) * 100}%"></div>
+          <div class="lb-pip ${me.stage >= 1 ? 'lit' : ''}" data-tip="Spark — first flutter.">✨</div>
+          <div class="lb-pip ${me.stage >= 2 ? 'lit' : ''}" data-tip="Dating — things are warming up.">🌹</div>
+          <div class="lb-pip ${me.stage >= 3 ? 'lit' : ''}" data-tip="Crazy for them — ready to confess.">💋</div>
+          <div class="lb-pip commit ${me.ready ? 'ready' : ''} ${me.won ? 'lit' : ''}" data-tip="${me.ready ? 'Play ❤️ Moment to Commit!' : 'Devotion — reach 💋 first.'}">💍</div>
+        </div>
+        ${me.ready ? '<div class="lb-confess">💍 Ready to confess — play ❤️ Moment!</div>' : ''}
+      </div>
       <div class="hand fan">${(me.hand || []).map((k, i) => cardHTML(k, i)).join('')}</div>
       <div class="hint-line">${myTurn ? 'Tap a card to play it.' : 'Waiting for your turn…'}</div>
     </div>
@@ -625,15 +638,27 @@ function chipHTML(p, activeId, meId) {
   </div>`;
 }
 // a Solitaire-style playing card: white face, corner indices, big centre motif
+// A redesigned playing card. Cleaner hierarchy:
+//   • Top: name + a tiny tone chip (🧘 self | 🎯 rival | 👁 info)
+//   • Middle: big icon framed in a soft glow
+//   • Bottom: ONE clear effect line — "Grow love +1", "Knock back + expose"
+//   • Long description hidden behind a small ? tap-tooltip
+// The colour family stays in .f-{fam} so border + accent colour are unchanged.
 function cardHTML(key, i) {
   const d = CARD[key];
-  return `<div class="pcard f-${d.fam}" data-play="${i}">
-    <span class="corner tl">${d.icon}</span>
-    <div class="ic">${d.icon}</div>
-    <div class="ti">${title(key)}</div>
-    <div class="tg">${esc(d.tag)}</div>
-    <div class="bd">${esc(d.desc)}</div>
-    <span class="corner br">${d.icon}</span>
+  const toneIcon  = d.tone === 'attack' ? '🎯' : d.tone === 'info' ? '👁' : '🧘';
+  const toneLabel = d.tone === 'attack' ? 'rival' : d.tone === 'info' ? 'peek' : 'self';
+  return `<div class="pcard f-${d.fam}" data-play="${i}" data-tip="${esc(d.desc)}">
+    <div class="pc-top">
+      <span class="pc-name">${title(key)}</span>
+      <span class="pc-tone ${d.tone}"><span class="tic">${toneIcon}</span><span class="tlb">${toneLabel}</span></span>
+    </div>
+    <div class="pc-art">
+      <div class="pc-glow"></div>
+      <div class="pc-icon">${d.icon}</div>
+    </div>
+    <div class="pc-effect">${esc(d.short)}</div>
+    <div class="pc-tag">${esc(d.tag)}</div>
   </div>`;
 }
 
@@ -1201,6 +1226,85 @@ function cues(prev, v) {
   if (myTurn && !S.wasMyTurn) SFX.turn();
   S.wasMyTurn = myTurn;
 }
+
+// ============================================================
+// TIPS — shared tooltip element that works on touch AND desktop
+// One element appended to body; positioned next to whichever element
+// is currently hovered (desktop) or tapped (touch). Auto-dismisses
+// after 3s; tapping elsewhere closes it too. Replaces the old CSS
+// ::after tooltips which never worked on mobile.
+// ============================================================
+const Tip = (() => {
+  let el = null, hideTimer = null, currentTarget = null;
+  const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  function ensure() {
+    if (el) return el;
+    el = document.createElement('div');
+    el.className = 'tip-bubble';
+    el.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(el);
+    return el;
+  }
+  function showAt(target, text) {
+    if (!target || !text) return;
+    ensure();
+    el.textContent = text;
+    el.classList.add('show');
+    currentTarget = target;
+    // Measure after the text is in so width is correct.
+    el.style.left = '-9999px'; el.style.top = '-9999px';
+    requestAnimationFrame(() => {
+      const r = target.getBoundingClientRect();
+      const vw = window.innerWidth, vh = window.innerHeight;
+      el.style.maxWidth = Math.min(240, vw - 24) + 'px';
+      const tw = el.offsetWidth, th = el.offsetHeight;
+      let left = r.left + r.width / 2 - tw / 2;
+      left = Math.max(10, Math.min(left, vw - tw - 10));
+      let top = r.top - th - 10;
+      let flip = false;
+      if (top < 8) { top = r.bottom + 10; flip = true; }
+      if (top + th > vh - 10) top = Math.max(10, vh - th - 10);
+      el.style.left = left + 'px';
+      el.style.top = top + 'px';
+      el.classList.toggle('below', flip);
+    });
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(hide, 3000);
+  }
+  function hide() {
+    if (!el) return;
+    el.classList.remove('show');
+    currentTarget = null;
+    clearTimeout(hideTimer);
+  }
+  // Desktop: hover via pointer events. Skip on touch (would double-fire).
+  if (!isTouch) {
+    document.addEventListener('pointerover', (e) => {
+      const t = e.target.closest?.('[data-tip]');
+      if (!t) return;
+      // Don't fight with the play-card click target — only show on info bits.
+      showAt(t, t.dataset.tip);
+    });
+    document.addEventListener('pointerout', (e) => {
+      const t = e.target.closest?.('[data-tip]');
+      if (t === currentTarget) hide();
+    });
+  }
+  // Touch + click handler — long-press equivalent: tap a tooltip-bearing
+  // element to surface the tip. Tapping elsewhere closes it.
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest?.('[data-tip]');
+    // Special-case the playing cards: a tap on .pcard PLAYS the card.
+    // Tap-to-tip only fires if the card is part of a non-active hand
+    // (i.e. it isn't your turn) so we never block the primary action.
+    if (t && t.classList?.contains('pcard') && t.closest('.hand-area:not(.idle)')) return;
+    if (t) showAt(t, t.dataset.tip);
+    else hide();
+  }, true);
+  window.addEventListener('resize', hide);
+  window.addEventListener('scroll', hide, true);
+  return { show: showAt, hide };
+})();
 
 // ============================================================
 // TUTORIAL — spotlight tour engine + onboarding flows
