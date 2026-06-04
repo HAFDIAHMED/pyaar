@@ -138,6 +138,20 @@ function renderHome() {
       <div class="subtitle">THE LOVE CARD GAME</div>
       <p class="tagline">Build your love. Race to Devotion. Don't let them break your heart.</p>
     </section>
+    <section class="stats-row" id="stats-row">
+      <div class="stats-card mine">
+        <div class="stats-title">YOUR RECORD</div>
+        <div class="stats-grid" id="my-stats">
+          <div class="stat"><div class="v">—</div><div class="k">games</div></div>
+          <div class="stat"><div class="v">—</div><div class="k">wins</div></div>
+          <div class="stat"><div class="v">—</div><div class="k">💞</div></div>
+        </div>
+      </div>
+      <div class="stats-card top">
+        <div class="stats-title">🏆 TOP PLAYERS</div>
+        <div class="mini-lb" id="mini-lb"><div class="muted small">loading…</div></div>
+      </div>
+    </section>
     <section class="menu">
       <div class="count-row">
         <span>vs Computer</span>
@@ -146,17 +160,19 @@ function renderHome() {
       </div>
       <button class="btn primary big" id="play-ai">▶ Play vs Computer</button>
       <button class="btn big" id="invite-friend" style="margin-top:8px; background:linear-gradient(180deg, rgba(232,92,134,0.32), rgba(166,30,68,0.30)); border:1px solid #e85c86; color:#ffe0e8; font-weight:700;">👋 Invite a friend to play</button>
+      <button class="btn big" id="floor" style="background:linear-gradient(180deg, rgba(34,128,80,0.35), rgba(20,80,50,0.45)); border:1px solid #4cb878; color:#dff8e8; font-weight:700;">🎰 Browse tables — the floor</button>
       <div class="grid2" style="margin-top:8px;">
-        <button class="btn" id="create">＋ Create room</button>
+        <button class="btn" id="create">＋ Create public table</button>
         <button class="btn" id="join">⌨ Join with code</button>
       </div>
       <div class="grid2">
-        <button class="btn ghost" id="lb">🏆 Leaderboard</button>
+        <button class="btn ghost" id="lb">🏆 Full leaderboard</button>
         <button class="btn ghost" id="rules">📖 How to play</button>
       </div>
     </section>
-    <div class="foot">PYAAR · the love card game — play solo, or invite friends to your table.</div>`;
+    <div class="foot">PYAAR · the love card game — walk the floor, sit at a table, invite friends.</div>`;
   spawnFloaters();                       // drifting hearts behind the menu
+  refreshHomeStats();                    // pulls /api/me + /api/leaderboard async
   const bump = () => { const el = $('#cval'); el.classList.remove('bumped'); void el.offsetWidth; el.classList.add('bumped'); };
   $('#cminus').onclick = () => { if (S.soloCount > 3) { S.soloCount--; $('#cval').textContent = S.soloCount; bump(); SFX.click?.(); } };
   $('#cplus').onclick  = () => { if (S.soloCount < 7) { S.soloCount++; $('#cval').textContent = S.soloCount; bump(); SFX.click?.(); } };
@@ -166,7 +182,45 @@ function renderHome() {
   $('#lb').onclick = showLeaderboard;
   $('#rules').onclick = showRules;
   $('#invite-friend').onclick = inviteFriendFromHome;
+  $('#floor').onclick = showFloor;
   const ha = $('#home-avatar'); if (ha) ha.onclick = rerollAvatar;
+}
+
+// Pull personal record + top-3 mini leaderboard for the home cards. Failures
+// are silent — the home page must still feel snappy on a slow / offline server.
+async function refreshHomeStats() {
+  // Top-3 from the global leaderboard (also used by /leaderboard page).
+  try {
+    const { data } = await api.get('/api/leaderboard');
+    const rows = (data?.rows || []).slice(0, 3);
+    const el = $('#mini-lb');
+    if (!el) return;
+    el.innerHTML = rows.length ? rows.map((r, i) => `
+      <div class="mini-row">
+        <div class="rank">${['🥇','🥈','🥉'][i] || (i + 1)}</div>
+        ${avatarFor(r.username, { size: 28 })}
+        <div class="who">${esc(r.username)}</div>
+        <div class="w">${r.wins || 0}<span class="muted small"> w</span></div>
+      </div>`).join('') : '<div class="muted small">no rounds played yet — be the first.</div>';
+  } catch { /* server down — keep the loading skeleton */ }
+  // Personal record, only if signed in.
+  if (S.user && S.token) {
+    try {
+      const { data } = await api.get('/api/me', S.token);
+      const h = data?.history || [];
+      const games = h.length;
+      const wins = h.filter(g => g.won).length;
+      const soulmates = h.filter(g => g.soulmate).length;
+      const el = $('#my-stats');
+      if (el) el.innerHTML = `
+        <div class="stat"><div class="v">${games}</div><div class="k">games</div></div>
+        <div class="stat"><div class="v">${wins}</div><div class="k">wins</div></div>
+        <div class="stat"><div class="v">${soulmates}</div><div class="k">💞</div></div>`;
+    } catch { /* not signed in or no history yet — leave the dashes */ }
+  } else {
+    const el = $('#my-stats');
+    if (el) el.innerHTML = `<div class="stat full"><div class="v">—</div><div class="k">sign in to track your record</div></div>`;
+  }
 }
 
 // Home → "Invite a friend to play": must be signed in (so the invite has a
@@ -185,23 +239,43 @@ async function inviteFriendFromHome() {
   resetGameState();
   try {
     await connect();
-    S.net.send({ type: 'create', name: name(), token: S.token });
-  } catch (e) {
-    toast('Could not reach the server.');
-    S.openInviteOnLobby = false;
-  }
+    // The "Invite a friend" flow defaults to a PRIVATE table — strangers on
+    // the floor see it as 🔒 locked and have to be approved.
+    S.net.send({ type: 'create', name: name(), token: S.token, visibility: 'private' });
+    return;
+  } catch { toast('Could not reach the server.'); S.openInviteOnLobby = false; return; }
 }
+
 
 function renderLobby() {
   clearFloaters();
   const r = S.room; if (!r) return;
   const isHost = r.youSeat === r.hostSeat;
+  const isPrivate = r.visibility === 'private';
+  const pending = isHost ? (r.pending || []) : [];
   app.innerHTML = `
     <section class="panel center">
       <div class="muted small">Room code — share it</div>
       <div class="roomcode" id="code">${esc(r.code)}</div>
-      <button class="btn sm" id="copy">Copy code</button>
+      <div class="grid2" style="margin-top:8px">
+        <button class="btn sm" id="copy">📋 Copy code</button>
+        <button class="btn sm ${isPrivate ? 'ghost' : ''}" id="vis-toggle" ${isHost ? '' : 'disabled'}>
+          ${isPrivate ? '🔒 Private — only invited' : '🟢 Public — on the floor'}
+        </button>
+      </div>
     </section>
+    ${pending.length ? `
+    <section class="panel pending-panel">
+      <h4 class="center">🚪 Waiting at the door</h4>
+      <div class="pending-list">
+        ${pending.map(p => `<div class="pending-row" data-cid="${esc(p.clientId)}">
+          ${avatarFor(p.name, { size: 36 })}
+          <span class="pending-name">${esc(p.name)}</span>
+          <button class="btn sm primary p-ok" data-cid="${esc(p.clientId)}">✅</button>
+          <button class="btn sm ghost p-no" data-cid="${esc(p.clientId)}">✖</button>
+        </div>`).join('')}
+      </div>
+    </section>` : ''}
     <section class="panel">
       <h3 class="center">At the table (${r.seats.length}/7)</h3>
       <div class="seatlist">
@@ -226,6 +300,13 @@ function renderLobby() {
     $('#addai').onclick = () => { SFX.click(); S.net.send({ type: 'addAI' }); };
     $('#begin').onclick = () => { SFX.resume(); SFX.shuffle(); S.net.send({ type: 'begin' }); };
     $('#inviteUser').onclick = openInviteUserModal;
+    $('#vis-toggle').onclick = () => {
+      SFX.click?.();
+      S.net.send({ type: 'setVisibility', visibility: isPrivate ? 'public' : 'private' });
+    };
+    // Accept / decline buttons on each pending-row
+    document.querySelectorAll('.p-ok').forEach(b => b.onclick = () => { SFX.click?.(); S.net.send({ type: 'joinResponse', clientId: b.dataset.cid, accept: true  }); });
+    document.querySelectorAll('.p-no').forEach(b => b.onclick = () => { SFX.click?.(); S.net.send({ type: 'joinResponse', clientId: b.dataset.cid, accept: false }); });
   }
 }
 
@@ -474,6 +555,137 @@ function renderReveal() {
   $('#again').onclick = leaveToHome;
 }
 
+// ---------- THE FLOOR (casino-style table browser) ----------
+// Polls /api/tables and renders one little felt-card per live table. A guest
+// can click a public table to sit down, or "request to join" a private one —
+// the host then sees an Accept/Decline popup in their lobby.
+let floorPollTimer = null;
+async function showFloor() {
+  SFX.click?.();
+  clearFloaters();
+  S.screen = 'floor';
+  app.innerHTML = `<section class="panel floor-panel">
+    <div class="floor-head">
+      <h3>🎰 The floor</h3>
+      <button class="btn ghost sm" id="floor-back">← Back</button>
+    </div>
+    <p class="muted small center" style="margin-top:-6px">Pick a table to sit down. Locked 🔒 tables need the host to let you in.</p>
+    <div class="floor-grid" id="floor-grid"><div class="muted small center" style="padding:30px 0">Loading the floor…</div></div>
+    <button class="btn ghost sm" id="floor-refresh">↻ Refresh</button>
+  </section>`;
+  $('#floor-back').onclick = leaveToHome;
+  $('#floor-refresh').onclick = () => { SFX.click?.(); refreshFloor(); };
+  await refreshFloor();
+  // Light auto-poll so the floor stays alive while the user thinks.
+  if (floorPollTimer) clearInterval(floorPollTimer);
+  floorPollTimer = setInterval(() => { if (S.screen === 'floor') refreshFloor(); else { clearInterval(floorPollTimer); floorPollTimer = null; } }, 5000);
+}
+
+async function refreshFloor() {
+  let tables = [];
+  try { const { data } = await api.get('/api/tables'); tables = data?.tables || []; }
+  catch { /* server hiccup — keep prior render */ return; }
+  const el = $('#floor-grid'); if (!el) return;
+  if (!tables.length) {
+    el.innerHTML = `<div class="floor-empty">
+      <div class="big">🎲</div>
+      <div>No live tables yet.</div>
+      <div class="muted small">Open one with <b>＋ Create public table</b> on the home screen.</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = tables.map(renderTableCard).join('');
+  // Wire each card's CTA. Disabled buttons just no-op.
+  el.querySelectorAll('[data-table-action]').forEach(btn => {
+    if (btn.disabled) return;
+    btn.onclick = () => onTableCardClick(btn.dataset.code, btn.dataset.tableAction);
+  });
+}
+
+// Build one little felt-card from a table snapshot.
+function renderTableCard(t) {
+  const free = t.maxSeats - t.seatCount;
+  const isPrivate = t.visibility === 'private';
+  const isStarted = !!t.started;
+  let statusClass, statusLabel, action, actionLabel, disabled = false;
+  if (isStarted) {
+    statusClass = 'in-game'; statusLabel = '🎴 In game';
+    action = 'none'; actionLabel = 'In progress'; disabled = true;
+  } else if (free <= 0) {
+    statusClass = 'full'; statusLabel = 'Full';
+    action = 'none'; actionLabel = 'Full'; disabled = true;
+  } else if (isPrivate) {
+    statusClass = 'locked'; statusLabel = `🔒 Private — ${t.seatCount}/${t.maxSeats}`;
+    action = 'request'; actionLabel = '🔒 Request to join';
+  } else {
+    statusClass = 'open'; statusLabel = `🟢 Open — ${t.seatCount}/${t.maxSeats}`;
+    action = 'join'; actionLabel = '🪑 Take a seat';
+  }
+  // The mini-felt: an oval with up to 7 seat dots (avatars for humans).
+  const seatDots = Array.from({ length: t.maxSeats }, (_, i) => {
+    const seat = t.seats[i];
+    if (!seat) return `<span class="seat-dot empty" style="--n:${i}"></span>`;
+    if (seat.isAI) return `<span class="seat-dot ai" style="--n:${i}" title="${esc(seat.name)} (AI)">🤖</span>`;
+    return `<span class="seat-dot" style="--n:${i}" title="${esc(seat.name)}">${avatarFor(seat.name, { size: 26 })}</span>`;
+  }).join('');
+  return `<div class="table-card ${statusClass} ${disabled ? 'disabled' : ''}">
+    <div class="felt">
+      <div class="felt-inner">
+        <div class="felt-code">${esc(t.code)}</div>
+        <div class="felt-dots" style="--seats:${t.maxSeats}">${seatDots}</div>
+      </div>
+    </div>
+    <div class="table-meta">
+      <div class="table-host">${avatarFor(t.hostName, { size: 24 })} <span>${esc(t.hostName)}</span></div>
+      <div class="table-status ${statusClass}">${statusLabel}</div>
+    </div>
+    <button class="btn ${action === 'join' ? 'primary' : ''} ${action === 'request' ? 'locked-btn' : ''}"
+            data-table-action="${action}" data-code="${esc(t.code)}" ${disabled ? 'disabled' : ''}>
+      ${actionLabel}
+    </button>
+  </div>`;
+}
+
+async function onTableCardClick(code, action) {
+  SFX.click?.();
+  if (action === 'join') {
+    // Walk up like a regular code-join — server lets us in because it's public.
+    S.mode = 'public';
+    S.secretSent = false;
+    resetGameState();
+    try {
+      await connect();
+      S.net.send({ type: 'join', code, name: name(), token: S.token });
+    } catch { toast('Could not reach the server.'); }
+  } else if (action === 'request') {
+    // Ping the host and wait for them to accept/decline.
+    try {
+      await connect();
+      S.pendingTableCode = code;
+      S.net.send({ type: 'requestJoin', code, name: name(), token: S.token });
+      // Optimistic UI: open a "waiting for host" screen so the user sees
+      // their request is in flight.
+      renderWaitingForHost(code);
+    } catch { toast('Could not reach the server.'); }
+  }
+}
+
+function renderWaitingForHost(code) {
+  S.screen = 'waiting-host';
+  app.innerHTML = `<section class="panel center">
+    <div class="big-emoji">🚪</div>
+    <h3>Knocking on table <b>${esc(code)}</b>…</h3>
+    <p class="muted small">Waiting for the host to let you in. You'll be seated automatically.</p>
+    <div class="spinner inline">⚜</div>
+    <button class="btn ghost" id="cancel">Never mind, go back</button>
+  </section>`;
+  $('#cancel').onclick = () => {
+    if (S.net) try { S.net.send({ type: 'leave' }); S.net.close?.(); S.net = null; } catch {}
+    S.pendingTableCode = null;
+    showFloor();
+  };
+}
+
 // ---------- leaderboard ----------
 async function showLeaderboard() {
   SFX.click(); renderWaiting('Loading leaderboard…');
@@ -682,9 +894,46 @@ function onMsg(m) {
     case 'private': return modal(`<h3>✦ You alone see…</h3><p>${esc(m.text)}</p><button class="btn primary" id="x">Keep the secret</button>`, () => $('#x').onclick = closeModal);
     case 'invite': return showIncomingInvite(m);
     case 'inviteResult': return toast(m.message || m.reason || (m.ok ? 'Invite sent' : 'Invite failed'));
+    // The host of a private table sees someone requesting to sit down.
+    case 'joinRequest': return showJoinRequest(m);
+    // We requested a seat at a private table — server tells us whether the
+    // host accepted (we then wait for the 'room' message to land us in the lobby),
+    // declined (back to the floor), or is still considering (initial ack).
+    case 'requestResult': return handleRequestResult(m);
     case 'error': return toast(m.error || 'error');
     case 'closed': { S.net = null; if (S.view && !S.view.over) { toast('Disconnected from the room'); leaveToHome(); } return; }
   }
+}
+
+// Host-side: a guest asked to sit at our private table. Show an Accept/Decline.
+function showJoinRequest(m) {
+  SFX.click?.();
+  modal(`<h3 class="center">🚪 Someone wants to sit down</h3>
+    <div class="center" style="margin:14px 0 6px">${avatarFor(m.name, { size: 64, withRing: true })}</div>
+    <div class="center" style="font-family:Georgia,serif; font-size:22px; color:#e0a458;">${esc(m.name)}</div>
+    <p class="center muted small">They want to join your table <b>${esc(m.code)}</b>.</p>
+    <div class="grid2" style="margin-top:14px">
+      <button class="btn primary" id="acc">✅ Accept</button>
+      <button class="btn ghost" id="dec">✖ Decline</button>
+    </div>`, () => {
+    $('#acc').onclick = () => { S.net.send({ type: 'joinResponse', clientId: m.clientId, accept: true });  closeModal(); };
+    $('#dec').onclick = () => { S.net.send({ type: 'joinResponse', clientId: m.clientId, accept: false }); closeModal(); };
+  });
+}
+
+// Guest-side: result of our requestJoin. Three shapes:
+//   { ok:true, message:"Waiting for the host…" }       — initial ack, just toast
+//   { ok:true, message:"Host accepted! …" }            — seat coming, the 'room' msg lands us
+//   { ok:false, declined:true, reason:"..." }          — declined, fall back to the floor
+//   { ok:false, reason:"Table is full." }              — couldn't even queue
+function handleRequestResult(m) {
+  if (m.ok) {
+    toast(m.message || 'Request sent');
+    return;
+  }
+  S.pendingTableCode = null;
+  toast(m.reason || 'Request failed');
+  if (S.screen === 'waiting-host') showFloor();
 }
 
 // sound cues based on what changed between states

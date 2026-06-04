@@ -458,6 +458,160 @@ table.lb th{color:var(--muted);font-weight:600;font-size:12px;text-transform:upp
 .seatline .sn{ flex:1; }
 .seatline .si.right{ font-size:20px; opacity:.65; }
 
+/* ============================================================
+   HOME — stats card + mini leaderboard
+   ============================================================ */
+.stats-row{
+  display:grid; grid-template-columns: 1fr 1fr; gap:10px;
+  margin:10px 0 6px;
+  animation: fadeUp .5s .15s both ease-out;
+}
+.stats-card{
+  background: linear-gradient(180deg, rgba(40,18,42,.55), rgba(20,10,22,.55));
+  border:1px solid rgba(217,179,92,.22);
+  border-radius:14px;
+  padding:12px 14px;
+  position:relative;
+}
+.stats-card .stats-title{
+  font-size:10px; letter-spacing:1.5px; color:#b6a3b0;
+  text-transform:uppercase; margin-bottom:8px;
+}
+.stats-card.mine .stats-grid{ display:flex; gap:14px; align-items:baseline; }
+.stats-card.mine .stat{ flex:1; text-align:center; }
+.stats-card.mine .stat .v{ font-family:Georgia,serif; font-size:24px; color:#e0a458; line-height:1; }
+.stats-card.mine .stat .k{ font-size:10px; color:#b6a3b0; letter-spacing:.6px; text-transform:uppercase; margin-top:4px; }
+.stats-card.mine .stat.full{ text-align:left; }
+.stats-card.mine .stat.full .v{ font-size:16px; }
+
+.mini-lb{ display:flex; flex-direction:column; gap:6px; }
+.mini-row{ display:flex; align-items:center; gap:8px; font-size:13px; }
+.mini-row .rank{ font-size:14px; width:20px; text-align:center; }
+.mini-row .who{ flex:1; color:#f3e9df; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mini-row .w{ color:#e0a458; font-weight:700; }
+
+/* ============================================================
+   THE FLOOR — casino-style table browser
+   ============================================================ */
+.floor-panel{ position:relative; }
+.floor-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+.floor-head h3{ margin:0; }
+.floor-grid{
+  display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap:14px; margin-top:14px;
+}
+
+/* Each table card. The "felt" inside is a green oval that looks like a real
+   casino table top-down, with seat dots evenly spaced around it. */
+.table-card{
+  background: linear-gradient(180deg, rgba(40,18,42,.7), rgba(20,10,22,.7));
+  border:2px solid rgba(217,179,92,.35);
+  border-radius:16px;
+  padding:12px;
+  display:flex; flex-direction:column; gap:10px;
+  position:relative;
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.table-card:hover{ transform: translateY(-3px); box-shadow: 0 14px 30px rgba(0,0,0,.4); border-color: rgba(217,179,92,.65); }
+.table-card.disabled{ filter: grayscale(.4) brightness(.85); }
+.table-card.locked{ border-color: #5c4a2a; }
+.table-card.in-game{ border-color: rgba(232,92,134,.5); }
+.table-card.full{ border-color: rgba(120,120,120,.5); }
+
+/* The mini felt. Pointer-free decoration. */
+.felt{
+  position:relative; width:100%; aspect-ratio: 16 / 10;
+  background: radial-gradient(ellipse at 50% 50%, #1b6f4a 0%, #0d3924 60%, #07271b 100%);
+  border-radius:50% / 32%;
+  border: 6px solid #3a2614;
+  box-shadow: inset 0 0 22px rgba(0,0,0,.5), 0 8px 18px rgba(0,0,0,.45);
+  overflow:hidden;
+}
+.felt::before{
+  /* subtle highlight band so the felt has a gloss */
+  content:""; position:absolute; inset:0;
+  background: radial-gradient(ellipse at 50% 28%, rgba(255,255,255,.08), transparent 55%);
+}
+.felt-inner{ position:absolute; inset:0; }
+.felt-code{
+  position:absolute; top:50%; left:50%; transform: translate(-50%, -50%);
+  color: rgba(255, 235, 195, .25);
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 20px; letter-spacing: 3px; font-weight:700;
+  text-shadow: 0 1px 2px rgba(0,0,0,.6);
+}
+
+/* Seat dots — placed around the oval via per-seat CSS angle. */
+.felt-dots{ position:absolute; inset:0; }
+.seat-dot{
+  position:absolute; left:50%; top:50%; width:30px; height:30px;
+  /* angle: 360/seats * n, starting at the top */
+  --angle: calc((360deg / var(--seats, 7)) * var(--n, 0) + 270deg);
+  /* radius inside the felt oval (in % of the half-width). The oval is 16:10,
+     so we use 38% horizontal / 36% vertical for the seat ring. */
+  transform: translate(-50%, -50%) rotate(var(--angle)) translate(78px) rotate(calc(-1 * var(--angle)));
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px;
+}
+.seat-dot.empty{
+  width:14px; height:14px;
+  background: rgba(255,255,255,.08); border:1px dashed rgba(255,255,255,.18); border-radius:50%;
+}
+.seat-dot.ai{
+  width:28px; height:28px; background:#2a1f33; border:2px solid #6a4f7a; border-radius:50%;
+  box-shadow: 0 2px 6px rgba(0,0,0,.5);
+}
+
+.table-meta{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.table-host{ display:flex; align-items:center; gap:6px; font-size:13px; color:#f3e9df; }
+.table-host span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px; }
+.table-status{ font-size:11px; padding:3px 8px; border-radius:999px; letter-spacing:.4px; }
+.table-status.open   { color:#a8f0c4; background:rgba(58,154,106,.15); border:1px solid rgba(58,154,106,.45); }
+.table-status.locked { color:#ffd87a; background:rgba(217,179,92,.12); border:1px solid rgba(217,179,92,.45); }
+.table-status.in-game{ color:#ffb0c2; background:rgba(232,92,134,.12); border:1px solid rgba(232,92,134,.45); }
+.table-status.full   { color:#cdcdcd; background:rgba(120,120,120,.12); border:1px solid rgba(120,120,120,.4); }
+
+.btn.locked-btn{
+  background: linear-gradient(180deg, rgba(217,179,92,.18), rgba(120,80,30,.25));
+  border:1px solid rgba(217,179,92,.6);
+  color:#ffd87a;
+}
+.btn.locked-btn:hover{ box-shadow: 0 0 0 3px rgba(217,179,92,.25); }
+
+.floor-empty{
+  grid-column: 1 / -1;
+  text-align:center; padding:40px 0; color:#b6a3b0;
+}
+.floor-empty .big{ font-size:48px; margin-bottom:8px; }
+
+/* ============================================================
+   LOBBY — visibility toggle + pending-at-the-door panel
+   ============================================================ */
+#vis-toggle{
+  background: linear-gradient(180deg, rgba(58,154,106,.18), rgba(20,80,50,.25));
+  border:1px solid rgba(58,154,106,.55);
+  color:#dff8e8;
+}
+#vis-toggle.ghost{
+  background: linear-gradient(180deg, rgba(217,179,92,.15), rgba(120,80,30,.20));
+  border:1px solid rgba(217,179,92,.5);
+  color:#ffd87a;
+}
+
+.pending-panel{
+  border:1px dashed rgba(217,179,92,.55) !important;
+  background: linear-gradient(180deg, rgba(60,40,20,.4), rgba(40,25,15,.4)) !important;
+  animation: pendingGlow 2.2s ease-in-out infinite;
+}
+@keyframes pendingGlow{ 0%,100%{ box-shadow:0 0 0 0 rgba(217,179,92,.0);} 50%{ box-shadow:0 0 0 6px rgba(217,179,92,.15);} }
+.pending-list{ display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+.pending-row{ display:flex; align-items:center; gap:10px; padding:6px 4px; border-radius:10px; background:rgba(255,255,255,.03); }
+.pending-row .pending-name{ flex:1; font-family:Georgia,serif; font-size:17px; color:#e0a458; }
+
+/* Waiting-for-host screen */
+.big-emoji{ font-size:56px; }
+.spinner.inline{ display:inline-block; margin:14px 0; font-size:24px; animation: spin 2s linear infinite; }
+
 /* Accessibility — kill expensive motion if the user opted out. */
 @media (prefers-reduced-motion: reduce){
   .floaters{ display:none; }

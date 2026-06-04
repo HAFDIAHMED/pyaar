@@ -21,9 +21,15 @@ function bindPresence(ws, token) {
   return u;
 }
 
-// room = { code, hostClient, seats:[{clientId,name,userId,isAI}], started, state, sockets:Map, aiTimer, recorded }
-function newRoom(code) {
-  return { code, hostClient: null, seats: [], started: false, state: null, sockets: new Map(), aiTimer: null, recorded: false };
+// room = { code, hostClient, seats:[{clientId,name,userId,isAI}], started, state,
+//          sockets:Map, aiTimer, recorded, visibility, pending:Map(clientId -> {name, userId}) }
+function newRoom(code, visibility = 'public') {
+  return {
+    code, hostClient: null, seats: [], started: false, state: null,
+    sockets: new Map(), aiTimer: null, recorded: false,
+    visibility,                          // 'public' = anyone on the floor can join, 'private' = invite/request only
+    pending: new Map(),                  // clientId -> { name, userId } — guests waiting for host approval
+  };
 }
 const send = (ws, msg) => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(msg)); };
 const seatOf = (room, clientId) => room.seats.findIndex(s => s.clientId === clientId);
@@ -51,6 +57,9 @@ function handle(ws, m) {
     case 'setSecret': return onSetSecret(ws, m);
     case 'action': return onAction(ws, m);
     case 'inviteUser': return onInviteUser(ws, m);
+    case 'requestJoin': return onRequestJoin(ws, m);     // guest asks host to seat them at a private table
+    case 'joinResponse': return onJoinResponse(ws, m);   // host approves / declines a pending request
+    case 'setVisibility': return onSetVisibility(ws, m); // host flips public / private
     case 'identify': return bindPresence(ws, m.token);   // a signed-in user opens the app
     default: send(ws, { type: 'error', error: 'unknown message' });
   }
@@ -82,7 +91,11 @@ async function onInviteUser(ws, m) {
 
 function onCreate(ws, m) {
   let code; do { code = makeCode(); } while (rooms.has(code));
-  const room = newRoom(code);
+  // Default visibility = 'public' (anyone on the floor can sit down) but the
+  // "Invite a friend" flow on the home page sets visibility:'private' so the
+  // table is locked from strangers.
+  const vis = (m.visibility === 'private') ? 'private' : 'public';
+  const room = newRoom(code, vis);
   const u = bindPresence(ws, m.token);
   room.seats.push({ clientId: ws.id, name: (m.name || u?.username || 'Host').slice(0, 14), userId: u?.id ?? null, isAI: false });
   room.hostClient = ws.id;
@@ -98,10 +111,95 @@ function onJoin(ws, m) {
   if (room.started) return send(ws, { type: 'error', error: 'game already started' });
   if (room.seats.length >= 7) return send(ws, { type: 'error', error: 'table is full (7 max)' });
   const u = bindPresence(ws, m.token);
+  // Private table: stranger can't walk in. They must request and have the host approve.
+  // The exception is `m.approved === true`, which only the server itself sets when the
+  // host clicks Accept on a pending request (see onJoinResponse).
+  if (room.visibility === 'private' && !m.approved) {
+    return queueJoinRequest(ws, room, m);
+  }
   room.seats.push({ clientId: ws.id, name: (m.name || u?.username || 'Player').slice(0, 14), userId: u?.id ?? null, isAI: false });
   room.sockets.set(ws.id, ws);
   ws.roomCode = room.code;
   broadcastRoom(room);
+}
+
+// Guest asked to join a private table — queue the request and ping the host.
+function onRequestJoin(ws, m) {
+  const room = rooms.get((m.code || '').toUpperCase());
+  if (!room) return send(ws, { type: 'requestResult', ok: false, reason: 'Table not found.' });
+  if (room.started) return send(ws, { type: 'requestResult', ok: false, reason: 'Game already started.' });
+  if (room.seats.length >= 7) return send(ws, { type: 'requestResult', ok: false, reason: 'Table is full.' });
+  return queueJoinRequest(ws, room, m);
+}
+
+function queueJoinRequest(ws, room, m) {
+  const u = bindPresence(ws, m.token);
+  const name = (m.name || u?.username || 'Guest').slice(0, 14);
+  room.pending.set(ws.id, { name, userId: u?.id ?? null });
+  ws.requestedRoom = room.code;
+  // Wire this guest into the room socket map (low-cost) so we can push
+  // them the join when the host approves, without forcing a reconnect.
+  if (!room.sockets.has(ws.id)) room.sockets.set(ws.id, ws);
+  send(ws, { type: 'requestResult', ok: true, message: 'Waiting for the host…' });
+  // Notify the host
+  const hostWs = room.sockets.get(room.hostClient);
+  send(hostWs, { type: 'joinRequest', clientId: ws.id, name, userId: u?.id ?? null, code: room.code });
+}
+
+// Host decided on a pending join request.
+function onJoinResponse(ws, m) {
+  const room = rooms.get(ws.roomCode); if (!room) return;
+  if (room.hostClient !== ws.id) return;
+  const cid = m.clientId; const pending = room.pending.get(cid);
+  if (!pending) return;
+  const guestWs = room.sockets.get(cid);
+  room.pending.delete(cid);
+  if (!guestWs || guestWs.readyState !== 1) return broadcastRoom(room);
+  if (m.accept) {
+    // Seat them now (skip the private-gate via the synthetic `approved` flag).
+    room.seats.push({ clientId: cid, name: pending.name, userId: pending.userId, isAI: false });
+    guestWs.roomCode = room.code;
+    guestWs.requestedRoom = null;
+    send(guestWs, { type: 'requestResult', ok: true, message: 'Host accepted! Sitting you down…' });
+    broadcastRoom(room);
+  } else {
+    send(guestWs, { type: 'requestResult', ok: false, declined: true, reason: 'Host declined your request.' });
+    if (room.sockets.get(cid) === guestWs && guestWs.roomCode !== room.code) {
+      // they weren't a real seat yet — remove from socket map
+      room.sockets.delete(cid);
+    }
+    broadcastRoom(room);
+  }
+}
+
+// Host flips a table's visibility public <-> private.
+function onSetVisibility(ws, m) {
+  const room = rooms.get(ws.roomCode); if (!room) return;
+  if (room.hostClient !== ws.id || room.started) return;
+  room.visibility = (m.visibility === 'private') ? 'private' : 'public';
+  broadcastRoom(room);
+}
+
+// Public, lightweight snapshot of every live room — used by /api/tables and
+// by the home-screen casino-floor view.
+export function listOpenTables() {
+  const out = [];
+  for (const [, room] of rooms) {
+    const host = room.seats.find(s => s.clientId === room.hostClient);
+    out.push({
+      code: room.code,
+      hostName: host ? host.name : '—',
+      seatCount: room.seats.length,
+      maxSeats: 7,
+      started: room.started,
+      visibility: room.visibility,
+      // Names only — never expose userId/clientId to anonymous floor visitors.
+      seats: room.seats.map(s => ({ name: s.name, isAI: s.isAI })),
+    });
+  }
+  // Newest-feeling tables first: not started before started, more open seats before fewer.
+  out.sort((a, b) => (a.started - b.started) || ((b.maxSeats - b.seatCount) - (a.maxSeats - a.seatCount)));
+  return out;
 }
 
 function onAddAI(ws, m) {
@@ -211,9 +309,18 @@ function broadcastRoom(room) {
   const lobby = {
     type: 'room', code: room.code, started: room.started,
     hostSeat: room.seats.findIndex(s => s.clientId === room.hostClient),
+    visibility: room.visibility,
     seats: room.seats.map(s => ({ name: s.name, isAI: s.isAI, registered: !!s.userId })),
   };
-  for (const [cid, ws] of room.sockets) send(ws, { ...lobby, youSeat: seatOf(room, cid) });
+  // Only the host sees the pending-requests list.
+  const hostPending = Array.from(room.pending.entries()).map(([cid, p]) => ({ clientId: cid, name: p.name }));
+  for (const [cid, ws] of room.sockets) {
+    const isHost = cid === room.hostClient;
+    const youSeat = seatOf(room, cid);
+    // A guest waiting on a private table has no seat yet (youSeat === -1) but
+    // is in the socket map. They get the lobby preview without a seat.
+    send(ws, { ...lobby, youSeat, pending: isHost ? hostPending : undefined });
+  }
 }
 
 function broadcastState(room) {
@@ -227,6 +334,12 @@ function broadcastState(room) {
 function onClose(ws) {
   // Drop presence first so invites don't try to land on a dead socket.
   if (ws.userId && presence.get(ws.userId) === ws) presence.delete(ws.userId);
+  // If this guest was waiting on a private table, drop the pending request too.
+  if (ws.requestedRoom) {
+    const r = rooms.get(ws.requestedRoom);
+    if (r && r.pending.delete(ws.id)) { r.sockets.delete(ws.id); broadcastRoom(r); }
+    ws.requestedRoom = null;
+  }
   const room = rooms.get(ws.roomCode); if (!room) return;
   room.sockets.delete(ws.id);
   // if no human sockets remain, tear the room down
