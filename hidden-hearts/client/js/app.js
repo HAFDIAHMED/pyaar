@@ -678,7 +678,11 @@ function renderTable() {
   for (const p of v.players) {
     const rel = (p.id - v.youAre + n) % n;                 // you at the bottom
     const ang = (90 + rel * (360 / n)) * Math.PI / 180;
-    const x = 50 + 41 * Math.cos(ang), y = 50 + 43 * Math.sin(ang);
+    // Radii tuned so the WHOLE chip (mini-hand on top + avatar + name + love-line
+    // + badges) sits clear of the wooden rim. The vertical radius is the tighter
+    // one because the chip is taller than it is wide; we also pad the horizontal
+    // a touch so side chips don't kiss the rim either.
+    const x = 50 + 36 * Math.cos(ang), y = 50 + 30 * Math.sin(ang);
     const validTgt = aiming && p.id !== v.youAre
       && (S.sel.key !== 'HEARTBREAK' || p.stage > 0)
       && (S.sel.key !== 'JEALOUSY' || p.stage >= 2);     // only the envy-worthy (Dating+)
