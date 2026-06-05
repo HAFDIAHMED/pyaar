@@ -1905,6 +1905,170 @@ body.tour-active{ overflow: hidden; }
 }
 
 /* ============================================================
+   CARDS GUIDE — one slide per card, with a big preview, a
+   strategic 'when to use it' tip, and a before→after demo
+   in the same visual language as the in-game table.
+   ============================================================ */
+.card-guide{ display: flex; flex-direction: column; gap: 10px; min-height: 380px; }
+.cg-skip-row{
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-top: -6px;
+}
+.cg-header-title{
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 12px; letter-spacing: 2px; color: #d9b35c;
+  text-transform: uppercase; font-weight: 700;
+}
+.cg-skip-row .link-btn{ font-size: 11px; color: #b6a3b0; }
+.cg-skip-row .link-btn:hover{ color: #ffe9a8; }
+.cg-slide-title{
+  text-align: center;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 24px; font-weight: 900; letter-spacing: 2px;
+  color: #ffe9a8;
+  text-shadow: 0 2px 0 rgba(0,0,0,.5);
+  padding-bottom: 4px;
+  border-bottom: 1px dashed rgba(217,179,92,.3);
+  animation: ciSlideIn .3s cubic-bezier(.2,.9,.25,1.15) both;
+}
+
+/* Content row: card on the left, info on the right */
+.cg-content{
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: start;
+  animation: ciSlideIn .35s .05s cubic-bezier(.2,.9,.25,1.15) both;
+}
+.cg-card-wrap{ display: flex; align-items: center; justify-content: center; }
+.cg-card-preview{
+  /* Static, slightly larger version of the in-hand card */
+  position: relative !important;
+  top: 0 !important; left: 0 !important;
+  transform: none !important;
+  width: 130px !important; height: 190px !important;
+  cursor: default !important;
+}
+.cg-info{ display: flex; flex-direction: column; gap: 6px; }
+.cg-label{
+  font-size: 10px; letter-spacing: 1.5px; color: #d9b35c;
+  font-weight: 700; text-transform: uppercase; margin-top: 4px;
+}
+.cg-usewhen{ font-size: 13.5px; line-height: 1.45; color: #f3e9df; }
+.cg-example{
+  font-size: 13px; color: #ffe9a8;
+  background: rgba(217,179,92,.12);
+  border: 1px solid rgba(217,179,92,.3);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+/* Before → After scene at the bottom */
+.cg-scene-row{
+  background: linear-gradient(180deg, rgba(8,30,20,.55), rgba(8,30,20,.25));
+  border: 1px solid rgba(217,179,92,.3);
+  border-radius: 14px;
+  padding: 14px 10px;
+  animation: ciSlideIn .4s .1s cubic-bezier(.2,.9,.25,1.15) both;
+}
+.cg-demo{
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.cg-side{
+  flex: 1; max-width: 140px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.cg-side-lbl{
+  font-size: 10px; letter-spacing: 1px; color: #b6a3b0;
+  text-transform: uppercase;
+}
+.cg-side-lbl.gold{ color: #ffe9a8; font-weight: 700; }
+.cg-go{
+  font-size: 26px; color: #d9b35c; font-weight: 900;
+  filter: drop-shadow(0 2px 6px rgba(217,179,92,.4));
+  animation: cgGo 1.8s ease-in-out infinite;
+}
+.cg-go.bad{ color: #e85c86; filter: drop-shadow(0 2px 6px rgba(232,92,134,.5)); }
+@keyframes cgGo{
+  0%,100%{ transform: translateX(0); }
+  50%   { transform: translateX(4px); }
+}
+
+/* Mini love bar for the demos */
+.cg-mini-bar{
+  display: flex; gap: 4px; align-items: center;
+  background: rgba(0,0,0,.4);
+  border: 1px solid rgba(217,179,92,.3);
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+.cg-mini-bar.small{ padding: 3px 6px; }
+.cg-mini-bar .cg-pip{
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  background: rgba(0,0,0,.45);
+  border: 1px solid rgba(255,255,255,.1);
+  filter: grayscale(.6) brightness(.7);
+}
+.cg-mini-bar .cg-pip.lit{
+  background: linear-gradient(180deg, #fff5d0, #d9b35c);
+  border-color: #6b4d18;
+  filter: none;
+  box-shadow: 0 0 8px rgba(255,235,168,.5);
+}
+.cg-mini-bar.small .cg-pip{ width: 18px; height: 18px; font-size: 11px; }
+.cg-mini-bar .cg-pip.pulse{ animation: pipReady 1.2s ease-in-out infinite; }
+
+/* Thought bubble for peek/expose demos */
+.cg-thought{
+  background: rgba(232,92,134,.22);
+  border: 1.5px dashed rgba(232,92,134,.7);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: #ffe0e8;
+}
+.cg-thought.revealed{
+  background: linear-gradient(180deg, rgba(217,179,92,.3), rgba(217,179,92,.18));
+  border: 1.5px solid #d9b35c;
+  color: #ffe9a8;
+  font-weight: 700;
+  animation: pipReady 1.4s ease-in-out infinite;
+}
+
+/* Pair (you + crush) mini for SWAY */
+.cg-pair-mini{
+  display: flex; align-items: center; gap: 4px;
+  font-size: 18px;
+}
+
+/* Status badges for GUARDIAN / FRIENDZONE demos */
+.cg-shield-badge, .cg-frozen-badge{
+  background: rgba(217,179,92,.25);
+  border: 2px solid #d9b35c;
+  border-radius: 50%;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 0 12px rgba(255,235,168,.5);
+  animation: pipReady 1.4s ease-in-out infinite;
+}
+.cg-frozen-badge{ background: rgba(106,144,200,.25); border-color: #6a90c8; box-shadow: 0 0 12px rgba(106,144,200,.5); }
+
+/* Phone tweaks */
+@media (max-width: 480px){
+  .cg-content{ grid-template-columns: 1fr; gap: 8px; justify-items: center; }
+  .cg-card-preview{ width: 110px !important; height: 160px !important; }
+  .cg-info{ width: 100%; }
+  .cg-slide-title{ font-size: 20px; letter-spacing: 1px; }
+  .cg-demo{ flex-direction: column; gap: 8px; }
+  .cg-side{ max-width: 100%; flex: 0 0 auto; }
+  .cg-go{ transform: rotate(90deg); animation: none; }
+  .cg-go.bad{ transform: rotate(90deg); }
+}
+
+/* ============================================================
    SETUP SCREEN — pick-your-crush as a visual choice
    ============================================================ */
 .aim-stage{

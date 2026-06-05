@@ -687,10 +687,10 @@ function renderWaiting(msg) { clearFloaters(); app.innerHTML = `<section class="
 
 function renderSetup() {
   clearFloaters();
-  // On the FIRST game ever, show the 5-slide concept intro before the
-  // setup-tutorial spotlight. After it's dismissed the regular spotlight
-  // tour follows (which is itself gated by its own localStorage flag).
-  maybeRunConceptIntro(() => maybeRunSetupTutorial());
+  // First-time onboarding chain: concept intro → cards guide → spotlight
+  // setup tutorial. Each step is independently gated by its own
+  // localStorage flag, so returning players see nothing.
+  maybeRunConceptIntro(() => maybeRunCardsGuide(() => maybeRunSetupTutorial()));
   const v = S.view;
   const others = v.players.filter(p => p.id !== v.youAre);
   const sel = (S._crush != null) ? v.players[S._crush] : null;
@@ -1282,6 +1282,7 @@ function showRules() {
   modal(`<h3>${t('rules.title')}</h3>
     <div class="rules-tour-row">
       <button class="btn primary sm" id="rt-intro">${t('intro.replayBtn')}</button>
+      <button class="btn primary sm" id="rt-cards">${t('cardGuide.replayBtn')}</button>
       <button class="btn sm" id="rt-home">${t('rules.tourHome')}</button>
       <button class="btn sm" id="rt-play">${t('rules.tourPlay')}</button>
     </div>
@@ -1308,6 +1309,7 @@ function showRules() {
     <button class="btn primary" id="x">${t('common.gotIt')}</button>`, () => {
     $('#x').onclick = closeModal;
     $('#rt-intro').onclick = () => { closeModal(); localStorage.removeItem('pyaar_concept_v1'); showConceptIntro(); };
+    $('#rt-cards').onclick = () => { closeModal(); localStorage.removeItem('pyaar_cardguide_v1'); showCardsGuide(); };
     $('#rt-home').onclick = () => replayTour('home');
     $('#rt-play').onclick = () => replayTour('play');
   });
@@ -1835,6 +1837,219 @@ function showConceptIntro(opts = {}) {
 function maybeRunConceptIntro(onDone) {
   if (localStorage.getItem('pyaar_concept_v1') === 'done') { if (onDone) onDone(); return; }
   showConceptIntro({ onDone });
+}
+
+// ============================================================
+// CARDS GUIDE — one slide per card, with a big preview of the
+// actual playing card + a 'before → after' demo + a strategic
+// 'when to use it' tip. Auto-fires after the concept intro on
+// the user's first play, replayable from Rules anytime.
+// ============================================================
+const CARD_ORDER = ['MOMENT', 'GLANCE', 'SWAY', 'HEARTBREAK', 'JEALOUSY', 'GUARDIAN', 'FRIENDZONE'];
+
+// A non-clickable big preview of one card — same visual language as
+// the in-hand .pcard, just bigger and no data-play hook.
+function cardPreview(key) {
+  const d = CARD[key];
+  const toneLabel = d.tone === 'attack' ? 'RIVAL' : d.tone === 'info' ? 'SEE' : 'ME';
+  // Use the live translated tone label
+  const tlabel = t(`tone.${d.tone}`);
+  return `<div class="pcard f-${d.fam} cg-card-preview">
+    <div class="pc-top">
+      <span class="pc-action">${esc(d.action)}</span>
+      <span class="pc-tone ${d.tone}">${tlabel}</span>
+    </div>
+    <div class="pc-art">
+      <div class="pc-glow"></div>
+      <div class="pc-icon">${d.icon}</div>
+      <div class="pc-name">${title(key)}</div>
+    </div>
+    <div class="pc-effect">${esc(d.short)}</div>
+    <div class="pc-tag">${esc(d.tag)}</div>
+  </div>`;
+}
+
+// Hand-crafted 'before → after' visual for each card. Uses the game's
+// own visual language (love bar pips, avatars, badges) so the example
+// matches what the player will see at the actual table.
+function cardScene(key) {
+  const av = (seed, size = 36) => avatarFor(seed, { size });
+  switch (key) {
+    case 'MOMENT': return `
+      <div class="cg-demo">
+        <div class="cg-side">
+          <div class="cg-mini-bar">
+            <span class="cg-pip lit">✨</span>
+            <span class="cg-pip">🌹</span>
+            <span class="cg-pip">💋</span>
+          </div>
+          <div class="cg-side-lbl">before</div>
+        </div>
+        <div class="cg-go">❤️ →</div>
+        <div class="cg-side">
+          <div class="cg-mini-bar">
+            <span class="cg-pip lit">✨</span>
+            <span class="cg-pip lit pulse">🌹</span>
+            <span class="cg-pip">💋</span>
+          </div>
+          <div class="cg-side-lbl gold">after</div>
+        </div>
+      </div>`;
+    case 'GLANCE': return `
+      <div class="cg-demo">
+        <div class="cg-side">
+          ${av('sol')}
+          <div class="cg-thought">💘 ?</div>
+          <div class="cg-side-lbl">before</div>
+        </div>
+        <div class="cg-go">👀 →</div>
+        <div class="cg-side">
+          ${av('sol')}
+          <div class="cg-thought revealed">💘 🌙 Kai</div>
+          <div class="cg-side-lbl gold">after</div>
+        </div>
+      </div>`;
+    case 'SWAY': return `
+      <div class="cg-demo">
+        <div class="cg-side">
+          <div class="cg-pair-mini">${av('me', 32)}<span>💘</span>${av('kai', 32)}</div>
+          <div class="cg-side-lbl">crush: 🌙 Kai · 🌹</div>
+        </div>
+        <div class="cg-go">💘 →</div>
+        <div class="cg-side">
+          <div class="cg-pair-mini">${av('me', 32)}<span>💘</span>${av('sol', 32)}</div>
+          <div class="cg-side-lbl gold">crush: 🔥 Sol · ✨</div>
+        </div>
+      </div>`;
+    case 'HEARTBREAK': return `
+      <div class="cg-demo">
+        <div class="cg-side">
+          <div class="cg-mini-bar">
+            <span class="cg-pip lit">✨</span>
+            <span class="cg-pip lit">🌹</span>
+            <span class="cg-pip lit pulse">💋</span>
+          </div>
+          <div class="cg-side-lbl">rival ready</div>
+        </div>
+        <div class="cg-go bad">💔 →</div>
+        <div class="cg-side">
+          <div class="cg-mini-bar">
+            <span class="cg-pip lit">✨</span>
+            <span class="cg-pip lit">🌹</span>
+            <span class="cg-pip">💋</span>
+          </div>
+          <div class="cg-side-lbl gold">rival knocked back</div>
+        </div>
+      </div>`;
+    case 'JEALOUSY': return `
+      <div class="cg-demo">
+        <div class="cg-side">
+          ${av('kai')}
+          <div class="cg-mini-bar small">
+            <span class="cg-pip lit">✨</span>
+            <span class="cg-pip lit">🌹</span>
+          </div>
+          <div class="cg-thought">💘 ?</div>
+        </div>
+        <div class="cg-go bad">💚 →</div>
+        <div class="cg-side">
+          ${av('kai')}
+          <div class="cg-mini-bar small">
+            <span class="cg-pip lit">✨</span>
+            <span class="cg-pip">🌹</span>
+          </div>
+          <div class="cg-thought revealed">💘 🌹 Layla</div>
+        </div>
+      </div>`;
+    case 'GUARDIAN': return `
+      <div class="cg-demo">
+        <div class="cg-side">
+          ${av('me')}
+          <div class="cg-side-lbl">unguarded</div>
+        </div>
+        <div class="cg-go">🛡️ →</div>
+        <div class="cg-side">
+          ${av('me')}
+          <div class="cg-shield-badge">🛡️</div>
+          <div class="cg-side-lbl gold">next attack blocked</div>
+        </div>
+      </div>`;
+    case 'FRIENDZONE': return `
+      <div class="cg-demo">
+        <div class="cg-side">
+          ${av('rival')}
+          <div class="cg-side-lbl">their turn next</div>
+        </div>
+        <div class="cg-go bad">🤝 →</div>
+        <div class="cg-side">
+          ${av('rival')}
+          <div class="cg-frozen-badge">🤝</div>
+          <div class="cg-side-lbl gold">they skip it!</div>
+        </div>
+      </div>`;
+  }
+  return '';
+}
+
+function cardGuideSlides() {
+  return CARD_ORDER.map(key => {
+    const d = CARD[key];
+    return {
+      key,
+      title: `${d.icon} ${d.action}`,
+      preview: cardPreview(key),
+      scene: cardScene(key),
+      useWhen: t(`cardGuide.${key}.useWhen`),
+      example: t(`cardGuide.${key}.example`),
+    };
+  });
+}
+
+function showCardsGuide(opts = {}) {
+  const onDone = opts.onDone;
+  const slides = cardGuideSlides();
+  let idx = 0;
+  function end() {
+    closeModal();
+    localStorage.setItem('pyaar_cardguide_v1', 'done');
+    if (onDone) try { onDone(); } catch {}
+  }
+  function render() {
+    const last = idx === slides.length - 1;
+    const s = slides[idx];
+    modal(`<div class="card-guide">
+      <div class="cg-skip-row">
+        <span class="cg-header-title">${t('cardGuide.title')}</span>
+        <button class="link-btn sm" id="cg-skip">${t('intro.skip')}</button>
+      </div>
+      <div class="cg-slide-title">${s.title}</div>
+      <div class="cg-content">
+        <div class="cg-card-wrap">${s.preview}</div>
+        <div class="cg-info">
+          <div class="cg-label">${t('cardGuide.useWhenLabel')}</div>
+          <div class="cg-usewhen">${s.useWhen}</div>
+          <div class="cg-label">${t('cardGuide.exampleLabel')}</div>
+          <div class="cg-example">${s.example}</div>
+        </div>
+      </div>
+      <div class="cg-scene-row">${s.scene}</div>
+      <div class="ci-controls">
+        <button class="btn ghost sm" id="cg-prev" ${idx === 0 ? 'disabled' : ''}>${t('common.back')}</button>
+        <div class="ci-dots">${slides.map((_, j) => `<span class="${j === idx ? 'on' : ''}"></span>`).join('')}</div>
+        <button class="btn primary sm" id="cg-next">${last ? t('intro.startBtn') + ' 🃏' : t('common.next')}</button>
+      </div>
+    </div>`, () => {
+      $('#cg-skip').onclick = end;
+      $('#cg-prev').onclick = () => { if (idx > 0) { idx--; SFX.click?.(); render(); } };
+      $('#cg-next').onclick = () => { if (last) end(); else { idx++; SFX.click?.(); render(); } };
+    });
+  }
+  render();
+}
+
+function maybeRunCardsGuide(onDone) {
+  if (localStorage.getItem('pyaar_cardguide_v1') === 'done') { if (onDone) onDone(); return; }
+  showCardsGuide({ onDone });
 }
 
 // Auto-fire helpers — each tour is gated by a localStorage flag.
