@@ -643,6 +643,61 @@ table.lb th{color:var(--muted);font-weight:600;font-size:12px;text-transform:upp
 /* Leaderboard rows — avatar + name pair */
 .lb-player{ display:inline-flex; align-items:center; gap:8px; }
 .lb td:nth-child(2){ text-align:left; }
+/* Full leaderboard view — scrollable list, top 3 with medal highlights,
+   the current user's row pinned in gold so they spot themselves fast. */
+.lb-panel{ display:flex; flex-direction:column; gap:8px; }
+.lb-meta{
+  text-align: center;
+  font-size: 12px; color: #b6a3b0; letter-spacing: .5px;
+  padding: 0 4px 4px;
+}
+.lb-scroll{
+  max-height: min(60vh, 540px);
+  overflow-y: auto;
+  border-radius: 12px;
+  background: rgba(0,0,0,.2);
+  border: 1px solid rgba(217,179,92,.18);
+  scrollbar-width: thin;
+}
+.lb-scroll::-webkit-scrollbar{ width: 8px; }
+.lb-scroll::-webkit-scrollbar-thumb{ background: rgba(217,179,92,.35); border-radius: 8px; }
+.lb-scroll table{ width: 100%; }
+.lb-scroll thead th{
+  position: sticky; top: 0;
+  background: linear-gradient(180deg, rgba(40,18,42,.98), rgba(20,8,22,.95));
+  color: #d9b35c; font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+  padding: 8px 6px; border-bottom: 1px solid rgba(217,179,92,.4);
+  z-index: 2;
+}
+.lb-scroll tbody tr{
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  transition: background .15s;
+}
+.lb-scroll tbody tr:hover{ background: rgba(255,255,255,.03); }
+.lb-scroll tbody td{ padding: 8px 6px; font-size: 13px; vertical-align: middle; }
+.lb-scroll tbody td:first-child{
+  width: 44px; text-align: center; font-size: 18px;
+}
+.lb-rank{ font-family: Georgia, serif; color: #b6a3b0; font-size: 14px; }
+
+/* Top-3 rows: subtle row tint + bolder type */
+.lb-scroll tr.top td{ background: rgba(217,179,92,.05); }
+.lb-scroll tr.top:nth-child(1) td{ background: rgba(255,215,128,.10); }
+.lb-scroll tr.top:nth-child(2) td{ background: rgba(192,192,192,.07); }
+.lb-scroll tr.top:nth-child(3) td{ background: rgba(205,127,50,.07); }
+
+/* Current user's row — pinned in pink/gold so the player finds themselves */
+.lb-scroll tr.me td{
+  background: linear-gradient(90deg, rgba(232,92,134,.18), rgba(217,179,92,.18)) !important;
+  border-top: 1px solid rgba(232,92,134,.4);
+  border-bottom: 1px solid rgba(232,92,134,.4);
+}
+.lb-you{
+  display: inline-block; margin-left: 6px;
+  font-size: 10px; letter-spacing: 1px;
+  color: #e85c86; font-weight: 700;
+  text-transform: uppercase;
+}
 
 /* Lobby seat lines — avatar on the left, seat icon on the right. */
 .seatline{ display:flex; align-items:center; gap:10px; }

@@ -251,6 +251,8 @@ const DICT = {
       player: 'Player', wins: 'Wins', score: 'Score',
       empty: 'No games recorded yet.',
       emptyHint: 'Sign in and play to climb the board.',
+      totalPlayers: 'Showing all {n} players who have played.',
+      you: '(you)',
     },
     stats: {
       yourRecord: 'YOUR RECORD',
@@ -546,6 +548,8 @@ const DICT = {
       player: 'Joueur', wins: 'Victoires', score: 'Score',
       empty: 'Aucune partie enregistrée.',
       emptyHint: 'Connecte-toi et joue pour grimper.',
+      totalPlayers: 'Tous les {n} joueurs ayant joué.',
+      you: '(toi)',
     },
     stats: {
       yourRecord: 'TON RECORD',

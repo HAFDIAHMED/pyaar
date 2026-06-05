@@ -1099,15 +1099,41 @@ function renderWaitingForHost(code) {
 
 // ---------- leaderboard ----------
 async function showLeaderboard() {
-  SFX.click(); renderWaiting('Loading leaderboard…');
+  SFX.click(); renderWaiting(t('common.loading'));
+  // No limit param → server returns up to 1000 players (effectively all).
   const { data } = await api.get('/api/leaderboard');
   const rows = data.rows || [];
-  app.innerHTML = `<section class="panel"><h3 class="center">${t('leaderboard.title')}</h3>
-    ${rows.length ? `<table class="lb"><thead><tr><th>#</th><th>${t('leaderboard.player')}</th><th>${t('leaderboard.wins')}</th><th>💞</th><th>${t('leaderboard.score')}</th></tr></thead>
-      <tbody>${rows.map((r, i) => `<tr><td>${i + 1}</td><td><span class="lb-player">${avatarFor(r.username, { size: 28 })}<span>${esc(r.username)}</span></span></td><td>${r.wins || 0}</td><td>${r.soulmates || 0}</td><td>${r.totalScore || 0}</td></tr>`).join('')}</tbody></table>`
+  // Find the current user's row so we can highlight + scroll to it.
+  const meIdx = S.user ? rows.findIndex(r => r.username === S.user.username) : -1;
+  // Medals for the top 3, plain rank for the rest.
+  const rankCell = (i) => ['🥇','🥈','🥉'][i] || `<span class="lb-rank">${i + 1}</span>`;
+  app.innerHTML = `<section class="panel lb-panel"><h3 class="center">${t('leaderboard.title')}</h3>
+    ${rows.length ? `
+      <div class="lb-meta">${t('leaderboard.totalPlayers', { n: rows.length })}</div>
+      <div class="lb-scroll">
+        <table class="lb">
+          <thead><tr><th>#</th><th>${t('leaderboard.player')}</th><th>${t('leaderboard.wins')}</th><th>💞</th><th>${t('leaderboard.score')}</th></tr></thead>
+          <tbody>${rows.map((r, i) => `
+            <tr class="${i === meIdx ? 'me' : ''} ${i < 3 ? 'top' : ''}">
+              <td>${rankCell(i)}</td>
+              <td><span class="lb-player">${avatarFor(r.username, { size: 28 })}<span>${esc(r.username)}${i === meIdx ? ' <span class="lb-you">' + t('leaderboard.you') + '</span>' : ''}</span></span></td>
+              <td>${r.wins || 0}</td>
+              <td>${r.soulmates || 0}</td>
+              <td>${r.totalScore || 0}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`
       : `<p class="center muted">${esc(data.note || t('leaderboard.empty'))}<br/>${t('leaderboard.emptyHint')}</p>`}
     </section><button class="btn ghost" id="back">${t('common.back')}</button>`;
   $('#back').onclick = renderHome;
+  // Scroll the user's row into view if they're on the board but below the fold.
+  if (meIdx >= 0) {
+    requestAnimationFrame(() => {
+      const me = document.querySelector('.lb tr.me');
+      if (me) me.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  }
 }
 
 // ---------- auth ----------
