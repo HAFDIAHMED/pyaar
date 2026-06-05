@@ -301,7 +301,10 @@ async function persist(room) {
 function deliverPrivate(room, privateOut) {
   for (const pm of (privateOut || [])) {
     const seat = room.seats[pm.to];
-    if (seat && seat.clientId) send(room.sockets.get(seat.clientId), { type: 'private', kind: pm.kind, text: pm.text });
+    if (!seat || !seat.clientId) continue;
+    // Forward both legacy 'text' and the new structured 'event' so the
+    // client can translate via i18n. New games will carry pm.event.
+    send(room.sockets.get(seat.clientId), { type: 'private', kind: pm.kind, text: pm.text, event: pm.event });
   }
 }
 

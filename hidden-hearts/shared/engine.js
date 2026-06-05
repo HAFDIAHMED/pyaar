@@ -62,7 +62,7 @@ export function startPlay(s, rng = Math.random) {
   if (s.phase !== 'setup' || !allSecretsSet(s)) return false;
   for (const p of s.players) draw(s, p, 3);
   s.startSeat = rndInt(rng, s.players.length); s.turn = s.startSeat; s.phase = 'play';
-  log(s, `Hearts set in secret. ${current(s).seat.icon} ${current(s).name} makes the first move.`);
+  log(s, { k: 'firstMove', icon: current(s).seat.icon, name: current(s).name });
   beginTurn(s); return true;
 }
 function draw(s, p, n = 1) { let g = 0; for (let i = 0; i < n; i++) { if (!s.deck.length) break; p.hand.push(s.deck.pop()); g++; } return g; }
@@ -72,7 +72,7 @@ function beginTurn(s) {
   if (s.deck.length === 0) { endGame(s, 'timeout'); return; }
   const p = current(s);
   p.hbImmune = false;
-  if (p.frozen || p.skipNext) { const why = p.frozen ? 'friendzoned' : 'nursing a broken heart'; p.frozen = false; p.skipNext = false; log(s, `${p.seat.icon} ${p.name} is ${why} — loses a turn.`); advance(s); return; }
+  if (p.frozen || p.skipNext) { const k = p.frozen ? 'skipFrozen' : 'skipBroken'; p.frozen = false; p.skipNext = false; log(s, { k, icon: p.seat.icon, name: p.name }); advance(s); return; }
   draw(s, p);
 }
 function advance(s) { s.turn = (s.turn + 1) % s.players.length; beginTurn(s); }
@@ -101,47 +101,59 @@ export function applyAction(s, playerId, action, rng = Math.random) {
   const card = p.hand[idx];
 
   s._privateOut = [];
-  if (action.discard) { p.hand.splice(idx, 1); s.discard.push(card); log(s, `${p.seat.icon} ${p.name} bides their time.`); endTurn(s); return { ok: true, privateOut: [] }; }
+  if (action.discard) { p.hand.splice(idx, 1); s.discard.push(card); log(s, { k: 'discard', icon: p.seat.icon, name: p.name }); endTurn(s); return { ok: true, privateOut: [] }; }
 
   const t = (CARD[card].needsTarget === 'other') ? byId(s, action.target) : null;
   if (CARD[card].needsTarget === 'other' && (!t || t.id === p.id)) return { ok: false, error: 'choose another player' };
 
   p.hand.splice(idx, 1); s.discard.push(card);
 
+  // Every log event is a structured object so the client can translate it
+  // via i18n. Shape: { k: 'eventKey', ...params }.
+  const A = { aIcon: p.seat.icon, aName: p.name };
+  const T = t ? { tIcon: t.seat.icon, tName: t.name } : {};
   if (card === 'MOMENT') {
-    if (p.stage < READY) { p.stage++; log(s, `${p.seat.icon} ${p.name} grows closer — ${STAGE_NAMES[p.stage]} ${STAGES[p.stage]}.`); }
+    if (p.stage < READY) { p.stage++; log(s, { k: 'grow', ...A, stage: p.stage }); }
     else {                                  // COMMIT — the gamble
       const o = byId(s, p.crush);
-      if (mutual(s, p)) { log(s, `💍✨ ${p.seat.icon} ${p.name} commits to ${o.seat.icon} ${o.name} — and it's MUTUAL! Soulmates!`); endGame(s, 'devotion', p.id); }
-      else { p.stage = READY - 1; p.skipNext = true; p.revealed = true; log(s, `💔 ${p.seat.icon} ${p.name} pours their heart out to ${o.seat.icon} ${o.name}… not returned. Rejected!`); }
+      const oTag = { tIcon: o.seat.icon, tName: o.name };
+      if (mutual(s, p)) { log(s, { k: 'commitMutual', ...A, ...oTag }); endGame(s, 'devotion', p.id); }
+      else { p.stage = READY - 1; p.skipNext = true; p.revealed = true; log(s, { k: 'commitReject', ...A, ...oTag }); }
     }
   } else if (card === 'GLANCE') {
     const o = byId(s, t.crush);
-    s._privateOut.push({ to: p.id, kind: 'peek', text: o ? `${t.seat.icon} ${t.name} secretly fancies ${o.seat.icon} ${o.name}.` : `${t.seat.icon} ${t.name} fancies no one.` });
-    log(s, `${p.seat.icon} ${p.name} reads the room… 👀`);
+    // Send structured event so the client can render in the user's language.
+    s._privateOut.push({
+      to: p.id, kind: 'peek',
+      event: o
+        ? { k: 'peekKnown', tIcon: t.seat.icon, tName: t.name, oIcon: o.seat.icon, oName: o.name }
+        : { k: 'peekEmpty', tIcon: t.seat.icon, tName: t.name },
+    });
+    log(s, { k: 'glance', ...A });
   } else if (card === 'SWAY') {
     p.crush = t.id; p.stage = Math.max(0, p.stage - 1);
-    log(s, `${p.seat.icon} ${p.name}'s heart turns to someone new 💘 (their romance cools to ${STAGE_NAMES[p.stage]}).`);
+    log(s, { k: 'sway', ...A, stage: p.stage });
   } else if (card === 'HEARTBREAK') {
-    if (t.shield) { t.shield = false; log(s, `${p.seat.icon} ${p.name} 💔 strikes ${t.seat.icon} ${t.name} — their guard holds.`); }
-    else if (t.hbImmune) { log(s, `${p.seat.icon} ${p.name} 💔 strikes ${t.seat.icon} ${t.name}, but they're already aching.`); }
-    else if (t.stage > 0) { t.stage--; t.hbImmune = true; log(s, `💔 ${p.seat.icon} ${p.name} breaks ${t.seat.icon} ${t.name}'s heart — back to ${STAGE_NAMES[t.stage]}.`); }
-    else log(s, `${p.seat.icon} ${p.name} 💔 strikes ${t.seat.icon} ${t.name}, but there's nothing to break yet.`);
+    if (t.shield) { t.shield = false; log(s, { k: 'breakShield', ...A, ...T }); }
+    else if (t.hbImmune) { log(s, { k: 'breakImmune', ...A, ...T }); }
+    else if (t.stage > 0) { t.stage--; t.hbImmune = true; log(s, { k: 'breakHit', ...A, ...T, stage: t.stage }); }
+    else log(s, { k: 'breakNone', ...A, ...T });
   } else if (card === 'JEALOUSY') {
-    if (t.shield) { t.shield = false; log(s, `${p.seat.icon} ${p.name} 💚 envies ${t.seat.icon} ${t.name} — their guard holds.`); }
+    if (t.shield) { t.shield = false; log(s, { k: 'jealousyShield', ...A, ...T }); }
     else {
       const wasHidden = !t.revealed;
       t.revealed = true;                                   // the spite: their crush is now public
       const o = byId(s, t.crush);
-      const exposeTxt = o ? `everyone now sees they pine for ${o.seat.icon} ${o.name}` : `everyone sees their heart is empty`;
-      if (!t.hbImmune && t.stage > 0) { t.stage--; t.hbImmune = true; log(s, `💚 ${p.seat.icon} ${p.name}, green with envy, sets ${t.seat.icon} ${t.name} back to ${STAGE_NAMES[t.stage]} — and ${exposeTxt}.`); }
-      else log(s, `💚 ${p.seat.icon} ${p.name}, green with envy, ${wasHidden ? 'exposes' : 're-exposes'} ${t.seat.icon} ${t.name} — ${exposeTxt}.`);
+      const exposeFields = o ? { cIcon: o.seat.icon, cName: o.name } : {};
+      const hasCrush = !!o;
+      if (!t.hbImmune && t.stage > 0) { t.stage--; t.hbImmune = true; log(s, { k: hasCrush ? 'jealousyHitExpose' : 'jealousyHitExposeEmpty', ...A, ...T, ...exposeFields, stage: t.stage }); }
+      else log(s, { k: (wasHidden ? (hasCrush ? 'jealousyExposeNew' : 'jealousyExposeNewEmpty') : (hasCrush ? 'jealousyExposeAgain' : 'jealousyExposeAgainEmpty')), ...A, ...T, ...exposeFields });
     }
   } else if (card === 'GUARDIAN') {
-    p.shield = true; log(s, `${p.seat.icon} ${p.name} guards their heart 🛡️.`);
+    p.shield = true; log(s, { k: 'guardian', ...A });
   } else if (card === 'FRIENDZONE') {
-    if (t.shield) { t.shield = false; log(s, `${p.seat.icon} ${p.name} 🤝 friendzones ${t.seat.icon} ${t.name} — guard holds.`); }
-    else { t.frozen = true; log(s, `${p.seat.icon} ${p.name} 🤝 friendzones ${t.seat.icon} ${t.name}.`); }
+    if (t.shield) { t.shield = false; log(s, { k: 'friendzoneShield', ...A, ...T }); }
+    else { t.frozen = true; log(s, { k: 'friendzoneHit', ...A, ...T }); }
   }
 
   if (!s.over) endTurn(s);
@@ -217,7 +229,7 @@ function endGame(s, reason, winnerId = null) {
     const pool = souls.length ? souls : cands;
     const w = pool[Math.floor((s._rng || Math.random)() * pool.length)];
     w.won = true; w.score = 3; s.winnerId = w.id;
-    log(s, `The cards run out. ${w.seat.icon} ${w.name} came closest to love — they win the night.`);
+    log(s, { k: 'deckOut', icon: w.seat.icon, name: w.name });
   }
 }
 

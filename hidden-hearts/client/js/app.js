@@ -3,6 +3,21 @@ import { SFX } from './sfx.js';
 import { SEATS, CARD, title, STAGES, STAGE_NAMES, READY } from './cards.js';
 import { t, getLang, toggleLang, onLangChange } from './i18n.js';
 
+// Format a single engine log entry. Engine now emits structured event
+// objects ({k, ...params}) instead of pre-formatted English. Legacy
+// string entries still render as-is (defence against stale game state).
+function formatLogEvent(e) {
+  if (typeof e === 'string') return e;
+  if (!e || typeof e !== 'object' || !e.k) return '';
+  // Stage params come from the engine as a number index — translate via STAGE_NAMES
+  const params = { ...e };
+  if (typeof params.stage === 'number') {
+    const ic = STAGES[params.stage] || '';
+    params.stage = (STAGE_NAMES[params.stage] || '') + (ic ? ' ' + ic : '');
+  }
+  return t('log.' + e.k, params);
+}
+
 const $ = s => document.querySelector(s);
 const app = $('#app');
 const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
@@ -770,7 +785,7 @@ function renderTable() {
           <div class="pile deck" data-tip="${t('game.drawTip')}"><span class="pc">${v.deckCount}</span><span class="pl">draw</span></div>
           <div class="pile disc" data-tip="${t('game.discardTip')}">${v.discardTop ? `<span class="corner">${CARD[v.discardTop].icon}</span>${CARD[v.discardTop].icon}` : '—'}<span class="pl">played</span></div>
         </div>
-        <div class="talk">${v.log[0] || t('game.tableSet')}</div>
+        <div class="talk">${v.log[0] ? formatLogEvent(v.log[0]) : t('game.tableSet')}</div>
       </div>${chips}
     </div></div>
     <div class="hand-area ${myTurn ? '' : 'idle'}">
@@ -797,7 +812,7 @@ function renderTable() {
       <div class="hand fan">${(me.hand || []).map((k, i) => cardHTML(k, i)).join('')}</div>
       <div class="hint-line">${myTurn ? t('game.tapCard') : t('game.waiting')}</div>
     </div>
-    <div class="log">${v.log.slice(0, 4).map(e => `<div class="e">${e}</div>`).join('')}</div>`;
+    <aside class="log" aria-label="game log">${v.log.slice(0, 8).map(e => `<div class="e">${formatLogEvent(e)}</div>`).join('')}</aside>`;
   const helpBtn = $('#game-help'); if (helpBtn) helpBtn.onclick = () => replayTour('play');
   // Wire the new "💍 CONFESS YOUR LOVE" button: auto-find the first ❤️ Moment
   // card in the player's hand and trigger the same commit flow as tapping it.
@@ -867,7 +882,9 @@ function chipHTML(p, activeId, meId) {
 // Long description still lives in the data-tip tooltip.
 function cardHTML(key, i) {
   const d = CARD[key];
-  const toneLabel = d.tone === 'attack' ? 'RIVAL' : d.tone === 'info' ? 'SEE' : 'ME';
+  // Tone label now pulls from i18n (tone.self / tone.attack / tone.info)
+  // so it switches with the rest of the UI: ME/RIVAL/SEE ↔ MOI/RIVAL/VOIR.
+  const toneLabel = t(`tone.${d.tone}`);
   return `<div class="pcard f-${d.fam}" data-play="${i}" data-tip="${esc(d.desc)}">
     <div class="pc-top">
       <span class="pc-action">${esc(d.action)}</span>
@@ -1391,7 +1408,12 @@ function onMsg(m) {
       }
       return renderTable();
     }
-    case 'private': return modal(`<h3>${t('privateMsg.title')}</h3><p>${esc(m.text)}</p><button class="btn primary" id="x">${t('privateMsg.keepSecret')}</button>`, () => $('#x').onclick = closeModal);
+    case 'private': {
+      // Prefer the structured event (translatable), fall back to the legacy
+      // pre-formatted string if an old server sends it.
+      const body = m.event ? formatLogEvent(m.event) : esc(m.text || '');
+      return modal(`<h3>${t('privateMsg.title')}</h3><p>${body}</p><button class="btn primary" id="x">${t('privateMsg.keepSecret')}</button>`, () => $('#x').onclick = closeModal);
+    }
     case 'invite': return showIncomingInvite(m);
     case 'inviteResult': return toast(m.message || m.reason || (m.ok ? t('errors.inviteOk') : t('errors.inviteFailed')));
     // The host of a private table sees someone requesting to sit down.
