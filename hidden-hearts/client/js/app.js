@@ -29,7 +29,12 @@ function refreshWho() {
 function refreshLangButton() {
   const lb = $('#lang');
   if (!lb) return;
-  lb.textContent = getLang().toUpperCase();
+  // Show the flag of the language you'll SWITCH TO when you tap (the affordance),
+  // not the current one. So an EN user sees 🇫🇷, tapping switches to French.
+  const cur = getLang();
+  const flag = cur === 'en' ? '🇫🇷' : '🇺🇸';
+  const code = cur === 'en' ? 'FR' : 'EN';
+  lb.innerHTML = `<span class="lang-flag">${flag}</span><span class="lang-code">${code}</span>`;
   lb.title = t('langLabel');
 }
 $('#mute').onclick = () => { const m = SFX.toggle(); $('#mute').textContent = m ? '🔇' : '🔊'; };
@@ -972,12 +977,12 @@ async function showFloor() {
   S.screen = 'floor';
   app.innerHTML = `<section class="panel floor-panel">
     <div class="floor-head">
-      <h3>🎰 The floor</h3>
-      <button class="btn ghost sm" id="floor-back">← Back</button>
+      <h3>${t('floor.title')}</h3>
+      <button class="btn ghost sm" id="floor-back">${t('common.back')}</button>
     </div>
-    <p class="muted small center" style="margin-top:-6px">Pick a table to sit down. Locked 🔒 tables need the host to let you in.</p>
-    <div class="floor-grid" id="floor-grid"><div class="muted small center" style="padding:30px 0">Loading the floor…</div></div>
-    <button class="btn ghost sm" id="floor-refresh">↻ Refresh</button>
+    <p class="muted small center" style="margin-top:-6px">${t('floor.blurb')}</p>
+    <div class="floor-grid" id="floor-grid"><div class="muted small center" style="padding:30px 0">${t('floor.loading')}</div></div>
+    <button class="btn ghost sm" id="floor-refresh">${t('floor.refresh')}</button>
   </section>`;
   $('#floor-back').onclick = leaveToHome;
   $('#floor-refresh').onclick = () => { SFX.click?.(); refreshFloor(); };
@@ -995,8 +1000,8 @@ async function refreshFloor() {
   if (!tables.length) {
     el.innerHTML = `<div class="floor-empty">
       <div class="big">🎲</div>
-      <div>No live tables yet.</div>
-      <div class="muted small">Open one with <b>＋ Create public table</b> on the home screen.</div>
+      <div>${t('floor.empty')}</div>
+      <div class="muted small">${t('floor.emptyHint')}</div>
     </div>`;
     return;
   }
@@ -1008,28 +1013,29 @@ async function refreshFloor() {
   });
 }
 
-// Build one little felt-card from a table snapshot.
-function renderTableCard(t) {
-  const free = t.maxSeats - t.seatCount;
-  const isPrivate = t.visibility === 'private';
-  const isStarted = !!t.started;
+// Build one little felt-card from a table snapshot. (Parameter renamed from
+// `t` to `card` so it doesn't shadow the imported i18n t() function.)
+function renderTableCard(card) {
+  const free = card.maxSeats - card.seatCount;
+  const isPrivate = card.visibility === 'private';
+  const isStarted = !!card.started;
   let statusClass, statusLabel, action, actionLabel, disabled = false;
   if (isStarted) {
-    statusClass = 'in-game'; statusLabel = '🎴 In game';
-    action = 'none'; actionLabel = 'In progress'; disabled = true;
+    statusClass = 'in-game'; statusLabel = t('floor.inGame');
+    action = 'none'; actionLabel = t('floor.inGame'); disabled = true;
   } else if (free <= 0) {
-    statusClass = 'full'; statusLabel = 'Full';
-    action = 'none'; actionLabel = 'Full'; disabled = true;
+    statusClass = 'full'; statusLabel = t('floor.full');
+    action = 'none'; actionLabel = t('floor.full'); disabled = true;
   } else if (isPrivate) {
-    statusClass = 'locked'; statusLabel = `🔒 Private — ${t.seatCount}/${t.maxSeats}`;
-    action = 'request'; actionLabel = '🔒 Request to join';
+    statusClass = 'locked'; statusLabel = t('floor.private', { n: card.seatCount, max: card.maxSeats });
+    action = 'request'; actionLabel = t('floor.requestJoin');
   } else {
-    statusClass = 'open'; statusLabel = `🟢 Open — ${t.seatCount}/${t.maxSeats}`;
-    action = 'join'; actionLabel = '🪑 Take a seat';
+    statusClass = 'open'; statusLabel = t('floor.open', { n: card.seatCount, max: card.maxSeats });
+    action = 'join'; actionLabel = t('floor.takeSeat');
   }
   // The mini-felt: an oval with up to 7 seat dots (avatars for humans).
-  const seatDots = Array.from({ length: t.maxSeats }, (_, i) => {
-    const seat = t.seats[i];
+  const seatDots = Array.from({ length: card.maxSeats }, (_, i) => {
+    const seat = card.seats[i];
     if (!seat) return `<span class="seat-dot empty" style="--n:${i}"></span>`;
     if (seat.isAI) return `<span class="seat-dot ai" style="--n:${i}" title="${esc(seat.name)} (AI)">🤖</span>`;
     return `<span class="seat-dot" style="--n:${i}" title="${esc(seat.name)}">${avatarFor(seat.name, { size: 26 })}</span>`;
@@ -1037,16 +1043,16 @@ function renderTableCard(t) {
   return `<div class="table-card ${statusClass} ${disabled ? 'disabled' : ''}">
     <div class="felt">
       <div class="felt-inner">
-        <div class="felt-code">${esc(t.code)}</div>
-        <div class="felt-dots" style="--seats:${t.maxSeats}">${seatDots}</div>
+        <div class="felt-code">${esc(card.code)}</div>
+        <div class="felt-dots" style="--seats:${card.maxSeats}">${seatDots}</div>
       </div>
     </div>
     <div class="table-meta">
-      <div class="table-host">${avatarFor(t.hostName, { size: 24 })} <span>${esc(t.hostName)}</span></div>
+      <div class="table-host">${avatarFor(card.hostName, { size: 24 })} <span>${esc(card.hostName)}</span></div>
       <div class="table-status ${statusClass}">${statusLabel}</div>
     </div>
     <button class="btn ${action === 'join' ? 'primary' : ''} ${action === 'request' ? 'locked-btn' : ''}"
-            data-table-action="${action}" data-code="${esc(t.code)}" ${disabled ? 'disabled' : ''}>
+            data-table-action="${action}" data-code="${esc(card.code)}" ${disabled ? 'disabled' : ''}>
       ${actionLabel}
     </button>
   </div>`;
@@ -1078,12 +1084,13 @@ async function onTableCardClick(code, action) {
 
 function renderWaitingForHost(code) {
   S.screen = 'waiting-host';
+  S.pendingTableCode = code;
   app.innerHTML = `<section class="panel center">
     <div class="big-emoji">🚪</div>
-    <h3>Knocking on table <b>${esc(code)}</b>…</h3>
-    <p class="muted small">Waiting for the host to let you in. You'll be seated automatically.</p>
+    <h3>${t('floor.knocking', { code: `<b>${esc(code)}</b>` })}</h3>
+    <p class="muted small">${t('floor.knockingHint')}</p>
     <div class="spinner inline">⚜</div>
-    <button class="btn ghost" id="cancel">Never mind, go back</button>
+    <button class="btn ghost" id="cancel">${t('floor.goBack')}</button>
   </section>`;
   $('#cancel').onclick = () => {
     if (S.net) try { S.net.send({ type: 'leave' }); S.net.close?.(); S.net = null; } catch {}
@@ -1618,59 +1625,36 @@ const Tour = (() => {
   return { start, end, isActive: () => !!steps.length && document.body.classList.contains('tour-active') };
 })();
 
+// Tour steps are rebuilt fresh each invocation so they pull the CURRENT
+// language from i18n — switching FR↔EN mid-tour would show stale text
+// otherwise.
 function homeTourSteps() {
   return [
-    { title: 'Welcome to PYAAR ❤️',
-      body: 'PYAAR (Hindi for "love") is a card game about a <b>secret crush</b>. We\'ll show you around — should take 30 seconds.' },
-    { targetSel: '.lobby-table', prefer: 'below',
-      title: 'This is your table',
-      body: 'Up to <b>7 chairs</b> around the felt. You sit at the gold chair; the others can be bots or real players.' },
-    { targetSel: '.play-chip', prefer: 'above',
-      title: 'The Play Chip',
-      body: 'Tap this gold chip to start a <b>solo game</b> against bots. The number on its face is how many bots join you.' },
-    { targetSel: '.seat-counter', prefer: 'above',
-      title: 'Pick your bot count',
-      body: 'Add or remove bots with these chips. <b>Minimum 3, maximum 7</b> players at the table.' },
-    { targetSel: '.friends-strip', prefer: 'above',
-      title: 'Players online',
-      body: 'These are people connected right now. <b>Tap a face</b> → we open a private table for you and auto-send them an invite.' },
-    { targetSel: '.tab.tab-plus', prefer: 'above',
-      title: 'Open a new table',
-      body: 'Three options: <b>invite a friend</b> (private), <b>open a public table</b>, or <b>join with a code</b>.' },
-    { targetSel: '[data-tab="floor"]', prefer: 'above',
-      title: 'Browse the floor',
-      body: 'See every live table at a glance. <b>🟢 Open</b> tables let anyone sit; <b>🔒 Private</b> ones need the host to approve you.' },
-    { targetSel: '[data-tab="rules"]', prefer: 'above',
-      title: "That's the room!",
-      body: 'Open the <b>📖 Rules</b> tab anytime to read how to play — or replay this tour. Now tap the gold chip and try a quick game!' },
+    { title: t('tour.home1Title'), body: t('tour.home1Body') },
+    { targetSel: '.lobby-table',          prefer: 'below', title: t('tour.home2Title'), body: t('tour.home2Body') },
+    { targetSel: '.play-chip',            prefer: 'above', title: t('tour.home3Title'), body: t('tour.home3Body') },
+    { targetSel: '.seat-counter',         prefer: 'above', title: t('tour.home4Title'), body: t('tour.home4Body') },
+    { targetSel: '.friends-strip',        prefer: 'above', title: t('tour.home5Title'), body: t('tour.home5Body') },
+    { targetSel: '.tab.tab-plus',         prefer: 'above', title: t('tour.home6Title'), body: t('tour.home6Body') },
+    { targetSel: '[data-tab="floor"]',    prefer: 'above', title: t('tour.home7Title'), body: t('tour.home7Body') },
+    { targetSel: '[data-tab="rules"]',    prefer: 'above', title: t('tour.home8Title'), body: t('tour.home8Body') },
   ];
 }
 
 function setupTutorialSteps() {
   return [
-    { title: '💘 Pick your secret crush',
-      body: 'Each round, you secretly fancy <b>one</b> of the other players. Only you know who. Tap a face below and then <b>Lock my secret</b>.' },
-    { targetSel: '.picker', prefer: 'above',
-      title: 'Tap a face',
-      body: 'Choose carefully — your romance is built around <b>this</b> player. They might not fancy you back…' },
+    { title: t('tour.setup1Title'), body: t('tour.setup1Body') },
+    { targetSel: '.aim-grid', prefer: 'above', title: t('tour.setup2Title'), body: t('tour.setup2Body') },
   ];
 }
 
 function playTutorialSteps() {
   return [
-    { title: '🃏 How a turn works',
-      body: 'Each turn: <b>draw 1</b> card, then <b>play 1</b>. Some cards grow your romance, some target a rival.' },
-    { targetSel: '.hand.fan', prefer: 'above',
-      title: 'Your hand',
-      body: 'Tap any card to play it. If it needs a target, the chips around the table light up — tap one to confirm.' },
-    { targetSel: '.secret-strip', prefer: 'below',
-      title: 'Your love-line',
-      body: 'Build up: <b>✨ Spark → 🌹 Dating → 💋 Crazy for them → 💍 Commit</b>. Play ❤️ Moment on yourself to climb a stage.' },
-    { targetSel: '.table-wrap', prefer: 'below',
-      title: 'Watch the table',
-      body: 'Opponents can <b>💔 break your heart</b>, <b>🤝 friendzone you</b>, or <b>💚 expose your crush</b>. Bring a 🛡️ Guardian when you can.' },
-    { title: 'Win condition 💞',
-      body: 'When you reach <b>💋 Crazy for them</b>, play <b>❤️ Moment</b> again to <b>Commit</b>. If they secretly fancy you back, you win as <b>Soulmates 💞</b>!' },
+    { title: t('tour.play1Title'), body: t('tour.play1Body') },
+    { targetSel: '.hand.fan',     prefer: 'above', title: t('tour.play2Title'), body: t('tour.play2Body') },
+    { targetSel: '.love-bar',     prefer: 'below', title: t('tour.play3Title'), body: t('tour.play3Body') },
+    { targetSel: '.table-wrap',   prefer: 'below', title: t('tour.play4Title'), body: t('tour.play4Body') },
+    { title: t('tour.play5Title'), body: t('tour.play5Body') },
   ];
 }
 

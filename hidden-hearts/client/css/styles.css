@@ -28,10 +28,19 @@ h1,h2,h3{font-family:Georgia,"Times New Roman",serif;margin:0;}
 .top-actions{margin-left:auto;display:flex;gap:8px;align-items:center;}
 .mute-btn,.link-btn,.lang-btn{background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--primary);border-radius:9px;padding:6px 12px;font-size:13px;cursor:pointer;}
 .lang-btn{
-  font-weight: 800; letter-spacing: 1px; min-width: 38px;
-  transition: transform .12s, background .18s;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-weight: 800; letter-spacing: 1px; min-width: 56px;
+  padding: 4px 10px;
+  transition: transform .12s, background .18s, border-color .18s;
 }
-.lang-btn:hover{ transform: translateY(-1px); background: rgba(217,179,92,.18); }
+.lang-btn .lang-flag{
+  font-size: 17px; line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.5));
+}
+.lang-btn .lang-code{
+  font-size: 11px; color: var(--primary);
+}
+.lang-btn:hover{ transform: translateY(-1px); background: rgba(217,179,92,.18); border-color: rgba(217,179,92,.6); }
 .lang-btn:active{ transform: scale(.94); }
 .link-btn{color:var(--ink);}
 
