@@ -1,0 +1,521 @@
+// ============================================================
+// PYAAR i18n — English + French dictionaries with a t() helper.
+//
+// Usage:
+//   import { t, setLang, getLang, onLangChange } from './i18n.js';
+//   t('home.play')                          → "PLAY" / "JOUER"
+//   t('home.botsCount', { n: 4 })           → "vs 4 bots" / "contre 4 bots"
+//   t('cards.MOMENT.action')                → "GROW" / "GRANDIR"
+//
+// Language is detected from navigator.language on first visit (French
+// browsers get French) and stored in localStorage so the choice sticks.
+// Other modules subscribe via onLangChange() so the topbar's language
+// toggle can trigger a re-render.
+// ============================================================
+
+const DICT = {
+  en: {
+    common: {
+      cancel: 'Cancel', close: 'Close', back: '← Back', next: 'Next →', skip: 'Skip',
+      gotIt: 'Got it', neverMind: 'Never mind', loading: 'Loading…',
+      yes: 'Yes', no: 'No', online: 'online',
+    },
+    nav: { home: 'Home', floor: 'Floor', table: 'Table', top: 'Top', rules: 'Rules' },
+    topbar: { signIn: 'Sign in' },
+    home: {
+      signedIn: 'Signed in', rerollHint: '🎲 tap your avatar to change look',
+      title: 'PYAAR', subtitle: 'THE LOVE CARD GAME',
+      tagline: "Build your love. Race to Devotion. Don't let them break your heart.",
+      play: 'PLAY', botsCount: 'vs {n} bots', seatsAt: 'seats at the table',
+      online: 'PLAYERS ONLINE', lookingAround: 'looking around the room…',
+      onlineCount: '{n} online', noneOnline: 'no one else here yet',
+      onlyOne: "You're the only one in the room right now.",
+      tapByName: 'Tap <b>+ By name</b> to invite a friend anyway.',
+      byName: 'By name',
+      foot: 'PYAAR · the love card game — walk the floor, sit at a table, invite friends.',
+      nameMissing: 'Pick your name first so your friend knows who is inviting them.',
+      signInFirst: 'Sign in first so they know who is inviting them.',
+      youGuest: 'guest',
+    },
+    bots: {
+      a: 'Rumi', b: 'Layla', c: 'Kai', d: 'Sol', e: 'Vera', f: 'Ash',
+    },
+    newTable: {
+      title: 'Open a table',
+      inviteFriend: 'Invite a friend',
+      inviteFriendDesc: 'Private table — only invited players can sit.',
+      publicTable: 'Open a public table',
+      publicTableDesc: 'Anyone on the floor can take a seat.',
+      joinCode: 'Join with a code',
+      joinCodeDesc: 'Got a 5-letter table code? Type it in.',
+    },
+    setup: {
+      title: 'Pick your secret crush',
+      sub1: 'Tap the one you secretly fancy.',
+      sub2: 'You win the game if they fancy YOU back.',
+      tapToChoose: 'Tap a face above to choose your crush.',
+      previewFancy: 'You secretly fancy <b>{seat} {name}</b>.',
+      previewWin: 'Win if {name} also fancies you. Hide it until you\'re ready!',
+      lockPrompt: 'Pick someone first',
+      lockReady: '🔒 Lock secret — fancy {name} 💘',
+      locked: 'Secret locked. Waiting for the others…',
+    },
+    cards: {
+      MOMENT:     { action: 'GROW',    name: 'Moment',     short: '+1 stage on me',          tag: 'Hearts race.',      desc: 'Climb one stage of love. At 💋 play it again to Confess — you win if they fancy you back.' },
+      GLANCE:     { action: 'PEEK',    name: 'Glance',     short: 'See who they fancy',      tag: 'Scout a heart.',    desc: "Secretly see that player's crush. Only YOU see the answer." },
+      SWAY:       { action: 'SWITCH',  name: 'Sway',       short: 'Pick a NEW crush (−1 me)',tag: 'Fall for another.', desc: 'Point your secret love at someone new. Your own love cools one stage.' },
+      HEARTBREAK: { action: 'BREAK',   name: 'Heartbreak', short: '−1 stage on a rival',     tag: 'Break a heart.',    desc: 'Drop any rival down one stage of love.' },
+      JEALOUSY:   { action: 'EXPOSE',  name: 'Jealousy',   short: '−1 + reveal their crush', tag: 'Green with envy.',  desc: 'Hit a rival at Dating or closer — drop them a stage AND reveal who they fancy to everyone.' },
+      GUARDIAN:   { action: 'SHIELD',  name: 'Guardian',   short: 'Block next attack on me', tag: 'Guard your love.',  desc: 'Block the next Heartbreak, Jealousy or Friendzone aimed at you.' },
+      FRIENDZONE: { action: 'FREEZE',  name: 'Friendzone', short: 'Rival skips next turn',   tag: 'Just friends.',     desc: 'A rival loses their next turn entirely.' },
+    },
+    tone: { self: 'ME', attack: 'RIVAL', info: 'SEE' },
+    stages: { spark: 'Spark', dating: 'Dating', crazy: 'Crazy for them', commit: 'Devotion' },
+    loveBar: {
+      secret: 'SECRET',
+      tip: 'Your secret love progress. Only you see this. Reach 💋 to be ready to confess.',
+      pipSpark: 'Spark — first flutter.',
+      pipDating: 'Dating — things are warming up.',
+      pipCrazy: 'Crazy for them — ready to confess.',
+      pipCommit: 'Devotion — reach 💋 first.',
+      pipReady: 'Play ❤️ Moment to Commit!',
+      pipMutual: 'They committed and it was mutual!',
+      confess: '💍 Ready to confess — play ❤️ Moment!',
+    },
+    lobby: {
+      yourTable: 'YOUR TABLE',
+      copyTip: 'Copy code to clipboard',
+      shareTip: 'Share invite link',
+      visTipHost: 'Tap to toggle visibility',
+      visTipGuest: 'Only the host can change this',
+      visPrivate: '🔒 Private',
+      visPublic: '🟢 Public on the floor',
+      seatCount: '{n}/{max} seated · {free} open',
+      ready: 'Ready when you are',
+      needMore: 'Need {n} more',
+      seated: '{n}/{max} seated',
+      waitingDoor: '🚪 Waiting at the door',
+      invitePlayers: '👥 INVITE PLAYERS ONLINE',
+      inviteByName: '👋 Invite by username',
+      addComputer: '🤖 Add computer',
+      beginGame: '▶ BEGIN GAME',
+      beginNeed: 'Need {n} more to start',
+      leaveTable: '← Leave table',
+      waitingHost: 'Waiting for the host to begin…',
+      noOneElse: 'No one else online right now.',
+      useCopyShare: 'Use <b>📋 Copy</b> or <b>🔗 Share</b> above to send your friend the table code.',
+      copied: 'Table code copied',
+      linkCopied: 'Invite link copied',
+      shareFail: 'Could not share. Copy the code instead.',
+      shareTitle: 'PYAAR table {code}',
+      shareText: 'Come play PYAAR with me — table {code}.',
+      inviteTitle: 'Invite a player',
+      inviteHint: 'Type their PYAAR username. They must be signed in and online to receive the invite.',
+      send: 'Send invite',
+      inviteSent: 'Invite sent to {name}',
+      invitedTag: '✓ invited',
+    },
+    floor: {
+      title: '🎰 The floor',
+      blurb: 'Pick a table to sit down. Locked 🔒 tables need the host to let you in.',
+      loading: 'Loading the floor…',
+      refresh: '↻ Refresh',
+      empty: 'No live tables yet.',
+      emptyHint: 'Open one with <b>+ Create public table</b> on the home screen.',
+      open: '🟢 Open — {n}/{max}',
+      private: '🔒 Private — {n}/{max}',
+      inGame: '🎴 In game',
+      full: 'Full',
+      takeSeat: '🪑 Take a seat',
+      requestJoin: '🔒 Request to join',
+      knocking: 'Knocking on table {code}…',
+      knockingHint: "Waiting for the host to let you in. You'll be seated automatically.",
+      goBack: 'Never mind, go back',
+      hostAccepted: 'Host accepted! Sitting you down…',
+      hostDeclined: 'Host declined your request.',
+      requestSent: 'Waiting for the host…',
+    },
+    join: {
+      title: 'Join a table',
+      placeholder: '5-letter code',
+      join: 'Join',
+    },
+    game: {
+      cardsLeft: '💌 {n} cards left',
+      finalRound: '· final round!',
+      yourTurn: 'Your turn',
+      turnOf: 'Turn: {name}',
+      tableSet: 'The table is set…',
+      tapCard: 'Tap a card to play it.',
+      waiting: 'Waiting for your turn…',
+      drawTip: "Draw pile — you'll draw 1 card from here at the start of your turn.",
+      discardTip: 'Discard — the last card played sits face-up here.',
+      helpTip: 'Replay the gameplay tour',
+      deckCountTip: 'Cards remaining in the draw deck. When it empties, the round ends.',
+      aimGlance: 'to peek their heart',
+      aimSway: 'to aim your heart at',
+      aimBreak: 'to break their heart',
+      aimExpose: 'to expose & rattle (Dating+)',
+      aimFreeze: 'to friendzone',
+      cancelAim: 'Cancel',
+    },
+    badges: {
+      shield: 'Guarded — the next attack on them fizzles.',
+      frozen: 'Friendzoned — they lose their next turn.',
+      soulmate: 'Soulmates! Their love is mutual.',
+    },
+    rules: {
+      title: 'How to play',
+      tourHome: '🎓 Tour the home',
+      tourPlay: '🃏 Tour gameplay',
+      step1Title: 'You secretly fancy someone.',
+      step1Body: 'At the start of each match you pick one rival as your secret crush. Only YOU know.',
+      step2Title: 'Each turn: draw 1, play 1.',
+      step2Body: 'Cards either help you, attack a rival, or peek info.',
+      step3Title: 'Grow your love.',
+      step3Body: '✨ Spark → 🌹 Dating → 💋 Crazy. At 💋 play <b>GROW (❤️ Moment)</b> again to <b>confess</b>.',
+      step4Title: 'You win as 💞 Soulmates',
+      step4Body: 'if your crush fancies you back. If they don\'t → you\'re <b>rejected</b> (cool off, skip a turn, your secret is exposed).',
+      cardsHeading: 'The 7 cards',
+      rcGrow:    '<b>GROW</b> — +1 stage on me. At 💋 play again to <b>confess</b>.',
+      rcPeek:    '<b>PEEK</b> — see who a rival secretly fancies (only you see it).',
+      rcSwitch:  '<b>SWITCH</b> — pick a new crush. Your love drops −1 stage.',
+      rcBreak:   '<b>BREAK</b> — −1 stage on any rival.',
+      rcExpose:  '<b>EXPOSE</b> — −1 stage AND reveal who they fancy. Only hits rivals at Dating+.',
+      rcShield:  '<b>SHIELD</b> — block the next BREAK / EXPOSE / FREEZE on you.',
+      rcFreeze:  '<b>FREEZE</b> — a rival skips their next turn.',
+      foot: 'If the deck runs out before anyone confesses, whoever got closest to love wins.',
+    },
+    tour: {
+      // HOME
+      home1Title: 'Welcome to PYAAR ❤️',
+      home1Body: 'PYAAR (Hindi for "love") is a card game about a <b>secret crush</b>. We\'ll show you around — should take 30 seconds.',
+      home2Title: 'This is your table',
+      home2Body: 'Up to <b>7 chairs</b> around the felt. You sit at the gold chair; the others can be bots or real players.',
+      home3Title: 'The Play Chip',
+      home3Body: 'Tap this gold chip to start a <b>solo game</b> against bots. The number on its face is how many bots join you.',
+      home4Title: 'Pick your bot count',
+      home4Body: 'Add or remove bots with these chips. <b>Minimum 3, maximum 7</b> players at the table.',
+      home5Title: 'Players online',
+      home5Body: 'These are people connected right now. <b>Tap a face</b> → we open a private table for you and auto-send them an invite.',
+      home6Title: 'Open a new table',
+      home6Body: 'Three options: <b>invite a friend</b> (private), <b>open a public table</b>, or <b>join with a code</b>.',
+      home7Title: 'Browse the floor',
+      home7Body: 'See every live table at a glance. <b>🟢 Open</b> tables let anyone sit; <b>🔒 Private</b> ones need the host to approve you.',
+      home8Title: "That's the room!",
+      home8Body: 'Open the <b>📖 Rules</b> tab anytime to read how to play — or replay this tour. Now tap the gold chip and try a quick game!',
+      // SETUP
+      setup1Title: '💘 Pick your secret crush',
+      setup1Body: 'Each round, you secretly fancy <b>one</b> of the other players. Only you know who. Tap a face below and then <b>Lock my secret</b>.',
+      setup2Title: 'Tap a face',
+      setup2Body: 'Choose carefully — your romance is built around <b>this</b> player. They might not fancy you back…',
+      // PLAY
+      play1Title: '🃏 How a turn works',
+      play1Body: 'Each turn: <b>draw 1</b> card, then <b>play 1</b>. Some cards grow your romance, some target a rival.',
+      play2Title: 'Your hand',
+      play2Body: 'Tap any card to play it. If it needs a target, the chips around the table light up — tap one to confirm.',
+      play3Title: 'Your love-line',
+      play3Body: 'Build up: <b>✨ Spark → 🌹 Dating → 💋 Crazy for them → 💍 Commit</b>. Play ❤️ Moment on yourself to climb a stage.',
+      play4Title: 'Watch the table',
+      play4Body: 'Opponents can <b>💔 break your heart</b>, <b>🤝 friendzone you</b>, or <b>💚 expose your crush</b>. Bring a 🛡️ Guardian when you can.',
+      play5Title: 'Win condition 💞',
+      play5Body: 'When you reach <b>💋 Crazy for them</b>, play <b>❤️ Moment</b> again to <b>Commit</b>. If they secretly fancy you back, you win as <b>Soulmates 💞</b>!',
+    },
+    welcome: {
+      pickName: 'Pick your name',
+      placeholder: 'a username',
+      continue: 'Continue →',
+      welcomeGreeting: 'Welcome, {name}!',
+      welcomeDealing: 'Welcome, {name}! Dealing your first hand…',
+      welcomeJoining: 'Welcome, {name}! Joining table {code}…',
+      pickRules: 'Pick 2–24 letters, digits, or underscore.',
+    },
+    auth: {
+      signOut: 'Sign out',
+      myLeaderboard: '🏆 Leaderboard',
+      tapAvatarHint: '🎲 tap avatar to change look',
+    },
+    errors: {
+      serverUnreachable: 'Could not reach the server.',
+      requestFailed: 'Request failed',
+      inviteFailed: 'Invite failed',
+      inviteOk: 'Invite sent',
+    },
+    soundLabel: '🔊 / 🔇 sound',
+    langLabel: 'Switch to French',
+  },
+
+  fr: {
+    common: {
+      cancel: 'Annuler', close: 'Fermer', back: '← Retour', next: 'Suivant →', skip: 'Passer',
+      gotIt: 'Compris', neverMind: 'Annuler', loading: 'Chargement…',
+      yes: 'Oui', no: 'Non', online: 'en ligne',
+    },
+    nav: { home: 'Accueil', floor: 'Salle', table: 'Table', top: 'Top', rules: 'Règles' },
+    topbar: { signIn: 'Se connecter' },
+    home: {
+      signedIn: 'Connecté(e)', rerollHint: '🎲 touche ton avatar pour changer',
+      title: 'PYAAR', subtitle: 'LE JEU DE CARTES DE L\'AMOUR',
+      tagline: "Bâtis ton amour. Cours jusqu'à la Dévotion. Ne te laisse pas briser le cœur.",
+      play: 'JOUER', botsCount: 'contre {n} bots', seatsAt: 'places à la table',
+      online: 'JOUEURS EN LIGNE', lookingAround: 'on regarde autour de soi…',
+      onlineCount: '{n} en ligne', noneOnline: 'personne d\'autre pour l\'instant',
+      onlyOne: 'Tu es seul(e) dans la salle pour l\'instant.',
+      tapByName: 'Touche <b>+ Par nom</b> pour inviter un ami quand même.',
+      byName: 'Par nom',
+      foot: 'PYAAR · le jeu de cartes de l\'amour — explore la salle, prends place, invite des amis.',
+      nameMissing: 'Choisis ton nom d\'abord pour qu\'on sache qui invite.',
+      signInFirst: 'Connecte-toi d\'abord pour qu\'on sache qui invite.',
+      youGuest: 'invité',
+    },
+    bots: { a: 'Rumi', b: 'Layla', c: 'Kai', d: 'Sol', e: 'Vera', f: 'Ash' },
+    newTable: {
+      title: 'Ouvrir une table',
+      inviteFriend: 'Inviter un ami',
+      inviteFriendDesc: 'Table privée — seuls les invités peuvent s\'asseoir.',
+      publicTable: 'Ouvrir une table publique',
+      publicTableDesc: 'N\'importe qui dans la salle peut s\'asseoir.',
+      joinCode: 'Rejoindre avec un code',
+      joinCodeDesc: 'Tu as un code de table à 5 lettres ? Tape-le ici.',
+    },
+    setup: {
+      title: 'Choisis ton coup de cœur secret',
+      sub1: 'Touche la personne pour qui tu craques secrètement.',
+      sub2: 'Tu gagnes si elle/il craque pour TOI aussi.',
+      tapToChoose: 'Touche un visage pour choisir.',
+      previewFancy: 'Tu craques secrètement pour <b>{seat} {name}</b>.',
+      previewWin: 'Tu gagnes si {name} craque pour toi aussi. Cache ton secret jusqu\'à l\'aveu !',
+      lockPrompt: 'Choisis d\'abord quelqu\'un',
+      lockReady: '🔒 Verrouiller — j\'aime {name} 💘',
+      locked: 'Secret verrouillé. On attend les autres…',
+    },
+    cards: {
+      MOMENT:     { action: 'GRANDIR',  name: 'Instant',    short: '+1 niveau pour moi',           tag: 'Le cœur s\'emballe.',    desc: 'Monte d\'un niveau d\'amour. À 💋 rejoue-la pour Avouer — tu gagnes si l\'autre t\'aime aussi.' },
+      GLANCE:     { action: 'ESPION',   name: 'Regard',     short: 'Voir qui ils aiment',          tag: 'Sonder un cœur.',        desc: 'Voir secrètement pour qui ce joueur craque. Toi seul(e) vois la réponse.' },
+      SWAY:       { action: 'CHANGER',  name: 'Caprice',    short: 'Nouveau coup de cœur (−1 moi)',tag: 'Tomber pour un autre.',  desc: 'Pointe ton amour secret sur quelqu\'un de nouveau. Ton propre amour redescend d\'un niveau.' },
+      HEARTBREAK: { action: 'BRISER',   name: 'Chagrin',    short: '−1 niveau pour un rival',      tag: 'Briser un cœur.',        desc: 'Fais redescendre n\'importe quel rival d\'un niveau d\'amour.' },
+      JEALOUSY:   { action: 'EXPOSER',  name: 'Jalousie',   short: '−1 + révèle son coup de cœur', tag: 'Vert(e) de jalousie.',   desc: 'Frappe un rival à Flirt ou plus — fais-le redescendre d\'un niveau ET révèle son coup de cœur à tous.' },
+      GUARDIAN:   { action: 'BOUCLIER', name: 'Gardien',    short: 'Bloque la prochaine attaque',  tag: 'Protège ton amour.',     desc: 'Bloque la prochaine carte Briser, Jalousie ou Glacer dirigée contre toi.' },
+      FRIENDZONE: { action: 'GLACER',   name: 'Friendzone', short: 'Rival saute son tour',         tag: 'Juste amis.',            desc: 'Un rival saute entièrement son prochain tour.' },
+    },
+    tone: { self: 'MOI', attack: 'RIVAL', info: 'VOIR' },
+    stages: { spark: 'Étincelle', dating: 'Flirt', crazy: 'Fou amoureux', commit: 'Dévotion' },
+    loveBar: {
+      secret: 'SECRET',
+      tip: 'Ta progression amoureuse secrète. Toi seul(e) la vois. Atteins 💋 pour pouvoir t\'avouer.',
+      pipSpark: 'Étincelle — premier émoi.',
+      pipDating: 'Flirt — ça chauffe.',
+      pipCrazy: 'Fou amoureux — prêt(e) à t\'avouer.',
+      pipCommit: 'Dévotion — atteins 💋 d\'abord.',
+      pipReady: 'Joue ❤️ Instant pour t\'avouer !',
+      pipMutual: 'Ils se sont avoués et c\'était mutuel !',
+      confess: '💍 Prêt(e) à t\'avouer — joue ❤️ Instant !',
+    },
+    lobby: {
+      yourTable: 'TA TABLE',
+      copyTip: 'Copier le code',
+      shareTip: 'Partager le lien',
+      visTipHost: 'Touche pour changer la visibilité',
+      visTipGuest: 'Seul l\'hôte peut changer ça',
+      visPrivate: '🔒 Privée',
+      visPublic: '🟢 Publique dans la salle',
+      seatCount: '{n}/{max} assis · {free} libres',
+      ready: 'Prêt(e) quand tu veux',
+      needMore: 'Encore {n} joueurs',
+      seated: '{n}/{max} assis',
+      waitingDoor: '🚪 À la porte',
+      invitePlayers: '👥 INVITER DES JOUEURS EN LIGNE',
+      inviteByName: '👋 Inviter par nom',
+      addComputer: '🤖 Ajouter un bot',
+      beginGame: '▶ COMMENCER',
+      beginNeed: 'Encore {n} pour commencer',
+      leaveTable: '← Quitter la table',
+      waitingHost: 'En attente du début par l\'hôte…',
+      noOneElse: 'Personne d\'autre en ligne.',
+      useCopyShare: 'Utilise <b>📋 Copier</b> ou <b>🔗 Partager</b> ci-dessus pour envoyer le code à ton ami.',
+      copied: 'Code de table copié',
+      linkCopied: 'Lien d\'invitation copié',
+      shareFail: 'Impossible de partager. Copie le code à la place.',
+      shareTitle: 'Table PYAAR {code}',
+      shareText: 'Viens jouer à PYAAR avec moi — table {code}.',
+      inviteTitle: 'Inviter un joueur',
+      inviteHint: 'Tape son nom d\'utilisateur PYAAR. Il doit être connecté et en ligne.',
+      send: 'Envoyer l\'invitation',
+      inviteSent: 'Invitation envoyée à {name}',
+      invitedTag: '✓ invité',
+    },
+    floor: {
+      title: '🎰 La salle',
+      blurb: 'Choisis une table. Les tables 🔒 nécessitent l\'accord de l\'hôte.',
+      loading: 'Chargement de la salle…',
+      refresh: '↻ Actualiser',
+      empty: 'Aucune table active.',
+      emptyHint: 'Ouvres-en une avec <b>+ Créer une table publique</b> sur l\'accueil.',
+      open: '🟢 Ouverte — {n}/{max}',
+      private: '🔒 Privée — {n}/{max}',
+      inGame: '🎴 En jeu',
+      full: 'Pleine',
+      takeSeat: '🪑 Prendre place',
+      requestJoin: '🔒 Demander à entrer',
+      knocking: 'On frappe à la table {code}…',
+      knockingHint: 'En attente de l\'accord de l\'hôte. Tu seras assis(e) automatiquement.',
+      goBack: 'Annuler, retour',
+      hostAccepted: 'L\'hôte a accepté ! Tu prends place…',
+      hostDeclined: 'L\'hôte a refusé ta demande.',
+      requestSent: 'En attente de l\'hôte…',
+    },
+    join: {
+      title: 'Rejoindre une table',
+      placeholder: 'code à 5 lettres',
+      join: 'Rejoindre',
+    },
+    game: {
+      cardsLeft: '💌 {n} cartes restantes',
+      finalRound: '· dernier tour !',
+      yourTurn: 'Ton tour',
+      turnOf: 'Tour : {name}',
+      tableSet: 'La table est prête…',
+      tapCard: 'Touche une carte pour la jouer.',
+      waiting: 'En attente de ton tour…',
+      drawTip: 'Pioche — tu tires 1 carte d\'ici au début de ton tour.',
+      discardTip: 'Défausse — la dernière carte jouée est ici.',
+      helpTip: 'Rejouer le guide du jeu',
+      deckCountTip: 'Cartes restantes dans la pioche. Quand elle se vide, la manche se termine.',
+      aimGlance: 'pour voir son cœur',
+      aimSway: 'pour viser ton cœur sur lui/elle',
+      aimBreak: 'pour briser son cœur',
+      aimExpose: 'pour exposer & secouer (Flirt+)',
+      aimFreeze: 'pour friendzone',
+      cancelAim: 'Annuler',
+    },
+    badges: {
+      shield: 'Protégé — la prochaine attaque échoue.',
+      frozen: 'Friendzoné — il/elle saute son prochain tour.',
+      soulmate: 'Âmes sœurs ! L\'amour est partagé.',
+    },
+    rules: {
+      title: 'Comment jouer',
+      tourHome: '🎓 Visite de l\'accueil',
+      tourPlay: '🃏 Guide du jeu',
+      step1Title: 'Tu craques secrètement.',
+      step1Body: 'Au début de chaque partie, tu choisis un rival comme coup de cœur secret. TOI seul(e) le sais.',
+      step2Title: 'Chaque tour : pioche 1, joue 1.',
+      step2Body: 'Les cartes t\'aident, attaquent un rival, ou espionnent.',
+      step3Title: 'Fais grandir ton amour.',
+      step3Body: '✨ Étincelle → 🌹 Flirt → 💋 Fou amoureux. À 💋 rejoue <b>GRANDIR (❤️ Instant)</b> pour <b>t\'avouer</b>.',
+      step4Title: 'Tu gagnes en 💞 Âmes sœurs',
+      step4Body: 'si ton coup de cœur t\'aime aussi. Sinon → <b>rejet</b> (refroidissement, tour passé, secret exposé).',
+      cardsHeading: 'Les 7 cartes',
+      rcGrow:    '<b>GRANDIR</b> — +1 niveau pour moi. À 💋 rejoue pour <b>t\'avouer</b>.',
+      rcPeek:    '<b>ESPION</b> — voir qui un rival aime en secret (toi seul(e) le vois).',
+      rcSwitch:  '<b>CHANGER</b> — nouveau coup de cœur. Ton amour baisse d\'un niveau.',
+      rcBreak:   '<b>BRISER</b> — −1 niveau pour un rival.',
+      rcExpose:  '<b>EXPOSER</b> — −1 niveau ET révèle qui il/elle aime. Seulement sur les rivals à Flirt+.',
+      rcShield:  '<b>BOUCLIER</b> — bloque le prochain BRISER / EXPOSER / GLACER sur toi.',
+      rcFreeze:  '<b>GLACER</b> — un rival saute son prochain tour.',
+      foot: 'Si la pioche s\'épuise avant un aveu, celui qui s\'est le plus rapproché de l\'amour gagne.',
+    },
+    tour: {
+      home1Title: 'Bienvenue dans PYAAR ❤️',
+      home1Body: 'PYAAR (« amour » en hindi) est un jeu de cartes autour d\'un <b>coup de cœur secret</b>. On te fait visiter en 30 secondes.',
+      home2Title: 'Voici ta table',
+      home2Body: 'Jusqu\'à <b>7 chaises</b> autour du feutre. Tu es à la chaise dorée ; les autres peuvent être des bots ou de vrais joueurs.',
+      home3Title: 'Le jeton de jeu',
+      home3Body: 'Touche ce jeton doré pour lancer une <b>partie solo</b> contre des bots. Le chiffre dessus = nombre de bots.',
+      home4Title: 'Choisis ton nombre de bots',
+      home4Body: 'Ajoute ou retire des bots. <b>Minimum 3, maximum 7</b> à la table.',
+      home5Title: 'Joueurs en ligne',
+      home5Body: 'Les gens connectés maintenant. <b>Touche un visage</b> → on t\'ouvre une table privée et on lui envoie l\'invitation.',
+      home6Title: 'Ouvrir une nouvelle table',
+      home6Body: 'Trois options : <b>inviter un ami</b> (privée), <b>table publique</b>, ou <b>rejoindre avec un code</b>.',
+      home7Title: 'Explorer la salle',
+      home7Body: 'Vois toutes les tables actives. <b>🟢 Ouvertes</b> = n\'importe qui peut s\'asseoir ; <b>🔒 Privées</b> = l\'hôte approuve.',
+      home8Title: 'Voilà la salle !',
+      home8Body: 'Ouvre l\'onglet <b>📖 Règles</b> à tout moment, ou rejoue cette visite. Maintenant touche le jeton doré et tente une partie !',
+      setup1Title: '💘 Choisis ton coup de cœur secret',
+      setup1Body: 'Chaque manche, tu craques secrètement pour <b>un(e)</b> des autres joueurs. Toi seul(e) le sais. Touche un visage puis <b>Verrouille ton secret</b>.',
+      setup2Title: 'Touche un visage',
+      setup2Body: 'Choisis bien — ta romance se construit autour de <b>cette personne</b>. Elle ne craque peut-être pas pour toi…',
+      play1Title: '🃏 Comment marche un tour',
+      play1Body: 'Chaque tour : <b>pioche 1</b> carte, puis <b>joue 1</b>. Certaines cartes font grandir ta romance, d\'autres attaquent un rival.',
+      play2Title: 'Ta main',
+      play2Body: 'Touche une carte pour la jouer. Si elle nécessite une cible, les jetons autour de la table s\'illuminent — touche-en un.',
+      play3Title: 'Ta ligne d\'amour',
+      play3Body: 'Construis : <b>✨ Étincelle → 🌹 Flirt → 💋 Fou amoureux → 💍 Dévotion</b>. Joue ❤️ Instant sur toi pour monter d\'un niveau.',
+      play4Title: 'Surveille la table',
+      play4Body: 'Les adversaires peuvent <b>💔 te briser le cœur</b>, <b>🤝 te friendzoner</b>, ou <b>💚 exposer ton coup de cœur</b>. Garde un 🛡️ Gardien.',
+      play5Title: 'Condition de victoire 💞',
+      play5Body: 'À <b>💋 Fou amoureux</b>, rejoue <b>❤️ Instant</b> pour <b>t\'avouer</b>. Si ton coup de cœur t\'aime aussi, tu gagnes en <b>Âmes sœurs 💞</b> !',
+    },
+    welcome: {
+      pickName: 'Choisis ton nom',
+      placeholder: 'un nom d\'utilisateur',
+      continue: 'Continuer →',
+      welcomeGreeting: 'Bienvenue, {name} !',
+      welcomeDealing: 'Bienvenue, {name} ! On distribue ta première main…',
+      welcomeJoining: 'Bienvenue, {name} ! Tu rejoins la table {code}…',
+      pickRules: 'Choisis 2 à 24 lettres, chiffres ou _.',
+    },
+    auth: {
+      signOut: 'Se déconnecter',
+      myLeaderboard: '🏆 Classement',
+      tapAvatarHint: '🎲 touche pour changer',
+    },
+    errors: {
+      serverUnreachable: 'Impossible de joindre le serveur.',
+      requestFailed: 'Échec de la requête',
+      inviteFailed: 'Invitation échouée',
+      inviteOk: 'Invitation envoyée',
+    },
+    soundLabel: '🔊 / 🔇 son',
+    langLabel: 'Switch to English',
+  },
+};
+
+// --- runtime ----------------------------------------------------------
+
+const STORAGE_KEY = 'pyaar_lang';
+const subs = new Set();
+
+function detectInitial() {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored === 'fr' || stored === 'en') return stored;
+  const nav = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+  return nav.startsWith('fr') ? 'fr' : 'en';
+}
+
+let LANG = detectInitial();
+document.documentElement.lang = LANG;
+
+export function getLang() { return LANG; }
+
+export function setLang(code) {
+  if (code !== 'en' && code !== 'fr') return;
+  if (code === LANG) return;
+  LANG = code;
+  localStorage.setItem(STORAGE_KEY, code);
+  document.documentElement.lang = code;
+  subs.forEach(fn => { try { fn(code); } catch {} });
+}
+
+export function toggleLang() { setLang(LANG === 'en' ? 'fr' : 'en'); }
+
+export function onLangChange(fn) { subs.add(fn); return () => subs.delete(fn); }
+
+// Walk a dotted path, falling back to English if a key is missing in the
+// current language (so partial translations still render).
+function walk(dict, path) {
+  let v = dict;
+  for (const p of path.split('.')) { v = v?.[p]; if (v == null) return null; }
+  return v;
+}
+
+export function t(path, params) {
+  let v = walk(DICT[LANG], path);
+  if (v == null) v = walk(DICT.en, path);
+  if (v == null) return path;
+  if (params && typeof v === 'string') {
+    v = v.replace(/\{(\w+)\}/g, (_, k) => params[k] == null ? '' : params[k]);
+  }
+  return v;
+}

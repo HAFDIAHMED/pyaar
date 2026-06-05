@@ -1,4 +1,6 @@
 // UI constants for PYAAR — BUILD YOUR LOVE (crush-central).
+import { t } from './i18n.js';
+
 export const SEATS = [
   { name: 'Rose', icon: '🌹' }, { name: 'Lotus', icon: '🪷' }, { name: 'Moon', icon: '🌙' },
   { name: 'Flame', icon: '🔥' }, { name: 'Peacock', icon: '🦚' }, { name: 'Jasmine', icon: '🌼' },
@@ -6,32 +8,40 @@ export const SEATS = [
 ];
 
 export const STAGES = ['', '✨', '🌹', '💋'];                       // 0..3
-export const STAGE_NAMES = ['—', 'Spark', 'Dating', 'Crazy for them'];
+// Live-translated stage names — derived from i18n so they switch language with the rest of the UI.
+export const STAGE_NAMES = new Proxy([], {
+  get(_, idx) {
+    const n = +idx;
+    if (n === 0) return '—';
+    if (n === 1) return t('stages.spark');
+    if (n === 2) return t('stages.dating');
+    if (n === 3) return t('stages.crazy');
+    return undefined;
+  }
+});
 export const READY = 3;
 
-// Each card carries everything the UI needs:
-//   icon   — the big emoji shown in the card art
-//   fam    — colour family for the border + background
-//   action — one bold verb at the top of the card (the principle: what does it DO?)
-//   short  — the precise one-line effect ("+1 me", "−1 a rival", etc.)
-//   tag    — the small italic flavour line under the effect
-//   desc   — the fuller rules text (shown in the long-press tooltip)
-//   tone   — 'self' | 'attack' | 'info' — drives the corner chip + colour
+// Each card is a getter-driven object: structural fields (icon / fam / tone /
+// needsTarget) are static, but action/name/short/tag/desc come from the i18n
+// layer so they switch language with the rest of the UI.
+function liveCard(key, base) {
+  return Object.assign({}, base, {
+    get action() { return t(`cards.${key}.action`); },
+    get name()   { return t(`cards.${key}.name`);   },
+    get short()  { return t(`cards.${key}.short`);  },
+    get tag()    { return t(`cards.${key}.tag`);    },
+    get desc()   { return t(`cards.${key}.desc`);   },
+  });
+}
 export const CARD = {
-  MOMENT:     { icon: '❤️', fam: 'love',     needsTarget: 'self',  tone: 'self',
-    action: 'GROW',    short: '+1 stage on me',          tag: 'Hearts race.',      desc: 'Climb one stage of love. At 💋 play it again to Confess — you win if they fancy you back.' },
-  GLANCE:     { icon: '👀', fam: 'info',     needsTarget: 'other', tone: 'info',
-    action: 'PEEK',    short: "See who they fancy",      tag: 'Scout a heart.',    desc: 'Secretly see that player\'s crush. Only YOU see the answer.' },
-  SWAY:       { icon: '💘', fam: 'self2',    needsTarget: 'other', tone: 'self',
-    action: 'SWITCH',  short: 'Pick a NEW crush (−1 me)',tag: 'Fall for another.', desc: 'Point your secret love at someone new. Your own love cools one stage.' },
-  HEARTBREAK: { icon: '💔', fam: 'attack',   needsTarget: 'other', tone: 'attack',
-    action: 'BREAK',   short: '−1 stage on a rival',     tag: 'Break a heart.',    desc: 'Drop any rival down one stage of love.' },
-  JEALOUSY:   { icon: '💚', fam: 'jealousy', needsTarget: 'other', tone: 'attack',
-    action: 'EXPOSE',  short: '−1 + reveal their crush', tag: 'Green with envy.',  desc: 'Hit a rival at Dating or closer — drop them a stage AND reveal who they fancy to everyone.' },
-  GUARDIAN:   { icon: '🛡️', fam: 'block',    needsTarget: 'self',  tone: 'self',
-    action: 'SHIELD',  short: 'Block next attack on me', tag: 'Guard your love.',  desc: 'Block the next Heartbreak, Jealousy or Friendzone aimed at you.' },
-  FRIENDZONE: { icon: '🤝', fam: 'block2',   needsTarget: 'other', tone: 'attack',
-    action: 'FREEZE',  short: 'Rival skips next turn',   tag: 'Just friends.',     desc: 'A rival loses their next turn entirely.' },
+  MOMENT:     liveCard('MOMENT',     { icon: '❤️', fam: 'love',     needsTarget: 'self',  tone: 'self'   }),
+  GLANCE:     liveCard('GLANCE',     { icon: '👀', fam: 'info',     needsTarget: 'other', tone: 'info'   }),
+  SWAY:       liveCard('SWAY',       { icon: '💘', fam: 'self2',    needsTarget: 'other', tone: 'self'   }),
+  HEARTBREAK: liveCard('HEARTBREAK', { icon: '💔', fam: 'attack',   needsTarget: 'other', tone: 'attack' }),
+  JEALOUSY:   liveCard('JEALOUSY',   { icon: '💚', fam: 'jealousy', needsTarget: 'other', tone: 'attack' }),
+  GUARDIAN:   liveCard('GUARDIAN',   { icon: '🛡️', fam: 'block',    needsTarget: 'self',  tone: 'self'   }),
+  FRIENDZONE: liveCard('FRIENDZONE', { icon: '🤝', fam: 'block2',   needsTarget: 'other', tone: 'attack' }),
 };
 
-export const title = (k) => k[0] + k.slice(1).toLowerCase();
+// The card's display title comes from i18n now (e.g. 'Moment' → 'Instant' in French).
+export const title = (k) => CARD[k]?.name ?? (k[0] + k.slice(1).toLowerCase());

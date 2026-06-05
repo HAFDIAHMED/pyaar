@@ -1,6 +1,7 @@
 import { Net, api } from './net.js';
 import { SFX } from './sfx.js';
 import { SEATS, CARD, title, STAGES, STAGE_NAMES, READY } from './cards.js';
+import { t, getLang, toggleLang, onLangChange } from './i18n.js';
 
 const $ = s => document.querySelector(s);
 const app = $('#app');
@@ -23,11 +24,44 @@ function closeModal() { $('#modal-host').innerHTML = ''; }
 function refreshWho() {
   const el = $('#who');
   if (S.user) el.innerHTML = `${avatarFor(S.user.username, { size: 24 })}<span class="who-name">${esc(S.user.username)}</span>`;
-  else el.textContent = 'Sign in';
+  else el.textContent = t('topbar.signIn');
+}
+function refreshLangButton() {
+  const lb = $('#lang');
+  if (!lb) return;
+  lb.textContent = getLang().toUpperCase();
+  lb.title = t('langLabel');
 }
 $('#mute').onclick = () => { const m = SFX.toggle(); $('#mute').textContent = m ? '🔇' : '🔊'; };
 $('#who').onclick = () => S.user ? accountMenu() : authModal();
 $('#home-link').onclick = () => leaveToHome();
+$('#lang').onclick = () => { SFX.click?.(); toggleLang(); };
+
+// When the user toggles language, re-render whichever screen we're on so the
+// new strings paint immediately without a full reload.
+onLangChange(() => {
+  refreshWho();
+  refreshLangButton();
+  rerenderCurrentScreen();
+});
+refreshLangButton();
+
+function rerenderCurrentScreen() {
+  // Map screen → render function. Some screens depend on server state we
+  // already have (S.room, S.view); others are static like 'home'.
+  switch (S.screen) {
+    case 'home':           return renderHome();
+    case 'floor':          return showFloor();
+    case 'waiting-host':   return renderWaitingForHost(S.pendingTableCode || '');
+    default: break;
+  }
+  if (S.view) {
+    if (S.view.over) return renderReveal();
+    if (S.view.phase === 'setup') return renderSetup();
+    if (S.view.phase === 'play')  return renderTable();
+  }
+  if (S.room && !S.room.started) return renderLobby();
+}
 
 // Stable emoji per username — used by the home greeting card.
 // Deterministic so the same name always shows the same little icon.
@@ -171,15 +205,15 @@ function renderHome() {
             </div>
             <button class="play-chip" id="play-ai">
               <span class="pc-ic">▶</span>
-              <span class="pc-lbl">PLAY</span>
-              <span class="pc-sub">vs <b id="pc-count">${S.soloCount}</b> bots</span>
+              <span class="pc-lbl">${t('home.play')}</span>
+              <span class="pc-sub">${t('home.botsCount', { n: `<b id="pc-count">${S.soloCount}</b>` })}</span>
             </button>
           </div>
         </div>
       </div>
       <div class="seat-counter">
         <button class="seat-pm" id="cminus" aria-label="fewer">−</button>
-        <div class="seat-counter-mid"><b id="cval">${S.soloCount}</b><span class="muted small"> seats at the table</span></div>
+        <div class="seat-counter-mid"><b id="cval">${S.soloCount}</b><span class="muted small"> ${t('home.seatsAt')}</span></div>
         <button class="seat-pm" id="cplus" aria-label="more">+</button>
       </div>
     </section>
@@ -187,11 +221,11 @@ function renderHome() {
     <!-- Friends / online strip. Tap a face → invite them to your table. -->
     <section class="friends-strip">
       <div class="friends-head">
-        <span class="fh-label">👥 PLAYERS ONLINE</span>
+        <span class="fh-label">👥 ${t('home.online')}</span>
         <span class="muted small" id="online-count"></span>
       </div>
       <div class="friends-row" id="friends-row">
-        <div class="muted small" style="padding:14px">looking around the room…</div>
+        <div class="muted small" style="padding:14px">${t('home.lookingAround')}</div>
       </div>
     </section>
 
@@ -203,11 +237,11 @@ function renderHome() {
 
     <!-- Bottom tab bar — five icons, fixed -->
     <nav class="tab-bar">
-      <button class="tab active" data-tab="home"><span class="ic">🏠</span><span class="lbl">Home</span></button>
-      <button class="tab" data-tab="floor"><span class="ic">🎰</span><span class="lbl">Floor</span></button>
-      <button class="tab tab-plus" data-tab="new"><span class="ic">＋</span><span class="lbl">Table</span></button>
-      <button class="tab" data-tab="lb"><span class="ic">🏆</span><span class="lbl">Top</span></button>
-      <button class="tab" data-tab="rules"><span class="ic">📖</span><span class="lbl">Rules</span></button>
+      <button class="tab active" data-tab="home"><span class="ic">🏠</span><span class="lbl">${t('nav.home')}</span></button>
+      <button class="tab" data-tab="floor"><span class="ic">🎰</span><span class="lbl">${t('nav.floor')}</span></button>
+      <button class="tab tab-plus" data-tab="new"><span class="ic">＋</span><span class="lbl">${t('nav.table')}</span></button>
+      <button class="tab" data-tab="lb"><span class="ic">🏆</span><span class="lbl">${t('nav.top')}</span></button>
+      <button class="tab" data-tab="rules"><span class="ic">📖</span><span class="lbl">${t('nav.rules')}</span></button>
     </nav>`;
   spawnFloaters();
   refreshHomeStatsCompact();
@@ -238,22 +272,22 @@ function onTabClick(tab) {
 // Bottom-sheet with the three "make-a-table" options, so the home doesn't
 // have to show a separate button for each.
 function showNewTableSheet() {
-  modal(`<h3 class="center">Open a table</h3>
+  modal(`<h3 class="center">${t('newTable.title')}</h3>
     <div class="nt-list">
       <button class="nt-row" id="nt-invite">
         <div class="nt-ic" style="background:linear-gradient(135deg,#e85c86,#a61e44)">👋</div>
-        <div class="nt-txt"><b>Invite a friend</b><span>Private table — only invited players can sit.</span></div>
+        <div class="nt-txt"><b>${t('newTable.inviteFriend')}</b><span>${t('newTable.inviteFriendDesc')}</span></div>
       </button>
       <button class="nt-row" id="nt-public">
         <div class="nt-ic" style="background:linear-gradient(135deg,#4cb878,#1f6a44)">🎰</div>
-        <div class="nt-txt"><b>Open a public table</b><span>Anyone on the floor can take a seat.</span></div>
+        <div class="nt-txt"><b>${t('newTable.publicTable')}</b><span>${t('newTable.publicTableDesc')}</span></div>
       </button>
       <button class="nt-row" id="nt-code">
         <div class="nt-ic" style="background:linear-gradient(135deg,#e0a458,#8a5a1a)">⌨</div>
-        <div class="nt-txt"><b>Join with a code</b><span>Got a 5-letter table code? Type it in.</span></div>
+        <div class="nt-txt"><b>${t('newTable.joinCode')}</b><span>${t('newTable.joinCodeDesc')}</span></div>
       </button>
     </div>
-    <button class="btn ghost" id="nt-x">Never mind</button>`, () => {
+    <button class="btn ghost" id="nt-x">${t('common.neverMind')}</button>`, () => {
     $('#nt-invite').onclick = () => { closeModal(); inviteFriendFromHome(); };
     $('#nt-public').onclick = () => { closeModal(); createRoom(); };
     $('#nt-code').onclick   = () => { closeModal(); joinPrompt(); };
@@ -294,23 +328,23 @@ async function refreshOnlineStrip() {
   catch { /* server hiccup — leave skeleton */ return; }
   const others = users.filter(u => !(S.user && u.username === S.user.username));
   const el = $('#friends-row'); if (!el) return;
-  const countEl = $('#online-count'); if (countEl) countEl.textContent = others.length ? `${others.length} online` : 'no one else here yet';
+  const countEl = $('#online-count'); if (countEl) countEl.textContent = others.length ? t('home.onlineCount', { n: others.length }) : t('home.noneOnline');
   const bubbles = others.slice(0, 12).map(u => `
-    <button class="friend-bubble" data-name="${esc(u.username)}" title="Invite ${esc(u.username)} to play">
+    <button class="friend-bubble" data-name="${esc(u.username)}" data-tip="${t('lobby.inviteSent', { name: esc(u.username) })}">
       ${avatarFor(u.username, { size: 52, withRing: true })}
       <span class="fb-dot" aria-label="online"></span>
       <span class="fb-name">${esc(u.username)}</span>
     </button>`).join('');
   const inviteByName = `
-    <button class="friend-bubble add" id="fb-add" title="Invite by username">
+    <button class="friend-bubble add" id="fb-add" title="${t('home.byName')}">
       <span class="fb-plus">＋</span>
-      <span class="fb-name">By name</span>
+      <span class="fb-name">${t('home.byName')}</span>
     </button>`;
   if (!others.length) {
     el.innerHTML = `<div class="friends-empty">
       <div class="big">🌙</div>
-      <div>You're the only one in the room right now.</div>
-      <div class="muted small">Tap <b>+ By name</b> to invite a friend anyway.</div>
+      <div>${t('home.onlyOne')}</div>
+      <div class="muted small">${t('home.tapByName')}</div>
     </div>${inviteByName}`;
   } else {
     el.innerHTML = bubbles + inviteByName;
@@ -447,17 +481,17 @@ function renderLobby() {
   app.innerHTML = `
     <!-- BIG ROOM CODE HEADER — front and center so the host can share it instantly -->
     <section class="code-banner">
-      <div class="cb-label">YOUR TABLE</div>
+      <div class="cb-label">${t('lobby.yourTable')}</div>
       <div class="cb-code">
         <span class="cb-letters" id="cb-letters">${esc(r.code)}</span>
-        <button class="cb-iconbtn" id="copy" data-tip="Copy code to clipboard">📋</button>
-        <button class="cb-iconbtn" id="share" data-tip="Share invite link">🔗</button>
+        <button class="cb-iconbtn" id="copy" data-tip="${t('lobby.copyTip')}">📋</button>
+        <button class="cb-iconbtn" id="share" data-tip="${t('lobby.shareTip')}">🔗</button>
       </div>
       <div class="cb-meta">
-        <button class="cb-chip ${isPrivate ? 'private' : 'public'}" id="vis-toggle" ${isHost ? '' : 'disabled'} data-tip="${isHost ? 'Tap to toggle visibility' : 'Only the host can change this'}">
-          ${isPrivate ? '🔒 Private' : '🟢 Public on the floor'}
+        <button class="cb-chip ${isPrivate ? 'private' : 'public'}" id="vis-toggle" ${isHost ? '' : 'disabled'} data-tip="${isHost ? t('lobby.visTipHost') : t('lobby.visTipGuest')}">
+          ${isPrivate ? t('lobby.visPrivate') : t('lobby.visPublic')}
         </button>
-        <span class="cb-seat-count">${r.seats.length}/${TOTAL_SEATS} seated · ${free} open</span>
+        <span class="cb-seat-count">${t('lobby.seatCount', { n: r.seats.length, max: TOTAL_SEATS, free })}</span>
       </div>
     </section>
 
@@ -472,8 +506,8 @@ function renderLobby() {
               <span class="csc c1"></span><span class="csc c2"></span><span class="csc c3"></span>
             </div>
             <div class="lobby-table-msg">
-              ${canBegin ? '<b>Ready when you are</b>' : `<b>Need ${3 - r.seats.length} more</b>`}
-              <span>${r.seats.length}/${TOTAL_SEATS} seated</span>
+              ${canBegin ? `<b>${t('lobby.ready')}</b>` : `<b>${t('lobby.needMore', { n: 3 - r.seats.length })}</b>`}
+              <span>${t('lobby.seated', { n: r.seats.length, max: TOTAL_SEATS })}</span>
             </div>
           </div>
         </div>
@@ -482,7 +516,7 @@ function renderLobby() {
 
     ${pending.length ? `
     <section class="panel pending-panel">
-      <h4 class="center">🚪 Waiting at the door</h4>
+      <h4 class="center">${t('lobby.waitingDoor')}</h4>
       <div class="pending-list">
         ${pending.map(p => `<div class="pending-row" data-cid="${esc(p.clientId)}">
           ${avatarFor(p.name, { size: 36 })}
@@ -497,24 +531,24 @@ function renderLobby() {
     <!-- INVITE PLAYERS — embedded friends strip + name search + add bot -->
     <section class="invite-stage">
       <div class="invite-head">
-        <span class="ih-label">👥 INVITE PLAYERS ONLINE</span>
+        <span class="ih-label">${t('lobby.invitePlayers')}</span>
         <span class="muted small" id="lobby-online-count"></span>
       </div>
       <div class="friends-row lobby-friends" id="lobby-friends">
-        <div class="muted small" style="padding:14px">looking around the room…</div>
+        <div class="muted small" style="padding:14px">${t('home.lookingAround')}</div>
       </div>
       <div class="invite-actions">
-        <button class="btn" id="inviteUser">👋 Invite by username</button>
-        <button class="btn" id="addai" ${free <= 0 ? 'disabled' : ''}>🤖 Add computer</button>
+        <button class="btn" id="inviteUser">${t('lobby.inviteByName')}</button>
+        <button class="btn" id="addai" ${free <= 0 ? 'disabled' : ''}>${t('lobby.addComputer')}</button>
       </div>
     </section>` : ''}
 
     ${isHost ? `
       <button class="btn primary big begin-btn" id="begin" ${canBegin ? '' : 'disabled'}>
-        ${canBegin ? '▶ BEGIN GAME' : `Need ${3 - r.seats.length} more to start`}
-      </button>` : '<p class="center muted">Waiting for the host to begin…</p>'}
+        ${canBegin ? t('lobby.beginGame') : t('lobby.beginNeed', { n: 3 - r.seats.length })}
+      </button>` : `<p class="center muted">${t('lobby.waitingHost')}</p>`}
 
-    <button class="btn ghost" id="leave">← Leave table</button>`;
+    <button class="btn ghost" id="leave">${t('lobby.leaveTable')}</button>`;
 
   $('#copy').onclick = () => copyTableCode(r.code);
   $('#share').onclick = () => shareTableLink(r.code, shareUrl);
@@ -537,20 +571,20 @@ function renderLobby() {
 function copyTableCode(code) {
   SFX.click?.();
   navigator.clipboard?.writeText(code);
-  toast('Table code copied');
+  toast(t('lobby.copied'));
   const el = $('#cb-letters'); if (el) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
 }
 
 // Use the OS share sheet if available (mobile), otherwise copy the link.
 async function shareTableLink(code, url) {
   SFX.click?.();
-  const text = `Come play PYAAR with me — table ${code}.`;
+  const text = t('lobby.shareText', { code });
   if (navigator.share) {
-    try { await navigator.share({ title: 'PYAAR table ' + code, text, url }); return; }
+    try { await navigator.share({ title: t('lobby.shareTitle', { code }), text, url }); return; }
     catch { /* user dismissed */ }
   }
-  try { await navigator.clipboard.writeText(url); toast('Invite link copied'); }
-  catch { toast('Could not share. Copy the code instead.'); }
+  try { await navigator.clipboard.writeText(url); toast(t('lobby.linkCopied')); }
+  catch { toast(t('lobby.shareFail')); }
 }
 
 // Friends strip inside the lobby — tap a face → send them an invite to THIS table.
@@ -659,8 +693,8 @@ function renderSetup() {
     <section class="aim-stage">
       <div class="aim-hero">
         <div class="aim-emoji">💘</div>
-        <h2 class="aim-title">Pick your secret crush</h2>
-        <p class="aim-sub">Tap the one you secretly fancy.<br><b>You win the game if they fancy YOU back.</b></p>
+        <h2 class="aim-title">${t('setup.title')}</h2>
+        <p class="aim-sub">${t('setup.sub1')}<br><b>${t('setup.sub2')}</b></p>
       </div>
 
       <div class="aim-grid">
@@ -680,15 +714,15 @@ function renderSetup() {
             <span class="aim-prev-arrow">💞</span>
             ${avatarFor(sel.name, { size: 38, withRing: true })}
           </div>
-          <div class="aim-prev-text">You secretly fancy <b>${sel.seat.icon} ${esc(sel.name)}</b>.<br>
-          <span class="muted">Win if ${esc(sel.name)} also fancies you. Hide it until you're ready!</span></div>
-        ` : `<div class="aim-prev-text muted">Tap a face above to choose your crush.</div>`}
+          <div class="aim-prev-text">${t('setup.previewFancy', { seat: sel.seat.icon, name: esc(sel.name) })}<br>
+          <span class="muted">${t('setup.previewWin', { name: esc(sel.name) })}</span></div>
+        ` : `<div class="aim-prev-text muted">${t('setup.tapToChoose')}</div>`}
       </div>
 
-      <button class="btn primary big aim-lock" id="lock" ${sel ? '' : 'disabled'}>${sel ? `🔒 Lock secret — fancy ${esc(sel.name)} 💘` : 'Pick someone first'}</button>
+      <button class="btn primary big aim-lock" id="lock" ${sel ? '' : 'disabled'}>${sel ? t('setup.lockReady', { name: esc(sel.name) }) : t('setup.lockPrompt')}</button>
     </section>`;
   app.querySelectorAll('[data-c]').forEach(el => el.onclick = () => { SFX.click?.(); S._crush = +el.dataset.c; renderSetup(); });
-  $('#lock').onclick = () => { SFX.crush(); S.net.send({ type: 'setSecret', crush: S._crush }); S.secretSent = true; renderWaiting('Secret locked. Waiting for the others…'); };
+  $('#lock').onclick = () => { SFX.crush(); S.net.send({ type: 'setSecret', crush: S._crush }); S.secretSent = true; renderWaiting(t('setup.locked')); };
 }
 
 // ---------- the felt table ----------
@@ -1192,32 +1226,32 @@ function accountMenu() {
   });
 }
 function showRules() {
-  modal(`<h3>How to play</h3>
+  modal(`<h3>${t('rules.title')}</h3>
     <div class="rules-tour-row">
-      <button class="btn primary sm" id="rt-home">🎓 Tour the home</button>
-      <button class="btn sm" id="rt-play">🃏 Tour gameplay</button>
+      <button class="btn primary sm" id="rt-home">${t('rules.tourHome')}</button>
+      <button class="btn sm" id="rt-play">${t('rules.tourPlay')}</button>
     </div>
 
     <div class="rules-section">
-      <div class="rules-step"><span class="rs-num">1</span><div><b>You secretly fancy someone.</b> At the start of each match you pick one rival as your secret crush. Only YOU know.</div></div>
-      <div class="rules-step"><span class="rs-num">2</span><div><b>Each turn: draw 1, play 1.</b> Cards either help you, attack a rival, or peek info.</div></div>
-      <div class="rules-step"><span class="rs-num">3</span><div><b>Grow your love.</b> ✨ Spark → 🌹 Dating → 💋 Crazy. At 💋 play <b>GROW (❤️ Moment)</b> again to <b>confess</b>.</div></div>
-      <div class="rules-step"><span class="rs-num">4</span><div><b>You win as 💞 Soulmates</b> if your crush fancies you back. If they don't → you're <b>rejected</b> (cool off, skip a turn, your secret is exposed).</div></div>
+      <div class="rules-step"><span class="rs-num">1</span><div><b>${t('rules.step1Title')}</b> ${t('rules.step1Body')}</div></div>
+      <div class="rules-step"><span class="rs-num">2</span><div><b>${t('rules.step2Title')}</b> ${t('rules.step2Body')}</div></div>
+      <div class="rules-step"><span class="rs-num">3</span><div><b>${t('rules.step3Title')}</b> ${t('rules.step3Body')}</div></div>
+      <div class="rules-step"><span class="rs-num">4</span><div><b>${t('rules.step4Title')}</b> ${t('rules.step4Body')}</div></div>
     </div>
 
-    <div class="rules-heading">The 7 cards</div>
+    <div class="rules-heading">${t('rules.cardsHeading')}</div>
     <div class="rules-cards">
-      <div class="rc"><span class="rc-ic">❤️</span><b>GROW</b> — +1 stage on me. At 💋 play again to <b>confess</b>.</div>
-      <div class="rc"><span class="rc-ic">👀</span><b>PEEK</b> — see who a rival secretly fancies (only you see it).</div>
-      <div class="rc"><span class="rc-ic">💘</span><b>SWITCH</b> — pick a new crush. Your love drops −1 stage.</div>
-      <div class="rc"><span class="rc-ic">💔</span><b>BREAK</b> — −1 stage on any rival.</div>
-      <div class="rc"><span class="rc-ic">💚</span><b>EXPOSE</b> — −1 stage AND reveal who they fancy. Only hits rivals at Dating+.</div>
-      <div class="rc"><span class="rc-ic">🛡️</span><b>SHIELD</b> — block the next BREAK / EXPOSE / FREEZE on you.</div>
-      <div class="rc"><span class="rc-ic">🤝</span><b>FREEZE</b> — a rival skips their next turn.</div>
+      <div class="rc"><span class="rc-ic">❤️</span>${t('rules.rcGrow')}</div>
+      <div class="rc"><span class="rc-ic">👀</span>${t('rules.rcPeek')}</div>
+      <div class="rc"><span class="rc-ic">💘</span>${t('rules.rcSwitch')}</div>
+      <div class="rc"><span class="rc-ic">💔</span>${t('rules.rcBreak')}</div>
+      <div class="rc"><span class="rc-ic">💚</span>${t('rules.rcExpose')}</div>
+      <div class="rc"><span class="rc-ic">🛡️</span>${t('rules.rcShield')}</div>
+      <div class="rc"><span class="rc-ic">🤝</span>${t('rules.rcFreeze')}</div>
     </div>
 
-    <p class="small muted" style="margin-top:8px;">If the deck runs out before anyone confesses, whoever got closest to love wins.</p>
-    <button class="btn primary" id="x">Got it</button>`, () => {
+    <p class="small muted" style="margin-top:8px;">${t('rules.foot')}</p>
+    <button class="btn primary" id="x">${t('common.gotIt')}</button>`, () => {
     $('#x').onclick = closeModal;
     $('#rt-home').onclick = () => replayTour('home');
     $('#rt-play').onclick = () => replayTour('play');
