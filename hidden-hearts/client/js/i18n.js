@@ -81,6 +81,20 @@ const DICT = {
       pipReady: 'Play ❤️ Moment to Commit!',
       pipMutual: 'They committed and it was mutual!',
       confess: '💍 Ready to confess — play ❤️ Moment!',
+      confessNow: '💍 CONFESS YOUR LOVE',
+      confessWait: '💍 You\'re at 💋 — wait for an ❤️ in your hand to confess.',
+    },
+    goal: {
+      reminder: '🎯 Goal: build ❤️ to 💋, then confess. Win if your crush fancies you back.',
+    },
+    commit: {
+      title: '💍 Confess your love to {name}?',
+      body: 'You\'ll find out if {name} secretly fancies you back.',
+      ifYes: '✅ <b>Mutual</b> → 💞 SOULMATES — you BOTH win!',
+      ifNo: '❌ <b>Not mutual</b> → rejected (−1 stage, skip a turn, secret exposed).',
+      doConfess: '💍 Yes, confess!',
+      notYet: 'Not yet',
+      tipGlance: 'Tip: play 👀 PEEK first to check before you confess.',
     },
     lobby: {
       yourTable: 'YOUR TABLE',
@@ -381,6 +395,20 @@ const DICT = {
       pipReady: 'Joue ❤️ Instant pour t\'avouer !',
       pipMutual: 'Ils se sont avoués et c\'était mutuel !',
       confess: '💍 Prêt(e) à t\'avouer — joue ❤️ Instant !',
+      confessNow: '💍 AVOUE TON AMOUR',
+      confessWait: '💍 Tu es à 💋 — attends une ❤️ dans ta main pour t\'avouer.',
+    },
+    goal: {
+      reminder: '🎯 Objectif : monte ❤️ jusqu\'à 💋 puis avoue-toi. Tu gagnes si l\'autre t\'aime aussi.',
+    },
+    commit: {
+      title: '💍 Avouer ton amour à {name} ?',
+      body: 'Tu vas savoir si {name} craque secrètement pour toi aussi.',
+      ifYes: '✅ <b>Mutuel</b> → 💞 ÂMES SŒURS — vous gagnez TOUS LES DEUX !',
+      ifNo: '❌ <b>Pas mutuel</b> → rejet (−1 niveau, tour passé, secret exposé).',
+      doConfess: '💍 Oui, je m\'avoue !',
+      notYet: 'Plus tard',
+      tipGlance: 'Astuce : joue 👀 ESPION d\'abord pour vérifier.',
     },
     lobby: {
       yourTable: 'TA TABLE',

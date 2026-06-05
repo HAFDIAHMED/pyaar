@@ -771,6 +771,8 @@ function renderTable() {
       </div>${chips}
     </div></div>
     <div class="hand-area ${myTurn ? '' : 'idle'}">
+      <!-- Always-visible goal hint so new players never lose track of the win condition -->
+      <div class="goal-hint">${t('goal.reminder')}</div>
       <div class="love-bar" data-tip="${t('loveBar.tip')}">
         <div class="lb-head">
           <span class="lb-secret">${t('loveBar.secret')} 💘 ${avatarFor(v.players[me.crush].name, { size: 22 })}<b>${esc(v.players[me.crush].name)}</b></span>
@@ -783,13 +785,26 @@ function renderTable() {
           <div class="lb-pip ${me.stage >= 3 ? 'lit' : ''}" data-tip="${t('loveBar.pipCrazy')}">💋</div>
           <div class="lb-pip commit ${me.ready ? 'ready' : ''} ${me.won ? 'lit' : ''}" data-tip="${me.ready ? t('loveBar.pipReady') : t('loveBar.pipCommit')}">💍</div>
         </div>
-        ${me.ready ? `<div class="lb-confess">${t('loveBar.confess')}</div>` : ''}
+        ${me.ready ? (
+          (me.hand || []).includes('MOMENT')
+            ? `<button class="lb-confess-btn" id="confess-now" type="button">${t('loveBar.confessNow')}</button>`
+            : `<div class="lb-confess wait">${t('loveBar.confessWait')}</div>`
+        ) : ''}
       </div>
       <div class="hand fan">${(me.hand || []).map((k, i) => cardHTML(k, i)).join('')}</div>
       <div class="hint-line">${myTurn ? t('game.tapCard') : t('game.waiting')}</div>
     </div>
     <div class="log">${v.log.slice(0, 4).map(e => `<div class="e">${e}</div>`).join('')}</div>`;
   const helpBtn = $('#game-help'); if (helpBtn) helpBtn.onclick = () => replayTour('play');
+  // Wire the new "💍 CONFESS YOUR LOVE" button: auto-find the first ❤️ Moment
+  // card in the player's hand and trigger the same commit flow as tapping it.
+  const cb = $('#confess-now'); if (cb) cb.onclick = () => {
+    SFX.click?.();
+    const me2 = S.view?.players?.[S.view?.youAre];
+    if (!me2) return;
+    const idx = (me2.hand || []).indexOf('MOMENT');
+    if (idx >= 0) commitSheet(idx);
+  };
   if (myTurn) {
     app.querySelectorAll('.pcard[data-play]').forEach(el => el.onclick = () => playCard(+el.dataset.play));
     if (S.sel) {
@@ -913,11 +928,15 @@ function playCard(i) {
 }
 function commitSheet(i) {
   const v = S.view; const me = v.players[v.youAre]; const obj = v.players[me.crush];
-  sheet(`<div class="sheet-title">💍 Commit to ${obj.seat.icon} ${esc(obj.name)}?</div>
-    <p class="center small">You pour your heart out. If they secretly fancy you back → <b class="gold">you both win — Soulmates! 💞</b><br/>
-    If not → you're <b>rejected</b>: your secret is out and you're knocked back a stage.<br/><span class="muted">Tip: 👀 Glance them first to be sure.</span></p>
-    <button class="btn primary" id="docommit">💍 Commit — say it!</button>
-    <button class="btn ghost" id="sx">Not yet</button>`, () => {
+  sheet(`<div class="sheet-title">${t('commit.title', { name: `${obj.seat.icon} ${esc(obj.name)}` })}</div>
+    <p class="center" style="font-size:14px;line-height:1.5">${t('commit.body', { name: esc(obj.name) })}</p>
+    <div class="commit-outcomes">
+      <div class="co-row good">${t('commit.ifYes')}</div>
+      <div class="co-row bad">${t('commit.ifNo')}</div>
+    </div>
+    <p class="center muted small" style="margin:8px 0 4px">${t('commit.tipGlance')}</p>
+    <button class="btn primary big" id="docommit">${t('commit.doConfess')}</button>
+    <button class="btn ghost" id="sx">${t('commit.notYet')}</button>`, () => {
     document.getElementById('docommit').onclick = () => { closeModal(); S.sel = null; act({ cardIndex: i }); };
     document.getElementById('sx').onclick = closeModal;
   });
