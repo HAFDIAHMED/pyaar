@@ -687,7 +687,10 @@ function renderWaiting(msg) { clearFloaters(); app.innerHTML = `<section class="
 
 function renderSetup() {
   clearFloaters();
-  maybeRunSetupTutorial();
+  // On the FIRST game ever, show the 5-slide concept intro before the
+  // setup-tutorial spotlight. After it's dismissed the regular spotlight
+  // tour follows (which is itself gated by its own localStorage flag).
+  maybeRunConceptIntro(() => maybeRunSetupTutorial());
   const v = S.view;
   const others = v.players.filter(p => p.id !== v.youAre);
   const sel = (S._crush != null) ? v.players[S._crush] : null;
@@ -1278,7 +1281,8 @@ function accountMenu() {
 function showRules() {
   modal(`<h3>${t('rules.title')}</h3>
     <div class="rules-tour-row">
-      <button class="btn primary sm" id="rt-home">${t('rules.tourHome')}</button>
+      <button class="btn primary sm" id="rt-intro">${t('intro.replayBtn')}</button>
+      <button class="btn sm" id="rt-home">${t('rules.tourHome')}</button>
       <button class="btn sm" id="rt-play">${t('rules.tourPlay')}</button>
     </div>
 
@@ -1303,6 +1307,7 @@ function showRules() {
     <p class="small muted" style="margin-top:8px;">${t('rules.foot')}</p>
     <button class="btn primary" id="x">${t('common.gotIt')}</button>`, () => {
     $('#x').onclick = closeModal;
+    $('#rt-intro').onclick = () => { closeModal(); localStorage.removeItem('pyaar_concept_v1'); showConceptIntro(); };
     $('#rt-home').onclick = () => replayTour('home');
     $('#rt-play').onclick = () => replayTour('play');
   });
@@ -1699,6 +1704,137 @@ function playTutorialSteps() {
     { targetSel: '.table-wrap',   prefer: 'below', title: t('tour.play4Title'), body: t('tour.play4Body') },
     { title: t('tour.play5Title'), body: t('tour.play5Body') },
   ];
+}
+
+// ============================================================
+// CONCEPT INTRO — a 5-slide visual story that teaches the IDEA of
+// PYAAR, not the mechanics. Auto-fires once on the user's first game
+// (gated by localStorage.pyaar_concept_v1), replayable from Rules.
+// Designed to make the principle click for friends who play and
+// say "I still don't get it" even after a match.
+// ============================================================
+function conceptSlides() {
+  // Use distinct seeds for the four "table players" so their avatars vary.
+  const sampleAv = (seed, size = 48, ring = false) => avatarFor(seed, { size, withRing: ring });
+  return [
+    // SLIDE 1 — opening: PYAAR title + drifting hearts
+    { title: t('intro.s1Title'), body: t('intro.s1Body'), scene: `
+      <div class="ci-scene s1">
+        <div class="ci-floaters" aria-hidden="true">
+          <span style="--n:0">💞</span><span style="--n:1">💗</span>
+          <span style="--n:2">💖</span><span style="--n:3">💕</span>
+          <span style="--n:4">✨</span><span style="--n:5">💘</span>
+        </div>
+        <div class="ci-brand-logo">❤</div>
+        <div class="ci-brand-name">PYAAR</div>
+      </div>` },
+
+    // SLIDE 2 — table of 4 players, each with a hidden-crush thought bubble
+    { title: t('intro.s2Title'), body: t('intro.s2Body'), scene: `
+      <div class="ci-scene s2">
+        <div class="ci-table-ring">
+          ${['alpha','bravo','charlie','delta'].map((seed, i) => `
+            <div class="ci-ring-seat" style="--n:${i}">
+              ${sampleAv(seed, 52)}
+              <div class="ci-think-bubble">${t('intro.s2Bubble')}</div>
+            </div>`).join('')}
+          <div class="ci-table-mid">🎴</div>
+        </div>
+      </div>` },
+
+    // SLIDE 3 — YOU + heart arrow → your crush
+    { title: t('intro.s3Title'), body: t('intro.s3Body'), scene: `
+      <div class="ci-scene s3">
+        <div class="ci-pair">
+          <div class="ci-pair-side">
+            ${sampleAv('me', 80, true)}
+            <div class="ci-pair-label you">${t('intro.s3You')}</div>
+          </div>
+          <div class="ci-pair-arrow">
+            <span class="ci-heart-arrow">💘</span>
+            <span class="ci-question">?</span>
+          </div>
+          <div class="ci-pair-side">
+            ${sampleAv('them', 80, true)}
+            <div class="ci-pair-label crush">${t('intro.s3Crush')}</div>
+          </div>
+        </div>
+      </div>` },
+
+    // SLIDE 4 — love stage progression with ❤️ cards flying in
+    { title: t('intro.s4Title'), body: t('intro.s4Body'), scene: `
+      <div class="ci-scene s4">
+        <div class="ci-stage-row">
+          <div class="ci-stage-pip lit">✨</div>
+          <div class="ci-stage-arrow">→</div>
+          <div class="ci-stage-pip lit">🌹</div>
+          <div class="ci-stage-arrow">→</div>
+          <div class="ci-stage-pip lit pulse">💋</div>
+        </div>
+        <div class="ci-stage-hint">${t('intro.s4HintGrow')}</div>
+        <div class="ci-mini-hand">
+          <span class="ci-mini-card love">❤️</span>
+          <span class="ci-mini-card love">❤️</span>
+          <span class="ci-mini-card love">❤️</span>
+        </div>
+      </div>` },
+
+    // SLIDE 5 — two outcomes side by side
+    { title: t('intro.s5Title'), body: t('intro.s5Body'), scene: `
+      <div class="ci-scene s5">
+        <div class="ci-outcomes-row">
+          <div class="ci-outcome good">
+            <div class="ci-out-emoji">💞</div>
+            <div class="ci-out-cap">${t('intro.s5Mutual')}</div>
+            <div class="ci-out-res">${t('intro.s5MutualResult')}</div>
+          </div>
+          <div class="ci-vs">vs</div>
+          <div class="ci-outcome bad">
+            <div class="ci-out-emoji">💔</div>
+            <div class="ci-out-cap">${t('intro.s5NotMutual')}</div>
+            <div class="ci-out-res">${t('intro.s5NotMutualResult')}</div>
+          </div>
+        </div>
+      </div>` },
+  ];
+}
+
+function showConceptIntro(opts = {}) {
+  const onDone = opts.onDone;
+  const slides = conceptSlides();
+  let idx = 0;
+  function end() {
+    closeModal();
+    localStorage.setItem('pyaar_concept_v1', 'done');
+    if (onDone) try { onDone(); } catch {}
+  }
+  function render() {
+    const last = idx === slides.length - 1;
+    const s = slides[idx];
+    modal(`<div class="concept-intro">
+      <div class="ci-skip-row"><button class="link-btn sm" id="ci-skip">${t('intro.skip')}</button></div>
+      <div class="ci-stage" data-i="${idx}">${s.scene}</div>
+      <div class="ci-text">
+        <div class="ci-title">${s.title}</div>
+        <div class="ci-body">${s.body}</div>
+      </div>
+      <div class="ci-controls">
+        <button class="btn ghost sm" id="ci-prev" ${idx === 0 ? 'disabled' : ''}>${t('common.back')}</button>
+        <div class="ci-dots">${slides.map((_, j) => `<span class="${j === idx ? 'on' : ''}"></span>`).join('')}</div>
+        <button class="btn primary sm" id="ci-next">${last ? t('intro.startBtn') + ' 🃏' : t('common.next')}</button>
+      </div>
+    </div>`, () => {
+      $('#ci-skip').onclick = end;
+      $('#ci-prev').onclick = () => { if (idx > 0) { idx--; SFX.click?.(); render(); } };
+      $('#ci-next').onclick = () => { if (last) end(); else { idx++; SFX.click?.(); render(); } };
+    });
+  }
+  render();
+}
+
+function maybeRunConceptIntro(onDone) {
+  if (localStorage.getItem('pyaar_concept_v1') === 'done') { if (onDone) onDone(); return; }
+  showConceptIntro({ onDone });
 }
 
 // Auto-fire helpers — each tour is gated by a localStorage flag.

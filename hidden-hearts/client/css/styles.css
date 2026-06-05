@@ -1673,6 +1673,238 @@ body.tour-active{ overflow: hidden; }
 }
 
 /* ============================================================
+   CONCEPT INTRO — 5-slide visual story that teaches the IDEA
+   of PYAAR (not the mechanics). Fires once before the very first
+   game; replayable from the Rules tab.
+   ============================================================ */
+.concept-intro{
+  display: flex; flex-direction: column; gap: 12px;
+  min-height: 360px;
+}
+.ci-skip-row{ display: flex; justify-content: flex-end; margin-top: -6px; }
+.ci-skip-row .link-btn{ font-size: 11px; color: #b6a3b0; }
+.ci-skip-row .link-btn:hover{ color: #ffe9a8; }
+
+/* The visual stage where each slide's scene lives */
+.ci-stage{
+  position: relative;
+  min-height: 200px;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(232,92,134,.12), transparent 70%),
+    linear-gradient(180deg, rgba(40,18,42,.55), rgba(20,8,22,.55));
+  border: 1px solid rgba(217,179,92,.35);
+  border-radius: 16px;
+  padding: 18px;
+  overflow: hidden;
+  animation: ciSlideIn .35s cubic-bezier(.2,.9,.25,1.15) both;
+}
+@keyframes ciSlideIn{
+  from { opacity: 0; transform: translateY(10px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Caption + body text under the stage */
+.ci-text{ text-align: center; padding: 0 4px; }
+.ci-title{
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 20px; font-weight: 800; color: #ffe9a8;
+  letter-spacing: 1px; margin-bottom: 6px;
+}
+.ci-body{
+  font-size: 14px; line-height: 1.5; color: #f3e9df;
+}
+.ci-body b{ color: #ffe9a8; }
+
+/* Navigation controls — Back · dots · Next */
+.ci-controls{
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 4px;
+}
+.ci-controls .btn{ width: auto; flex: 0 0 auto; padding: 6px 14px; font-size: 13px; }
+.ci-controls .btn.primary{ margin-left: auto; }
+.ci-controls #ci-prev{ }
+.ci-dots{ display: flex; gap: 6px; flex: 1; justify-content: center; }
+.ci-dots span{
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(255,255,255,.18);
+  transition: background .2s, transform .2s;
+}
+.ci-dots span.on{
+  background: #ffe9a8;
+  transform: scale(1.3);
+  box-shadow: 0 0 8px rgba(255,235,168,.6);
+}
+
+/* ── SLIDE 1: brand opener ─────────────────────────────── */
+.ci-scene.s1{
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 200px; gap: 8px; position: relative;
+}
+.ci-floaters{ position: absolute; inset: 0; pointer-events: none; }
+.ci-floaters span{
+  position: absolute;
+  font-size: 22px;
+  opacity: 0;
+  animation: ciFloat 4s ease-in-out infinite;
+  animation-delay: calc(var(--n) * 0.4s);
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,.4));
+}
+.ci-floaters span:nth-child(1){ top: 10%; left: 12%; }
+.ci-floaters span:nth-child(2){ top: 18%; right: 14%; }
+.ci-floaters span:nth-child(3){ bottom: 22%; left: 8%; }
+.ci-floaters span:nth-child(4){ bottom: 12%; right: 10%; }
+.ci-floaters span:nth-child(5){ top: 38%; left: 4%; }
+.ci-floaters span:nth-child(6){ top: 30%; right: 4%; }
+@keyframes ciFloat{
+  0%,100%{ opacity: 0; transform: translateY(10px); }
+  20%,80%{ opacity: .7; transform: translateY(0); }
+}
+.ci-brand-logo{
+  font-size: 64px; line-height: 1;
+  color: #e85c86;
+  filter: drop-shadow(0 5px 12px rgba(232,92,134,.55));
+  animation: heartThump 1.5s ease-in-out infinite;
+}
+.ci-brand-name{
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 38px; font-weight: 900; letter-spacing: 6px;
+  color: #ffe9a8;
+  text-shadow: 0 3px 0 rgba(0,0,0,.5), 0 0 28px rgba(217,179,92,.5);
+}
+
+/* ── SLIDE 2: 4 seats around a table, each with hidden crush ───── */
+.ci-scene.s2{ display: flex; align-items: center; justify-content: center; min-height: 220px; }
+.ci-table-ring{
+  position: relative;
+  width: 220px; height: 220px;
+  background:
+    radial-gradient(circle at 50% 50%, #1b6f4a 0%, #075a32 65%, #042818 100%);
+  border-radius: 50%;
+  border: 8px solid #3a2614;
+  box-shadow: inset 0 0 30px rgba(0,0,0,.55), 0 8px 20px rgba(0,0,0,.5);
+}
+.ci-table-mid{
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 26px; opacity: .7;
+}
+.ci-ring-seat{
+  position: absolute; top: 50%; left: 50%;
+  --angle: calc(90deg * var(--n));
+  transform: translate(-50%, -50%) rotate(var(--angle)) translate(0, -100px) rotate(calc(-1 * var(--angle)));
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.ci-think-bubble{
+  background: rgba(232,92,134,.22);
+  border: 1.5px dashed rgba(232,92,134,.7);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 12px;
+  color: #ffe0e8;
+  white-space: nowrap;
+  animation: ciBubblePulse 2.5s ease-in-out infinite;
+}
+@keyframes ciBubblePulse{
+  0%,100%{ transform: scale(1); }
+  50%   { transform: scale(1.08); }
+}
+
+/* ── SLIDE 3: YOU + heart arrow → your crush ───────────── */
+.ci-scene.s3{ display: flex; align-items: center; justify-content: center; min-height: 220px; }
+.ci-pair{ display: flex; align-items: center; gap: 18px; }
+.ci-pair-side{ display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.ci-pair-label{
+  font-size: 11px; letter-spacing: 1.5px; font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 8px; border-radius: 999px;
+}
+.ci-pair-label.you{ background: rgba(217,179,92,.3); color: #ffe9a8; border: 1px solid rgba(217,179,92,.6); }
+.ci-pair-label.crush{ background: rgba(232,92,134,.3); color: #ffd4e0; border: 1px solid rgba(232,92,134,.6); max-width: 110px; text-align: center; line-height: 1.2; padding: 3px 8px; }
+.ci-pair-arrow{ display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.ci-heart-arrow{ font-size: 36px; animation: heartThump 1.4s ease-in-out infinite; }
+.ci-question{
+  font-size: 18px; font-weight: 900; color: #d9b35c;
+  background: rgba(217,179,92,.18); border: 1px solid rgba(217,179,92,.6);
+  border-radius: 50%; width: 24px; height: 24px; line-height: 22px; text-align: center;
+}
+
+/* ── SLIDE 4: stage progression with mini cards ────────── */
+.ci-scene.s4{ display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 200px; }
+.ci-stage-row{ display: flex; align-items: center; gap: 10px; }
+.ci-stage-pip{
+  width: 48px; height: 48px; border-radius: 50%;
+  background: linear-gradient(180deg, #fff5d0, #d9b35c);
+  border: 2px solid #6b4d18;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.5);
+}
+.ci-stage-pip.pulse{ animation: pipReady 1.2s ease-in-out infinite; }
+.ci-stage-arrow{ color: #d9b35c; font-size: 20px; font-weight: 900; }
+.ci-stage-hint{ font-size: 11px; color: #b6a3b0; letter-spacing: 1px; text-transform: uppercase; }
+.ci-mini-hand{ display: flex; gap: 6px; }
+.ci-mini-card{
+  width: 36px; height: 50px; border-radius: 6px;
+  background: linear-gradient(165deg, #fffaf0, #ead9b0);
+  border: 1px solid #cab885;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 4px 8px rgba(0,0,0,.35);
+  animation: ciCardFloat 2.2s ease-in-out infinite;
+}
+.ci-mini-card:nth-child(2){ animation-delay: .3s; }
+.ci-mini-card:nth-child(3){ animation-delay: .6s; }
+@keyframes ciCardFloat{
+  0%,100%{ transform: translateY(0); }
+  50%   { transform: translateY(-6px); }
+}
+
+/* ── SLIDE 5: two outcomes side by side ────────────────── */
+.ci-scene.s5{ display: flex; align-items: center; justify-content: center; min-height: 200px; }
+.ci-outcomes-row{ display: flex; align-items: stretch; gap: 12px; width: 100%; max-width: 460px; }
+.ci-outcome{
+  flex: 1; padding: 14px 10px;
+  border-radius: 14px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.ci-outcome.good{
+  background: linear-gradient(180deg, rgba(62,224,138,.22), rgba(58,154,106,.12));
+  border: 2px solid rgba(58,224,138,.65);
+}
+.ci-outcome.bad{
+  background: linear-gradient(180deg, rgba(232,92,134,.22), rgba(166,30,68,.12));
+  border: 2px solid rgba(232,92,134,.6);
+  filter: saturate(.85);
+}
+.ci-out-emoji{ font-size: 40px; line-height: 1; }
+.ci-out-cap{
+  font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+  color: #f3e9df; font-weight: 700;
+}
+.ci-out-res{
+  font-size: 12px; line-height: 1.35;
+}
+.ci-outcome.good .ci-out-res{ color: #c4f4d6; }
+.ci-outcome.bad  .ci-out-res{ color: #ffd4e0; }
+.ci-vs{
+  align-self: center;
+  font-family: Georgia, serif; font-style: italic;
+  color: #b6a3b0; font-size: 14px;
+}
+
+/* Phone tweaks */
+@media (max-width: 480px){
+  .ci-stage{ padding: 14px; min-height: 180px; }
+  .ci-brand-name{ font-size: 32px; letter-spacing: 4px; }
+  .ci-table-ring{ width: 180px; height: 180px; }
+  .ci-ring-seat{ transform: translate(-50%, -50%) rotate(var(--angle)) translate(0, -82px) rotate(calc(-1 * var(--angle))); }
+  .ci-pair{ gap: 10px; }
+  .ci-stage-pip{ width: 40px; height: 40px; font-size: 18px; }
+  .ci-out-emoji{ font-size: 32px; }
+  .ci-title{ font-size: 17px; }
+  .ci-body{ font-size: 13px; }
+}
+
+/* ============================================================
    SETUP SCREEN — pick-your-crush as a visual choice
    ============================================================ */
 .aim-stage{
