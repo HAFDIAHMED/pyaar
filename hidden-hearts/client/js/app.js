@@ -2146,5 +2146,10 @@ refreshWho();
 $('#mute').textContent = SFX.isMuted() ? '🔇' : '🔊';
 // Deep-link join takes priority over the home screen — if we have a ?join=CODE,
 // land the user directly on the lobby (or sign-in if they're anonymous).
-if (!tryDeepLinkJoin()) renderHome();
+// tryDeepLinkJoin() is ASYNC — it returns a Promise. The old form
+// `if (!tryDeepLinkJoin())` evaluated `!Promise` (always false → home never
+// rendered on fresh page loads). Await the result properly.
+tryDeepLinkJoin()
+  .then(handled => { if (!handled) renderHome(); })
+  .catch(() => renderHome());
 ensurePresenceConnection();   // if a token is already in localStorage, register us as online
