@@ -29,11 +29,10 @@ function refreshWho() {
 function refreshLangButton() {
   const lb = $('#lang');
   if (!lb) return;
-  // Show the flag of the language you'll SWITCH TO when you tap (the affordance),
-  // not the current one. So an EN user sees 🇫🇷, tapping switches to French.
+  // Show the CURRENT language (flag + code) — tap to switch to the other one.
   const cur = getLang();
-  const flag = cur === 'en' ? '🇫🇷' : '🇺🇸';
-  const code = cur === 'en' ? 'FR' : 'EN';
+  const flag = cur === 'en' ? '🇺🇸' : '🇫🇷';
+  const code = cur.toUpperCase();
   lb.innerHTML = `<span class="lang-flag">${flag}</span><span class="lang-code">${code}</span>`;
   lb.title = t('langLabel');
 }
@@ -177,7 +176,7 @@ function renderHome() {
     if (i === 0 && S.user) {
       seatHTML.push(`<div class="ring-seat you" style="--n:${i}; --of:${TOTAL_SEATS}">${avatarFor(S.user.username, { size: 44, withRing: true })}<div class="ring-name">${esc(S.user.username)}</div></div>`);
     } else if (i === 0) {
-      seatHTML.push(`<div class="ring-seat empty" style="--n:${i}; --of:${TOTAL_SEATS}"><div class="ring-blank">?</div><div class="ring-name muted">guest</div></div>`);
+      seatHTML.push(`<div class="ring-seat empty" style="--n:${i}; --of:${TOTAL_SEATS}"><div class="ring-blank">?</div><div class="ring-name muted">${t('home.youGuest')}</div></div>`);
     } else if (i < S.soloCount) {
       const botName = ['Rumi','Layla','Kai','Sol','Vera','Ash'][i - 1] || ('bot' + i);
       seatHTML.push(`<div class="ring-seat bot" style="--n:${i}; --of:${TOTAL_SEATS}">${avatarFor(botName, { size: 36 })}<div class="ring-name muted">${esc(botName)}</div></div>`);
@@ -236,7 +235,7 @@ function renderHome() {
 
     <!-- Tiny floating stats strip — much less obtrusive than the old plaques -->
     <section class="mini-stats" id="mini-stats">
-      <div class="ms-pill" id="my-stats-pill">— games · — wins · — 💞</div>
+      <div class="ms-pill" id="my-stats-pill">${t('stats.lineDash')}</div>
       <div class="ms-pill ghost"><span class="muted small">🏆 top:</span> <span id="mini-top">…</span></div>
     </section>
 
@@ -316,7 +315,7 @@ async function refreshHomeStatsCompact() {
       const wins = h.filter(g => g.won).length;
       const soulmates = h.filter(g => g.soulmate).length;
       const el = $('#my-stats-pill');
-      if (el) el.innerHTML = `<b>${games}</b> games · <b>${wins}</b> wins · <b>${soulmates}</b> 💞`;
+      if (el) el.innerHTML = t('stats.line', { games, wins, soulmates });
     } catch {}
   } else {
     const el = $('#my-stats-pill');
@@ -365,7 +364,7 @@ async function refreshOnlineStrip() {
 // Tap an online friend → spin up a private table and immediately send them
 // the invite. Same backend as the username-invite flow; just pre-filled.
 async function inviteOnlineFriend(targetName) {
-  if (!S.user) { toast('Sign in first so they know who is inviting them.'); authModal(); return; }
+  if (!S.user) { toast(t('home.signInFirst')); authModal(); return; }
   SFX.click?.();
   S.mode = 'private';
   S.secretSent = false;
@@ -375,11 +374,11 @@ async function inviteOnlineFriend(targetName) {
   try {
     await connect();
     S.net.send({ type: 'create', name: name(), token: S.token, visibility: 'private' });
-  } catch { toast('Could not reach the server.'); S.pendingInviteTarget = null; }
+  } catch { toast(t('errors.serverUnreachable')); S.pendingInviteTarget = null; }
 }
 
 function inviteByNameFromHome() {
-  if (!S.user) { toast('Sign in first.'); authModal(); return; }
+  if (!S.user) { toast(t('errors.signInFirst')); authModal(); return; }
   inviteFriendFromHome();
 }
 
@@ -426,7 +425,7 @@ async function refreshHomeStats() {
 async function inviteFriendFromHome() {
   SFX.click?.();
   if (!S.user) {
-    toast('Pick your name first so your friend knows who is inviting them.');
+    toast(t('home.nameMissing'));
     authModal();
     return;
   }
@@ -440,7 +439,7 @@ async function inviteFriendFromHome() {
     // the floor see it as 🔒 locked and have to be approved.
     S.net.send({ type: 'create', name: name(), token: S.token, visibility: 'private' });
     return;
-  } catch { toast('Could not reach the server.'); S.openInviteOnLobby = false; return; }
+  } catch { toast(t('errors.serverUnreachable')); S.openInviteOnLobby = false; return; }
 }
 
 
@@ -639,19 +638,19 @@ async function refreshLobbyFriends() {
 
 // Host clicks "Invite a player by username" — prompt for the name, send via WS.
 function openInviteUserModal() {
-  if (!S.user) { toast('Sign in first to invite players.'); return; }
-  modal(`<h3>Invite a player</h3>
-    <p class="muted small">Type their PYAAR username. They must be signed in and online to receive the invite.</p>
+  if (!S.user) { toast(t('errors.signInFirstToInvite')); return; }
+  modal(`<h3>${t('inviteUser.title')}</h3>
+    <p class="muted small">${t('inviteUser.hint')}</p>
     <input id="inv-name" class="input" placeholder="@username" autocomplete="off" autofocus style="margin:8px 0; padding:10px; width:100%; box-sizing:border-box; background:#160d1a; border:1px solid #3c2a42; color:#f3e9df; border-radius:8px; font-size:15px;" />
     <div class="grid2" style="margin-top:10px">
-      <button class="btn ghost" id="inv-cancel">Cancel</button>
-      <button class="btn primary" id="inv-send">Send invite</button>
+      <button class="btn ghost" id="inv-cancel">${t('common.cancel')}</button>
+      <button class="btn primary" id="inv-send">${t('inviteUser.send')}</button>
     </div>`, () => {
       const input = document.getElementById('inv-name');
       input?.focus();
       const submit = () => {
         const username = (input?.value || '').trim().replace(/^@/, '');
-        if (!username) { toast('Type a username first.'); return; }
+        if (!username) { toast(t('inviteUser.typeFirst')); return; }
         S.net.send({ type: 'inviteUser', username });
         closeModal();
       };
@@ -664,11 +663,11 @@ function openInviteUserModal() {
 // Show the invitee's "X invites you to play" prompt and let them Join or Decline.
 function showIncomingInvite(payload) {
   SFX.crush?.();
-  modal(`<h3>💌 ${esc(payload.from)} invites you to play</h3>
-    <p>Room <b>${esc(payload.code)}</b>${payload.seats ? ` · ${payload.seats} seated so far` : ''}.</p>
+  modal(`<h3>${t('incoming.title', { from: esc(payload.from) })}</h3>
+    <p>${payload.seats ? t('incoming.seatedSoFar', { code: esc(payload.code), seats: payload.seats }) : t('incoming.roomOnly', { code: esc(payload.code) })}</p>
     <div class="grid2" style="margin-top:10px">
-      <button class="btn ghost" id="inv-no">Not now</button>
-      <button class="btn primary" id="inv-yes">Join now</button>
+      <button class="btn ghost" id="inv-no">${t('incoming.notNow')}</button>
+      <button class="btn primary" id="inv-yes">${t('incoming.joinNow')}</button>
     </div>`, () => {
       document.getElementById('inv-no').onclick = closeModal;
       document.getElementById('inv-yes').onclick = async () => {
@@ -677,10 +676,9 @@ function showIncomingInvite(payload) {
         try { resetGameState(); } catch {}
         try {
           if (!S.net) await connect();
-          // leave any prior room first
           try { S.net.send({ type: 'leave' }); } catch {}
           S.net.send({ type: 'join', code: payload.code, name: name(), token: S.token });
-        } catch { toast('Could not join the room'); }
+        } catch { toast(t('incoming.couldNotJoin')); }
       };
     });
 }
@@ -755,40 +753,40 @@ function renderTable() {
     chips += `<div class="chip-pos${tgt}" data-seat="${p.id}" style="left:${x}%;top:${y}%">${chipHTML(p, v.turn, v.youAre)}</div>`;
   }
   const aimCard = aiming ? S.sel.key : null;
-  const aimHint = { GLANCE: 'to peek their heart', SWAY: 'to aim your heart at', HEARTBREAK: 'to break their heart', JEALOUSY: 'to expose & rattle (Dating+)', FRIENDZONE: 'to friendzone' };
+  const aimHint = { GLANCE: t('game.aimGlance'), SWAY: t('game.aimSway'), HEARTBREAK: t('game.aimBreak'), JEALOUSY: t('game.aimExpose'), FRIENDZONE: t('game.aimFreeze') };
   app.innerHTML = `
     <div class="table-status">
-      <span data-tip="Cards remaining in the draw deck. When it empties, the round ends.">💌 ${v.deckCount} cards left${v.deckCount <= n ? ' · final round!' : ''}</span>
-      <span class="${myTurn ? 'turnnow' : 'muted'}">${myTurn ? 'Your turn' : 'Turn: ' + v.players[v.turn].name}</span>
-      <button class="help-btn" id="game-help" data-tip="Replay the gameplay tour" aria-label="Help">🎓</button>
+      <span data-tip="${t('game.deckCountTip')}">${t('game.cardsLeft', { n: v.deckCount })}${v.deckCount <= n ? ' ' + t('game.finalRound') : ''}</span>
+      <span class="${myTurn ? 'turnnow' : 'muted'}">${myTurn ? t('game.yourTurn') : t('game.turnOf', { name: v.players[v.turn].name })}</span>
+      <button class="help-btn" id="game-help" data-tip="${t('game.helpTip')}" aria-label="Help">🎓</button>
     </div>
-    ${aiming ? `<div class="aim-banner">${CARD[aimCard].icon} <b>${title(aimCard)}</b> — tap a player ${aimHint[aimCard] || ''}<button id="aim-cancel">Cancel</button></div>` : ''}
+    ${aiming ? `<div class="aim-banner">${CARD[aimCard].icon} <b>${title(aimCard)}</b> — ${aimHint[aimCard] || ''}<button id="aim-cancel">${t('common.cancel')}</button></div>` : ''}
     <div class="table-wrap${aiming ? ' aiming' : ''}"><div class="felt">
       <div class="table-center">
         <div class="piles">
-          <div class="pile deck" data-tip="Draw pile — you'll draw 1 card from here at the start of your turn."><span class="pc">${v.deckCount}</span><span class="pl">draw</span></div>
-          <div class="pile disc" data-tip="Discard — the last card played sits face-up here.">${v.discardTop ? `<span class="corner">${CARD[v.discardTop].icon}</span>${CARD[v.discardTop].icon}` : '—'}<span class="pl">played</span></div>
+          <div class="pile deck" data-tip="${t('game.drawTip')}"><span class="pc">${v.deckCount}</span><span class="pl">draw</span></div>
+          <div class="pile disc" data-tip="${t('game.discardTip')}">${v.discardTop ? `<span class="corner">${CARD[v.discardTop].icon}</span>${CARD[v.discardTop].icon}` : '—'}<span class="pl">played</span></div>
         </div>
-        <div class="talk">${v.log[0] || 'The table is set…'}</div>
+        <div class="talk">${v.log[0] || t('game.tableSet')}</div>
       </div>${chips}
     </div></div>
     <div class="hand-area ${myTurn ? '' : 'idle'}">
-      <div class="love-bar" data-tip="Your secret love progress. Only you see this. Reach 💋 to be ready to confess.">
+      <div class="love-bar" data-tip="${t('loveBar.tip')}">
         <div class="lb-head">
-          <span class="lb-secret">SECRET 💘 ${avatarFor(v.players[me.crush].name, { size: 22 })}<b>${esc(v.players[me.crush].name)}</b></span>
+          <span class="lb-secret">${t('loveBar.secret')} 💘 ${avatarFor(v.players[me.crush].name, { size: 22 })}<b>${esc(v.players[me.crush].name)}</b></span>
           <span class="lb-stage">${STAGE_NAMES[me.stage]}</span>
         </div>
         <div class="lb-track">
           <div class="lb-fill" style="width:${(me.stage / 3) * 100}%"></div>
-          <div class="lb-pip ${me.stage >= 1 ? 'lit' : ''}" data-tip="Spark — first flutter.">✨</div>
-          <div class="lb-pip ${me.stage >= 2 ? 'lit' : ''}" data-tip="Dating — things are warming up.">🌹</div>
-          <div class="lb-pip ${me.stage >= 3 ? 'lit' : ''}" data-tip="Crazy for them — ready to confess.">💋</div>
-          <div class="lb-pip commit ${me.ready ? 'ready' : ''} ${me.won ? 'lit' : ''}" data-tip="${me.ready ? 'Play ❤️ Moment to Commit!' : 'Devotion — reach 💋 first.'}">💍</div>
+          <div class="lb-pip ${me.stage >= 1 ? 'lit' : ''}" data-tip="${t('loveBar.pipSpark')}">✨</div>
+          <div class="lb-pip ${me.stage >= 2 ? 'lit' : ''}" data-tip="${t('loveBar.pipDating')}">🌹</div>
+          <div class="lb-pip ${me.stage >= 3 ? 'lit' : ''}" data-tip="${t('loveBar.pipCrazy')}">💋</div>
+          <div class="lb-pip commit ${me.ready ? 'ready' : ''} ${me.won ? 'lit' : ''}" data-tip="${me.ready ? t('loveBar.pipReady') : t('loveBar.pipCommit')}">💍</div>
         </div>
-        ${me.ready ? '<div class="lb-confess">💍 Ready to confess — play ❤️ Moment!</div>' : ''}
+        ${me.ready ? `<div class="lb-confess">${t('loveBar.confess')}</div>` : ''}
       </div>
       <div class="hand fan">${(me.hand || []).map((k, i) => cardHTML(k, i)).join('')}</div>
-      <div class="hint-line">${myTurn ? 'Tap a card to play it.' : 'Waiting for your turn…'}</div>
+      <div class="hint-line">${myTurn ? t('game.tapCard') : t('game.waiting')}</div>
     </div>
     <div class="log">${v.log.slice(0, 4).map(e => `<div class="e">${e}</div>`).join('')}</div>`;
   const helpBtn = $('#game-help'); if (helpBtn) helpBtn.onclick = () => replayTour('play');
@@ -804,14 +802,14 @@ function renderTable() {
 }
 
 function chipHTML(p, activeId, meId) {
-  const stageTips = ['Spark — first flutter of attraction.', 'Dating — things are warming up.', 'Crazy for them — ready to commit!'];
+  const stageTips = [t('loveBar.pipSpark'), t('loveBar.pipDating'), t('loveBar.pipCrazy')];
   const line = STAGES.slice(1).map((ic, idx) =>
     `<span class="st ${p.stage >= idx + 1 ? 'lit' : ''}" data-tip="${stageTips[idx]}">${ic}</span>`).join('')
-    + `<span class="st commit ${p.won ? 'lit' : (p.ready ? 'ready' : '')}" data-tip="${p.won ? 'They committed and it was mutual!' : 'Devotion — play ❤️ Moment at 💋 to confess.'}">💍</span>`;
+    + `<span class="st commit ${p.won ? 'lit' : (p.ready ? 'ready' : '')}" data-tip="${p.won ? t('loveBar.pipMutual') : t('loveBar.pipCommit')}">💍</span>`;
   const b = [];
-  if (p.shield) b.push({ ic: '🛡️', tip: 'Guarded — the next attack on them fizzles.' });
-  if (p.frozen) b.push({ ic: '🤝', tip: 'Friendzoned — they lose their next turn.' });
-  if (p.soulmate) b.push({ ic: '💞', tip: 'Soulmates! Their love is mutual.' });
+  if (p.shield) b.push({ ic: '🛡️', tip: t('badges.shield') });
+  if (p.frozen) b.push({ ic: '🤝', tip: t('badges.frozen') });
+  if (p.soulmate) b.push({ ic: '💞', tip: t('badges.soulmate') });
   const fan = (p.id !== meId)
     ? `<div class="minihand">${'<span class="mb"></span>'.repeat(Math.min(2, p.handCount || 0))}<span class="mhc">${p.handCount || 0}</span></div>`
     : '';
@@ -943,26 +941,26 @@ function renderReveal() {
   const winner = v.players[v.winnerId];
   const byDevotion = v.endReason === 'devotion';
   const headline = byDevotion
-    ? `${esc(winner.name)} reached 💍 Devotion — they won the love!`
-    : `${esc(winner.name)} got closest to love — they win the night 🌹`;
+    ? t('reveal.byDevotion', { name: esc(winner.name) })
+    : t('reveal.byDeck', { name: esc(winner.name) });
   const pairs = [];
   for (const p of v.players) { const o = v.players[p.crush]; if (p.soulmate && o.crush === p.id && p.id < o.id) pairs.push([p, o]); }
   app.innerHTML = `
     <section class="panel center">
-      <h2>The Reveal</h2>
+      <h2>${t('reveal.soulmatesHeader').replace('💞 ', '')}</h2>
       <div class="bigseat">${winner.seat.icon}</div>
       <h3 class="gold">${headline}</h3>
-      ${winner.soulmate ? '<div class="muted">…and it was meant to be — a Soulmate win 💞</div>' : ''}
+      ${winner.soulmate ? `<div class="muted">${t('reveal.soulmateLine')}</div>` : ''}
     </section>
-    ${pairs.length ? `<section class="panel center"><h3>💞 Soulmates</h3>${pairs.map(([a, b]) => `<div class="pairline">${a.seat.icon} ${esc(a.name)} 💘 ${b.seat.icon} ${esc(b.name)}</div>`).join('')}</section>` : ''}
-    <section class="panel"><h3 class="center">How far each heart got</h3>
+    ${pairs.length ? `<section class="panel center"><h3>${t('reveal.soulmatesHeader')}</h3>${pairs.map(([a, b]) => `<div class="pairline">${a.seat.icon} ${esc(a.name)} 💘 ${b.seat.icon} ${esc(b.name)}</div>`).join('')}</section>` : ''}
+    <section class="panel">
       ${[...v.players].sort((a, b) => b.stage - a.stage).map(p => { const o = v.players[p.crush]; return `<div class="revealline">
         <span class="si">${p.seat.icon}</span>
         <div class="rl-main"><b>${esc(p.name)}</b>${p.isAI ? ' <span class="ai-badge">AI</span>' : ''}${p.id === v.winnerId ? ' <span class="hosttag">winner</span>' : ''}
-          <div class="muted small">${STAGES[p.stage] || '—'} ${STAGE_NAMES[p.stage]} · 💘 ${o.seat.icon} ${esc(o.name)}${p.soulmate ? ' · <b class="pink">mutual! 💞</b>' : ''}</div></div>
+          <div class="muted small">${STAGES[p.stage] || '—'} ${STAGE_NAMES[p.stage]} · 💘 ${o.seat.icon} ${esc(o.name)}${p.soulmate ? ` · <b class="pink">${t('reveal.mutualTag')}</b>` : ''}</div></div>
       </div>`; }).join('')}
     </section>
-    <button class="btn primary big" id="again">Play again ❤️</button>`;
+    <button class="btn primary big" id="again">${t('reveal.playAgain')}</button>`;
   $('#again').onclick = leaveToHome;
 }
 
@@ -1068,7 +1066,7 @@ async function onTableCardClick(code, action) {
     try {
       await connect();
       S.net.send({ type: 'join', code, name: name(), token: S.token });
-    } catch { toast('Could not reach the server.'); }
+    } catch { toast(t('errors.serverUnreachable')); }
   } else if (action === 'request') {
     // Ping the host and wait for them to accept/decline.
     try {
@@ -1078,7 +1076,7 @@ async function onTableCardClick(code, action) {
       // Optimistic UI: open a "waiting for host" screen so the user sees
       // their request is in flight.
       renderWaitingForHost(code);
-    } catch { toast('Could not reach the server.'); }
+    } catch { toast(t('errors.serverUnreachable')); }
   }
 }
 
@@ -1104,11 +1102,11 @@ async function showLeaderboard() {
   SFX.click(); renderWaiting('Loading leaderboard…');
   const { data } = await api.get('/api/leaderboard');
   const rows = data.rows || [];
-  app.innerHTML = `<section class="panel"><h3 class="center">🏆 Leaderboard</h3>
-    ${rows.length ? `<table class="lb"><thead><tr><th>#</th><th>Player</th><th>Wins</th><th>💞</th><th>Score</th></tr></thead>
+  app.innerHTML = `<section class="panel"><h3 class="center">${t('leaderboard.title')}</h3>
+    ${rows.length ? `<table class="lb"><thead><tr><th>#</th><th>${t('leaderboard.player')}</th><th>${t('leaderboard.wins')}</th><th>💞</th><th>${t('leaderboard.score')}</th></tr></thead>
       <tbody>${rows.map((r, i) => `<tr><td>${i + 1}</td><td><span class="lb-player">${avatarFor(r.username, { size: 28 })}<span>${esc(r.username)}</span></span></td><td>${r.wins || 0}</td><td>${r.soulmates || 0}</td><td>${r.totalScore || 0}</td></tr>`).join('')}</tbody></table>`
-      : `<p class="center muted">${esc(data.note || 'No games recorded yet.')}<br/>Sign in and play to climb the board.</p>`}
-    </section><button class="btn ghost" id="back">← Back</button>`;
+      : `<p class="center muted">${esc(data.note || t('leaderboard.empty'))}<br/>${t('leaderboard.emptyHint')}</p>`}
+    </section><button class="btn ghost" id="back">${t('common.back')}</button>`;
   $('#back').onclick = renderHome;
 }
 
@@ -1119,13 +1117,13 @@ async function showLeaderboard() {
 function authModal() { renderAuthOne(); }
 
 function renderAuthOne() {
-  modal(`<h3 class="center">Pick your name</h3>
-    <p class="muted small center" style="margin:6px 0 12px;">No email, no password. Just claim a name and play.</p>
-    <input id="auth-name" class="auth-input" placeholder="your username" maxlength="24" autocomplete="off" autocapitalize="off" spellcheck="false" />
-    <div id="auth-hint" class="hint" style="font-size:12px; margin:-2px 0 6px;">2–24 letters, digits, or underscore.</div>
+  modal(`<h3 class="center">${t('welcome.pickName')}</h3>
+    <p class="muted small center" style="margin:6px 0 12px;">${t('welcome.pickBlurb')}</p>
+    <input id="auth-name" class="auth-input" placeholder="${t('welcome.placeholder')}" maxlength="24" autocomplete="off" autocapitalize="off" spellcheck="false" />
+    <div id="auth-hint" class="hint" style="font-size:12px; margin:-2px 0 6px;">${t('welcome.hint')}</div>
     <div class="err" id="auth-err" style="color:#e85c86; font-size:13px; min-height:18px; margin:4px 0;"></div>
-    <button class="btn primary" id="auth-go">Continue →</button>
-    <button class="btn ghost" id="auth-x">Cancel</button>`, () => {
+    <button class="btn primary" id="auth-go">${t('welcome.continue')}</button>
+    <button class="btn ghost" id="auth-x">${t('common.cancel')}</button>`, () => {
     const input = document.getElementById("auth-name");
     const hint  = document.getElementById("auth-hint");
     const err   = document.getElementById("auth-err");
@@ -1137,17 +1135,17 @@ function renderAuthOne() {
     const onType = () => {
       const v = input.value.trim();
       err.textContent = "";
-      if (!v) { hint.textContent = "2–24 letters, digits, or underscore."; hint.classList.remove("ok"); return; }
-      if (!validate(v)) { hint.textContent = "Only letters, digits, and underscore."; hint.classList.remove("ok"); return; }
-      hint.textContent = "Looking up…"; hint.classList.remove("ok");
+      if (!v) { hint.textContent = t('welcome.hint'); hint.classList.remove("ok"); return; }
+      if (!validate(v)) { hint.textContent = t('welcome.onlyChars'); hint.classList.remove("ok"); return; }
+      hint.textContent = t('welcome.lookingUp'); hint.classList.remove("ok");
       clearTimeout(checkTimer);
       checkTimer = setTimeout(async () => {
         if (input.value.trim() !== v) return;
         const r = await fetch("/api/auth/check-username?u=" + encodeURIComponent(v)).then(x => x.json()).catch(() => ({}));
         if (input.value.trim() !== v) return;
-        if (r.available)      { hint.textContent = "✓ name is free — you can claim it"; hint.classList.add("ok"); }
-        else if (r.valid === false) { hint.textContent = r.reason || "Invalid name."; hint.classList.remove("ok"); }
-        else                  { hint.textContent = "This name exists — you’ll sign in as them."; hint.classList.remove("ok"); }
+        if (r.available)      { hint.textContent = t('welcome.nameFree'); hint.classList.add("ok"); }
+        else if (r.valid === false) { hint.textContent = r.reason || t('welcome.invalidName'); hint.classList.remove("ok"); }
+        else                  { hint.textContent = t('welcome.nameTaken'); hint.classList.remove("ok"); }
         lastChecked = v;
       }, 220);
     };
@@ -1157,7 +1155,7 @@ function renderAuthOne() {
     go.onclick = submit;
     async function submit() {
       const username = input.value.trim();
-      if (!validate(username)) { err.textContent = "Pick 2–24 letters, digits, or underscore."; return; }
+      if (!validate(username)) { err.textContent = t('welcome.pickRules'); return; }
       go.disabled = true; go.textContent = "…";
       const { status, data } = await api.post("/api/auth/continue", { username });
       if (status === 200) {
@@ -1168,8 +1166,8 @@ function renderAuthOne() {
         ensurePresenceConnection();
         showWelcomeBurst(S.user.username);
       } else {
-        err.textContent = data.error || "Could not sign you in.";
-        go.disabled = false; go.textContent = "Continue →";
+        err.textContent = data.error || t('welcome.couldNotSign');
+        go.disabled = false; go.textContent = t('welcome.continue');
       }
     }
   });
@@ -1182,9 +1180,9 @@ function showWelcomeBurst(username) {
   host.innerHTML = `<div class="overlay"><div class="modal" style="position:relative; overflow:visible;">
     <div class="welcome-burst">
       <div class="heart">💞</div>
-      <h2>Welcome to PYAAR</h2>
-      <div class="who">${esc(username)} <span class="muted small">· you are in</span></div>
-      <div class="sub">Dealing your first table…</div>
+      <h2>${t('welcome.burstTitle')}</h2>
+      <div class="who">${esc(username)} <span class="muted small">· ${t('welcome.burstYouIn')}</span></div>
+      <div class="sub">${t('welcome.burstSub')}</div>
     </div>
     <div id="confetti-host" style="position:absolute; inset:0; pointer-events:none; overflow:hidden;"></div>
   </div></div>`;
@@ -1209,11 +1207,11 @@ function showWelcomeBurst(username) {
     // that table instead of dealing a solo game.
     if (S.pendingDeepJoin) {
       const code = S.pendingDeepJoin; S.pendingDeepJoin = null;
-      toast(`Welcome, ${username}! Joining table ${code}…`);
+      toast(t('welcome.welcomeJoining', { name: username, code }));
       try { joinTableByCode(code); } catch { renderHome(); }
       return;
     }
-    toast(`Welcome, ${username}! Dealing your first hand…`);
+    toast(t('welcome.welcomeDealing', { name: username }));
     try { playVsComputer(); } catch (e) { renderHome(); }
   }, 1500);
 }
@@ -1221,11 +1219,11 @@ function accountMenu() {
   modal(`<div class="account-head">
       ${avatarFor(S.user.username, { size: 80, clickable: true, withRing: true, id: 'acct-avatar' })}
       <div class="account-name">${esc(S.user.username)}</div>
-      <div class="muted small">🎲 tap avatar to change look</div>
+      <div class="muted small">${t('auth.tapAvatarHint')}</div>
     </div>
-    <button class="btn" id="lb">🏆 Leaderboard</button>
-    <button class="btn ghost" id="out">Sign out</button>
-    <button class="btn ghost" id="x">Close</button>`, () => {
+    <button class="btn" id="lb">${t('auth.myLeaderboard')}</button>
+    <button class="btn ghost" id="out">${t('auth.signOut')}</button>
+    <button class="btn ghost" id="x">${t('common.close')}</button>`, () => {
     $('#acct-avatar').onclick = () => { rerollAvatar(); closeModal(); accountMenu(); };
     $('#lb').onclick = () => { closeModal(); showLeaderboard(); };
     $('#out').onclick = () => { S.token = null; S.user = null; localStorage.removeItem('hh_token'); localStorage.removeItem('hh_user'); refreshWho(); closeModal(); if (S.screen === 'home') renderHome(); };
@@ -1269,7 +1267,7 @@ function showRules() {
 async function connect() {
   if (S.net) return;
   S.net = new Net(onMsg);
-  try { await S.net.connect(); } catch { toast('Could not reach the server'); S.net = null; throw new Error('no server'); }
+  try { await S.net.connect(); } catch { toast(t('errors.serverUnreachable')); S.net = null; throw new Error('no server'); }
   // Register presence right away so other players can invite us by username.
   if (S.token) S.net.send({ type: 'identify', token: S.token });
 }
@@ -1289,8 +1287,8 @@ async function playVsComputer() { SFX.resume(); SFX.click(); S.mode = 'solo'; S.
 async function createRoom() { SFX.resume(); SFX.click(); S.mode = 'private'; S.secretSent = false; resetGameState(); try { await connect(); S.net.send({ type: 'create', name: name(), token: S.token }); } catch {} }
 function joinPrompt() {
   SFX.resume();
-  modal(`<h3 class="center">Join a room</h3><input class="inp" id="code" placeholder="ROOM CODE" maxlength="5" style="text-transform:uppercase;text-align:center;letter-spacing:4px;font-size:22px" />
-    <button class="btn primary" id="go">Join</button><button class="btn ghost" id="x">Cancel</button>`, () => {
+  modal(`<h3 class="center">${t('join.title')}</h3><input class="inp" id="code" placeholder="${t('join.placeholder')}" maxlength="5" style="text-transform:uppercase;text-align:center;letter-spacing:4px;font-size:22px" />
+    <button class="btn primary" id="go">${t('join.join')}</button><button class="btn ghost" id="x">${t('common.cancel')}</button>`, () => {
     $('#x').onclick = closeModal;
     $('#go').onclick = async () => { const code = $('#code').value.trim().toUpperCase(); if (code.length < 4) return; closeModal(); S.mode = 'join'; S.secretSent = false; resetGameState(); try { await connect(); S.net.send({ type: 'join', code, token: S.token }); } catch {} };
   });
@@ -1325,7 +1323,7 @@ function onMsg(m) {
         if (S.pendingInviteTarget) {
           const tgt = S.pendingInviteTarget; S.pendingInviteTarget = null;
           setTimeout(() => {
-            try { S.net.send({ type: 'inviteUser', username: tgt }); toast(`Invite sent to ${tgt}`); } catch {}
+            try { S.net.send({ type: 'inviteUser', username: tgt }); toast(t('joinReq.inviteSent', { name: tgt })); } catch {}
           }, 150);
         }
       }
@@ -1341,9 +1339,9 @@ function onMsg(m) {
       }
       return renderTable();
     }
-    case 'private': return modal(`<h3>✦ You alone see…</h3><p>${esc(m.text)}</p><button class="btn primary" id="x">Keep the secret</button>`, () => $('#x').onclick = closeModal);
+    case 'private': return modal(`<h3>${t('privateMsg.title')}</h3><p>${esc(m.text)}</p><button class="btn primary" id="x">${t('privateMsg.keepSecret')}</button>`, () => $('#x').onclick = closeModal);
     case 'invite': return showIncomingInvite(m);
-    case 'inviteResult': return toast(m.message || m.reason || (m.ok ? 'Invite sent' : 'Invite failed'));
+    case 'inviteResult': return toast(m.message || m.reason || (m.ok ? t('errors.inviteOk') : t('errors.inviteFailed')));
     // The host of a private table sees someone requesting to sit down.
     case 'joinRequest': return showJoinRequest(m);
     // We requested a seat at a private table — server tells us whether the
@@ -1358,13 +1356,13 @@ function onMsg(m) {
 // Host-side: a guest asked to sit at our private table. Show an Accept/Decline.
 function showJoinRequest(m) {
   SFX.click?.();
-  modal(`<h3 class="center">🚪 Someone wants to sit down</h3>
+  modal(`<h3 class="center">${t('joinReq.title')}</h3>
     <div class="center" style="margin:14px 0 6px">${avatarFor(m.name, { size: 64, withRing: true })}</div>
     <div class="center" style="font-family:Georgia,serif; font-size:22px; color:#e0a458;">${esc(m.name)}</div>
-    <p class="center muted small">They want to join your table <b>${esc(m.code)}</b>.</p>
+    <p class="center muted small">${t('joinReq.body', { code: esc(m.code) })}</p>
     <div class="grid2" style="margin-top:14px">
-      <button class="btn primary" id="acc">✅ Accept</button>
-      <button class="btn ghost" id="dec">✖ Decline</button>
+      <button class="btn primary" id="acc">${t('joinReq.accept')}</button>
+      <button class="btn ghost" id="dec">${t('joinReq.decline')}</button>
     </div>`, () => {
     $('#acc').onclick = () => { S.net.send({ type: 'joinResponse', clientId: m.clientId, accept: true });  closeModal(); };
     $('#dec').onclick = () => { S.net.send({ type: 'joinResponse', clientId: m.clientId, accept: false }); closeModal(); };
@@ -1610,9 +1608,9 @@ const Tour = (() => {
         <div class="tb-title">${s.title}</div>
         <div class="tb-body">${s.body}</div>
         <div class="tb-actions">
-          <button class="btn ghost sm" id="tb-skip">Skip</button>
-          <button class="btn ghost sm" id="tb-prev" ${idx === 0 ? 'disabled' : ''}>← Back</button>
-          <button class="btn primary sm" id="tb-next">${last ? 'Got it! 🎉' : 'Next →'}</button>
+          <button class="btn ghost sm" id="tb-skip">${t('common.skip')}</button>
+          <button class="btn ghost sm" id="tb-prev" ${idx === 0 ? 'disabled' : ''}>${t('common.back')}</button>
+          <button class="btn primary sm" id="tb-next">${last ? t('common.gotIt') + ' 🎉' : t('common.next')}</button>
         </div>
       </div>`;
     document.getElementById('tb-skip').onclick = end;
@@ -1720,7 +1718,7 @@ async function joinTableByCode(code) {
   try {
     await connect();
     S.net.send({ type: 'join', code, name: name(), token: S.token });
-  } catch { toast('Could not reach the server.'); }
+  } catch { toast(t('errors.serverUnreachable')); }
 }
 
 // ---------- boot ----------
